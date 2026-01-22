@@ -28,7 +28,7 @@ client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
 # JWT config
-JWT_SECRET = os.environ.get('JWT_SECRET', 'harvestbid-secret-key-change-in-production')
+JWT_SECRET = os.environ.get('JWT_SECRET', 'jarnnmarket-secret-key-change-in-production')
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_HOURS = 24 * 7
 
@@ -36,7 +36,7 @@ JWT_EXPIRATION_HOURS = 24 * 7
 STRIPE_API_KEY = os.environ.get('STRIPE_API_KEY', 'sk_test_emergent')
 
 # Create the main app
-app = FastAPI(title="HarvestBid API")
+app = FastAPI(title="jarnnmarket API")
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
@@ -699,7 +699,7 @@ async def seed_data():
 # Basic health check
 @api_router.get("/")
 async def root():
-    return {"message": "HarvestBid API", "version": "1.0.0"}
+    return {"message": "jarnnmarket API", "version": "1.0.0"}
 
 # Include the router in the main app
 app.include_router(api_router)

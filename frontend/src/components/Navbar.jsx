@@ -29,7 +29,7 @@ export const Navbar = () => {
           <Link to="/" className="flex items-center gap-2" data-testid="logo">
             <Gavel className="w-8 h-8 text-primary" />
             <span className="text-xl font-bold text-primary" style={{ fontFamily: 'Playfair Display, serif' }}>
-              HarvestBid
+              jarnnmarket
             </span>
           </Link>
 

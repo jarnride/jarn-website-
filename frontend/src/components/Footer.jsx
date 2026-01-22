@@ -11,7 +11,7 @@ export const Footer = () => {
             <div className="flex items-center gap-2 mb-4">
               <Gavel className="w-8 h-8" />
               <span className="text-2xl font-bold" style={{ fontFamily: 'Playfair Display, serif' }}>
-                HarvestBid
+                jarnnmarket
               </span>
             </div>
             <p className="text-white/70 mb-6 max-w-md">
@@ -64,7 +64,7 @@ export const Footer = () => {
 
         {/* Bottom */}
         <div className="pt-8 border-t border-white/10 text-center text-white/50 text-sm">
-          <p>© {new Date().getFullYear()} HarvestBid. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} jarnnmarket. All rights reserved.</p>
         </div>
       </div>
     </footer>

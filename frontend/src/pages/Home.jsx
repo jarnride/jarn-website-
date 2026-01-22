@@ -49,7 +49,7 @@ export default function Home() {
 
   const successStories = [
     {
-      quote: "HarvestBid helped me sell my tomato harvest at 40% above market price. The direct connection to buyers changed my farming business.",
+      quote: "jarnnmarket helped me sell my tomato harvest at 40% above market price. The direct connection to buyers changed my farming business.",
       author: "John Mwangi",
       role: "Vegetable Farmer, Nairobi",
       image: "https://images.unsplash.com/photo-1628492058844-589eb5dc6a35?crop=entropy&cs=srgb&fm=jpg&q=85&w=100"
@@ -228,7 +228,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 md:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold mb-4" style={{ fontFamily: 'Playfair Display, serif' }}>
-              Why Choose HarvestBid?
+              Why Choose jarnnmarket?
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
               We're revolutionizing how farmers sell and buyers source fresh produce
