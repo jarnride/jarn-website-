@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Clock, MapPin, User } from 'lucide-react';
+import { Clock, MapPin, User, Zap } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
@@ -14,7 +14,7 @@ export const AuctionCard = ({ auction }) => {
       const now = Date.now();
       const diff = endTime - now;
 
-      if (diff <= 0) {
+      if (diff <= 0 || !auction.is_active) {
         setTimeLeft('Ended');
         return;
       }
@@ -38,7 +38,9 @@ export const AuctionCard = ({ auction }) => {
     calculateTimeLeft();
     const interval = setInterval(calculateTimeLeft, 1000);
     return () => clearInterval(interval);
-  }, [auction.ends_at]);
+  }, [auction.ends_at, auction.is_active]);
+
+  const isSold = auction.sold_via === 'buy_now' || !auction.is_active;
 
   return (
     <div className="auction-card card-hover" data-testid={`auction-card-${auction.id}`}>
@@ -50,6 +52,17 @@ export const AuctionCard = ({ auction }) => {
           loading="lazy"
         />
         <Badge className="auction-card-badge">{auction.category}</Badge>
+        {auction.buy_now_price && !isSold && (
+          <Badge className="absolute top-3 right-3 bg-harvest text-black">
+            <Zap className="w-3 h-3 mr-1" />
+            Buy Now
+          </Badge>
+        )}
+        {isSold && (
+          <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+            <Badge className="bg-accent text-white text-lg px-4 py-2">SOLD</Badge>
+          </div>
+        )}
       </div>
 
       <div className="p-4">
@@ -76,19 +89,38 @@ export const AuctionCard = ({ auction }) => {
             <p className="text-2xl font-bold text-primary font-mono">${auction.current_bid.toFixed(2)}</p>
           </div>
           <div className="text-right">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Time Left</p>
-            <p className={`font-mono font-semibold ${isUrgent ? 'text-accent animate-countdown' : 'text-foreground'}`}>
-              <Clock className="w-4 h-4 inline mr-1" />
-              {timeLeft}
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">
+              {isSold ? 'Status' : 'Time Left'}
+            </p>
+            <p className={`font-mono font-semibold ${isUrgent && !isSold ? 'text-accent animate-countdown' : 'text-foreground'}`}>
+              {isSold ? (
+                <span className="text-accent">Sold</span>
+              ) : (
+                <>
+                  <Clock className="w-4 h-4 inline mr-1" />
+                  {timeLeft}
+                </>
+              )}
             </p>
           </div>
         </div>
 
+        {auction.buy_now_price && !isSold && (
+          <div className="mb-4 text-sm text-harvest font-medium">
+            <Zap className="w-4 h-4 inline mr-1" />
+            Buy Now: ${auction.buy_now_price.toFixed(2)}
+          </div>
+        )}
+
         <div className="flex items-center justify-between">
           <span className="text-sm text-muted-foreground">{auction.bid_count} bids</span>
           <Link to={`/auctions/${auction.id}`}>
-            <Button className="rounded-full bg-primary hover:bg-primary/90 btn-hover-lift" data-testid={`bid-now-${auction.id}`}>
-              Bid Now
+            <Button 
+              className="rounded-full bg-primary hover:bg-primary/90 btn-hover-lift" 
+              data-testid={`bid-now-${auction.id}`}
+              disabled={isSold}
+            >
+              {isSold ? 'View' : 'Bid Now'}
             </Button>
           </Link>
         </div>
