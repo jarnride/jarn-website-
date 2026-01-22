@@ -41,8 +41,8 @@ export const AuthProvider = ({ children }) => {
     return userData;
   };
 
-  const register = async (name, email, password, role) => {
-    const response = await axios.post(`${API}/auth/register`, { name, email, password, role });
+  const register = async (name, email, password, role, phone = null) => {
+    const response = await axios.post(`${API}/auth/register`, { name, email, password, role, phone });
     const { user: userData, token: newToken } = response.data;
     setToken(newToken);
     setUser(userData);
@@ -58,8 +58,35 @@ export const AuthProvider = ({ children }) => {
     delete axios.defaults.headers.common['Authorization'];
   };
 
+  const updateUser = (updates) => {
+    setUser(prev => ({ ...prev, ...updates }));
+  };
+
+  const sendPhoneVerification = async (phone) => {
+    const response = await axios.post(`${API}/auth/phone/send-code`, { phone });
+    return response.data;
+  };
+
+  const verifyPhone = async (phone, code) => {
+    const response = await axios.post(`${API}/auth/phone/verify`, { phone, code });
+    if (response.data.success) {
+      updateUser({ phone, phone_verified: true });
+    }
+    return response.data;
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      token, 
+      loading, 
+      login, 
+      register, 
+      logout, 
+      updateUser,
+      sendPhoneVerification,
+      verifyPhone
+    }}>
       {children}
     </AuthContext.Provider>
   );
