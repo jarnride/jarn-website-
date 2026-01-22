@@ -1,17 +1,23 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, UploadFile, File
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
+import socketio
 import os
 import logging
+import base64
+import re
 from pathlib import Path
-from pydantic import BaseModel, Field, EmailStr
-from typing import List, Optional, Dict
+from pydantic import BaseModel, Field, EmailStr, field_validator
+from typing import List, Optional
 import uuid
 from datetime import datetime, timezone, timedelta
 import jwt
 import bcrypt
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from emergentintegrations.payments.stripe.checkout import (
     StripeCheckout,
     CheckoutSessionResponse,
@@ -35,8 +41,24 @@ JWT_EXPIRATION_HOURS = 24 * 7
 # Stripe config
 STRIPE_API_KEY = os.environ.get('STRIPE_API_KEY', 'sk_test_emergent')
 
-# Create the main app
+# Rate limiting
+limiter = Limiter(key_func=get_remote_address)
+
+# Socket.IO setup
+sio = socketio.AsyncServer(
+    async_mode='asgi',
+    cors_allowed_origins='*',
+    logger=True,
+    engineio_logger=False
+)
+
+# Create the main FastAPI app
 app = FastAPI(title="jarnnmarket API")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Create Socket.IO ASGI app
+socket_app = socketio.ASGIApp(sio, other_asgi_app=app)
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
@@ -48,13 +70,32 @@ security = HTTPBearer(auto_error=False)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# ================== VALIDATION HELPERS ==================
+
+def validate_email(email: str) -> bool:
+    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    return bool(re.match(pattern, email))
+
+def validate_password(password: str) -> bool:
+    # At least 6 characters
+    return len(password) >= 6
+
+def sanitize_string(value: str) -> str:
+    # Remove potential XSS characters
+    return re.sub(r'[<>"\']', '', value.strip())
+
 # ================== MODELS ==================
 
 class UserCreate(BaseModel):
-    name: str
+    name: str = Field(..., min_length=2, max_length=100)
     email: EmailStr
-    password: str
-    role: str = "buyer"  # buyer or farmer
+    password: str = Field(..., min_length=6, max_length=100)
+    role: str = Field(default="buyer", pattern="^(buyer|farmer)$")
+    
+    @field_validator('name')
+    @classmethod
+    def sanitize_name(cls, v):
+        return sanitize_string(v)
 
 class UserLogin(BaseModel):
     email: EmailStr
@@ -68,14 +109,20 @@ class UserResponse(BaseModel):
     created_at: str
 
 class AuctionCreate(BaseModel):
-    title: str
-    description: str
-    category: str
-    location: str
+    title: str = Field(..., min_length=5, max_length=200)
+    description: str = Field(default="", max_length=2000)
+    category: str = Field(..., min_length=2, max_length=50)
+    location: str = Field(default="", max_length=100)
     image_url: Optional[str] = None
-    starting_bid: float
-    reserve_price: Optional[float] = None
-    duration_hours: int = 24
+    starting_bid: float = Field(..., gt=0)
+    buy_now_price: Optional[float] = Field(default=None, gt=0)
+    reserve_price: Optional[float] = Field(default=None, gt=0)
+    duration_hours: int = Field(default=24, ge=1, le=168)
+    
+    @field_validator('title', 'description', 'category', 'location')
+    @classmethod
+    def sanitize_fields(cls, v):
+        return sanitize_string(v) if v else v
 
 class AuctionResponse(BaseModel):
     id: str
@@ -88,6 +135,7 @@ class AuctionResponse(BaseModel):
     image_url: Optional[str]
     starting_bid: float
     current_bid: float
+    buy_now_price: Optional[float]
     reserve_price: Optional[float]
     starts_at: str
     ends_at: str
@@ -97,7 +145,7 @@ class AuctionResponse(BaseModel):
     created_at: str
 
 class BidCreate(BaseModel):
-    amount: float
+    amount: float = Field(..., gt=0)
 
 class BidResponse(BaseModel):
     id: str
@@ -110,6 +158,13 @@ class BidResponse(BaseModel):
 class PaymentCreate(BaseModel):
     auction_id: str
     origin_url: str
+
+class BuyNowRequest(BaseModel):
+    origin_url: str
+
+class ImageUploadResponse(BaseModel):
+    url: str
+    filename: str
 
 # ================== AUTH HELPERS ==================
 
@@ -152,19 +207,62 @@ async def get_optional_user(credentials: HTTPAuthorizationCredentials = Depends(
     except:
         return None
 
+# ================== SOCKET.IO EVENTS ==================
+
+@sio.event
+async def connect(sid, environ):
+    logger.info(f"Client connected: {sid}")
+
+@sio.event
+async def disconnect(sid):
+    logger.info(f"Client disconnected: {sid}")
+
+@sio.event
+async def join_auction(sid, auction_id):
+    await sio.enter_room(sid, f"auction_{auction_id}")
+    logger.info(f"Client {sid} joined auction room: {auction_id}")
+
+@sio.event
+async def leave_auction(sid, auction_id):
+    await sio.leave_room(sid, f"auction_{auction_id}")
+    logger.info(f"Client {sid} left auction room: {auction_id}")
+
+async def broadcast_bid_update(auction_id: str, bid: dict, auction: dict):
+    """Broadcast bid update to all clients in the auction room"""
+    await sio.emit('bid_update', {
+        'auction_id': auction_id,
+        'bid': bid,
+        'current_bid': auction['current_bid'],
+        'bid_count': auction['bid_count']
+    }, room=f"auction_{auction_id}")
+
+async def broadcast_auction_sold(auction_id: str, auction: dict, buyer_name: str):
+    """Broadcast when auction is sold via Buy Now"""
+    await sio.emit('auction_sold', {
+        'auction_id': auction_id,
+        'final_price': auction['current_bid'],
+        'buyer_name': buyer_name
+    }, room=f"auction_{auction_id}")
+
 # ================== AUTH ROUTES ==================
 
 @api_router.post("/auth/register")
-async def register(data: UserCreate):
-    existing = await db.users.find_one({"email": data.email})
+@limiter.limit("5/minute")
+async def register(request: Request, data: UserCreate):
+    # Check for duplicate email
+    existing = await db.users.find_one({"email": data.email.lower()})
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
+    
+    # Validate password strength
+    if not validate_password(data.password):
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
     
     user_id = str(uuid.uuid4())
     user_doc = {
         "id": user_id,
         "name": data.name,
-        "email": data.email,
+        "email": data.email.lower(),  # Store lowercase for consistency
         "password_hash": hash_password(data.password),
         "role": data.role,
         "created_at": datetime.now(timezone.utc).isoformat()
@@ -176,7 +274,7 @@ async def register(data: UserCreate):
         "user": {
             "id": user_id,
             "name": data.name,
-            "email": data.email,
+            "email": data.email.lower(),
             "role": data.role,
             "created_at": user_doc["created_at"]
         },
@@ -184,8 +282,9 @@ async def register(data: UserCreate):
     }
 
 @api_router.post("/auth/login")
-async def login(data: UserLogin):
-    user = await db.users.find_one({"email": data.email}, {"_id": 0})
+@limiter.limit("10/minute")
+async def login(request: Request, data: UserLogin):
+    user = await db.users.find_one({"email": data.email.lower()}, {"_id": 0})
     if not user or not verify_password(data.password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
@@ -210,6 +309,55 @@ async def get_me(user: dict = Depends(get_current_user)):
         "role": user["role"],
         "created_at": user["created_at"]
     }
+
+# ================== IMAGE UPLOAD ==================
+
+@api_router.post("/upload/image", response_model=ImageUploadResponse)
+@limiter.limit("10/minute")
+async def upload_image(request: Request, file: UploadFile = File(...), user: dict = Depends(get_current_user)):
+    # Validate file type
+    allowed_types = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="Invalid file type. Allowed: JPEG, PNG, WebP, GIF")
+    
+    # Read file and check size (max 5MB)
+    content = await file.read()
+    if len(content) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File too large. Maximum size: 5MB")
+    
+    # Generate unique filename
+    ext = file.filename.split('.')[-1] if '.' in file.filename else 'jpg'
+    filename = f"{uuid.uuid4()}.{ext}"
+    
+    # Store as base64 in MongoDB (for simplicity - in production use S3/CloudStorage)
+    base64_data = base64.b64encode(content).decode()
+    
+    image_doc = {
+        "id": str(uuid.uuid4()),
+        "filename": filename,
+        "content_type": file.content_type,
+        "data": base64_data,
+        "user_id": user["id"],
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.images.insert_one(image_doc)
+    
+    # Return URL that can be used to fetch the image
+    return {
+        "url": f"/api/images/{image_doc['id']}",
+        "filename": filename
+    }
+
+@api_router.get("/images/{image_id}")
+async def get_image(image_id: str):
+    from fastapi.responses import Response
+    
+    image = await db.images.find_one({"id": image_id}, {"_id": 0})
+    if not image:
+        raise HTTPException(status_code=404, detail="Image not found")
+    
+    content = base64.b64decode(image["data"])
+    return Response(content=content, media_type=image["content_type"])
 
 # ================== AUCTION ROUTES ==================
 
@@ -252,7 +400,6 @@ async def get_categories():
         {"name": "Livestock", "image": "https://images.unsplash.com/photo-1500595046743-cd271d694d30?w=800", "count": 0}
     ]
     
-    # Get counts for each category
     for cat in categories:
         count = await db.auctions.count_documents({
             "category": cat["name"],
@@ -264,9 +411,14 @@ async def get_categories():
     return categories
 
 @api_router.post("/auctions")
-async def create_auction(data: AuctionCreate, user: dict = Depends(get_current_user)):
+@limiter.limit("10/minute")
+async def create_auction(request: Request, data: AuctionCreate, user: dict = Depends(get_current_user)):
     if user["role"] != "farmer":
         raise HTTPException(status_code=403, detail="Only farmers can create auctions")
+    
+    # Validate buy_now_price is higher than starting_bid
+    if data.buy_now_price and data.buy_now_price <= data.starting_bid:
+        raise HTTPException(status_code=400, detail="Buy Now price must be higher than starting bid")
     
     auction_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc)
@@ -283,6 +435,7 @@ async def create_auction(data: AuctionCreate, user: dict = Depends(get_current_u
         "image_url": data.image_url or "https://images.unsplash.com/photo-1574943320219-553eb213f72d?w=800",
         "starting_bid": float(data.starting_bid),
         "current_bid": float(data.starting_bid),
+        "buy_now_price": float(data.buy_now_price) if data.buy_now_price else None,
         "reserve_price": float(data.reserve_price) if data.reserve_price else None,
         "starts_at": now.isoformat(),
         "ends_at": ends_at.isoformat(),
@@ -308,7 +461,8 @@ async def get_auction_bids(auction_id: str, limit: int = 20):
     return bids
 
 @api_router.post("/auctions/{auction_id}/bids")
-async def place_bid(auction_id: str, data: BidCreate, user: dict = Depends(get_current_user)):
+@limiter.limit("30/minute")
+async def place_bid(request: Request, auction_id: str, data: BidCreate, user: dict = Depends(get_current_user)):
     auction = await db.auctions.find_one({"id": auction_id}, {"_id": 0})
     if not auction:
         raise HTTPException(status_code=404, detail="Auction not found")
@@ -348,10 +502,94 @@ async def place_bid(auction_id: str, data: BidCreate, user: dict = Depends(get_c
     
     updated_auction = await db.auctions.find_one({"id": auction_id}, {"_id": 0})
     
+    # Broadcast bid update via WebSocket
+    await broadcast_bid_update(auction_id, {k: v for k, v in bid_doc.items() if k != "_id"}, updated_auction)
+    
     return {
         "bid": {k: v for k, v in bid_doc.items() if k != "_id"},
         "auction": updated_auction
     }
+
+# ================== BUY NOW ==================
+
+@api_router.post("/auctions/{auction_id}/buy-now")
+@limiter.limit("10/minute")
+async def buy_now(request: Request, auction_id: str, data: BuyNowRequest, user: dict = Depends(get_current_user)):
+    auction = await db.auctions.find_one({"id": auction_id}, {"_id": 0})
+    if not auction:
+        raise HTTPException(status_code=404, detail="Auction not found")
+    
+    if not auction["is_active"]:
+        raise HTTPException(status_code=400, detail="Auction is not active")
+    
+    if datetime.fromisoformat(auction["ends_at"]) < datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="Auction has ended")
+    
+    if auction["seller_id"] == user["id"]:
+        raise HTTPException(status_code=400, detail="Cannot buy your own auction")
+    
+    if not auction.get("buy_now_price"):
+        raise HTTPException(status_code=400, detail="This auction does not have a Buy Now option")
+    
+    # Create Stripe checkout for Buy Now price
+    host_url = str(request.base_url).rstrip('/')
+    webhook_url = f"{host_url}/api/webhook/stripe"
+    
+    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+    
+    success_url = f"{data.origin_url}/payment/success?session_id={{CHECKOUT_SESSION_ID}}"
+    cancel_url = f"{data.origin_url}/payment/cancel"
+    
+    checkout_request = CheckoutSessionRequest(
+        amount=float(auction["buy_now_price"]),
+        currency="usd",
+        success_url=success_url,
+        cancel_url=cancel_url,
+        metadata={
+            "auction_id": auction_id,
+            "user_id": user["id"],
+            "auction_title": auction["title"],
+            "type": "buy_now"
+        }
+    )
+    
+    session = await stripe_checkout.create_checkout_session(checkout_request)
+    
+    # Create payment transaction record
+    payment_id = str(uuid.uuid4())
+    payment_doc = {
+        "id": payment_id,
+        "session_id": session.session_id,
+        "auction_id": auction_id,
+        "user_id": user["id"],
+        "amount": float(auction["buy_now_price"]),
+        "currency": "usd",
+        "payment_status": "pending",
+        "payment_type": "buy_now",
+        "metadata": {
+            "auction_title": auction["title"]
+        },
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.payment_transactions.insert_one(payment_doc)
+    
+    # Mark auction as sold immediately (will be confirmed after payment)
+    await db.auctions.update_one(
+        {"id": auction_id},
+        {
+            "$set": {
+                "is_active": False,
+                "winner_id": user["id"],
+                "current_bid": float(auction["buy_now_price"]),
+                "sold_via": "buy_now"
+            }
+        }
+    )
+    
+    # Broadcast auction sold
+    await broadcast_auction_sold(auction_id, auction, user["name"])
+    
+    return {"url": session.url, "session_id": session.session_id}
 
 # ================== USER ROUTES ==================
 
@@ -364,7 +602,6 @@ async def get_user_auctions(user_id: str):
 async def get_my_bids(user: dict = Depends(get_current_user)):
     bids = await db.bids.find({"bidder_id": user["id"]}, {"_id": 0}).sort("created_at", -1).to_list(100)
     
-    # Get associated auctions
     auction_ids = list(set([b["auction_id"] for b in bids]))
     auctions = await db.auctions.find({"id": {"$in": auction_ids}}, {"_id": 0}).to_list(100)
     auctions_map = {a["id"]: a for a in auctions}
@@ -379,27 +616,28 @@ async def get_won_auctions(user: dict = Depends(get_current_user)):
     now = datetime.now(timezone.utc).isoformat()
     auctions = await db.auctions.find({
         "winner_id": user["id"],
-        "ends_at": {"$lt": now}
+        "$or": [
+            {"ends_at": {"$lt": now}},
+            {"sold_via": "buy_now"}
+        ]
     }, {"_id": 0}).to_list(100)
     return auctions
 
 # ================== PAYMENT ROUTES ==================
 
 @api_router.post("/payments/create-checkout")
-async def create_checkout(data: PaymentCreate, request: Request, user: dict = Depends(get_current_user)):
+@limiter.limit("10/minute")
+async def create_checkout(request: Request, data: PaymentCreate, user: dict = Depends(get_current_user)):
     auction = await db.auctions.find_one({"id": data.auction_id}, {"_id": 0})
     if not auction:
         raise HTTPException(status_code=404, detail="Auction not found")
     
-    # Only winner can pay
     if auction.get("winner_id") != user["id"]:
         raise HTTPException(status_code=403, detail="Only the auction winner can pay")
     
-    # Check if auction ended
-    if datetime.fromisoformat(auction["ends_at"]) > datetime.now(timezone.utc):
+    if datetime.fromisoformat(auction["ends_at"]) > datetime.now(timezone.utc) and auction.get("sold_via") != "buy_now":
         raise HTTPException(status_code=400, detail="Auction has not ended yet")
     
-    # Check if already paid
     existing_payment = await db.payment_transactions.find_one({
         "auction_id": data.auction_id,
         "payment_status": "paid"
@@ -407,7 +645,6 @@ async def create_checkout(data: PaymentCreate, request: Request, user: dict = De
     if existing_payment:
         raise HTTPException(status_code=400, detail="Already paid for this auction")
     
-    # Create Stripe checkout
     host_url = str(request.base_url).rstrip('/')
     webhook_url = f"{host_url}/api/webhook/stripe"
     
@@ -430,7 +667,6 @@ async def create_checkout(data: PaymentCreate, request: Request, user: dict = De
     
     session = await stripe_checkout.create_checkout_session(checkout_request)
     
-    # Create payment transaction record
     payment_id = str(uuid.uuid4())
     payment_doc = {
         "id": payment_id,
@@ -455,7 +691,6 @@ async def get_payment_status(session_id: str, request: Request, user: dict = Dep
     if not payment:
         raise HTTPException(status_code=404, detail="Payment not found")
     
-    # Check with Stripe
     host_url = str(request.base_url).rstrip('/')
     webhook_url = f"{host_url}/api/webhook/stripe"
     stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
@@ -463,7 +698,6 @@ async def get_payment_status(session_id: str, request: Request, user: dict = Dep
     try:
         status = await stripe_checkout.get_checkout_status(session_id)
         
-        # Update payment status if changed
         if status.payment_status != payment.get("payment_status"):
             await db.payment_transactions.update_one(
                 {"session_id": session_id},
@@ -474,7 +708,6 @@ async def get_payment_status(session_id: str, request: Request, user: dict = Dep
                 }}
             )
             
-            # Mark auction as paid if successful
             if status.payment_status == "paid":
                 await db.auctions.update_one(
                     {"id": payment["auction_id"]},
@@ -484,7 +717,7 @@ async def get_payment_status(session_id: str, request: Request, user: dict = Dep
         return {
             "status": status.status,
             "payment_status": status.payment_status,
-            "amount": status.amount_total / 100,  # Convert from cents
+            "amount": status.amount_total / 100,
             "auction_id": payment["auction_id"]
         }
     except Exception as e:
@@ -518,7 +751,6 @@ async def stripe_webhook(request: Request):
                 }}
             )
             
-            # Get auction from payment
             payment = await db.payment_transactions.find_one({"session_id": event.session_id})
             if payment:
                 await db.auctions.update_one(
@@ -554,14 +786,10 @@ async def get_stats():
 
 @api_router.post("/seed")
 async def seed_data():
-    """Seed demo data for testing"""
-    
-    # Check if data exists
     existing = await db.auctions.count_documents({})
     if existing > 0:
         return {"message": "Data already seeded"}
     
-    # Create demo farmers
     farmers = [
         {"id": str(uuid.uuid4()), "name": "John Mwangi", "email": "john@farm.com", "password_hash": hash_password("password123"), "role": "farmer", "created_at": datetime.now(timezone.utc).isoformat()},
         {"id": str(uuid.uuid4()), "name": "Sarah Ochieng", "email": "sarah@farm.com", "password_hash": hash_password("password123"), "role": "farmer", "created_at": datetime.now(timezone.utc).isoformat()},
@@ -569,11 +797,9 @@ async def seed_data():
     ]
     await db.users.insert_many(farmers)
     
-    # Create demo buyer
     buyer = {"id": str(uuid.uuid4()), "name": "Demo Buyer", "email": "buyer@demo.com", "password_hash": hash_password("password123"), "role": "buyer", "created_at": datetime.now(timezone.utc).isoformat()}
     await db.users.insert_one(buyer)
     
-    # Create demo auctions
     now = datetime.now(timezone.utc)
     demo_auctions = [
         {
@@ -583,10 +809,11 @@ async def seed_data():
             "title": "Fresh Organic Tomatoes - 50kg",
             "description": "Premium quality organic tomatoes, freshly harvested from our farm. Perfect for restaurants and markets.",
             "category": "Vegetables",
-            "location": "Nairobi, Kenya",
+            "location": "Abia State, Nigeria",
             "image_url": "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=800",
             "starting_bid": 50.00,
             "current_bid": 75.00,
+            "buy_now_price": 150.00,
             "reserve_price": 100.00,
             "starts_at": now.isoformat(),
             "ends_at": (now + timedelta(hours=12)).isoformat(),
@@ -602,10 +829,11 @@ async def seed_data():
             "title": "Premium Mangoes - 100kg Batch",
             "description": "Sweet and juicy mangoes, perfect ripeness. Ideal for export quality requirements.",
             "category": "Fruits",
-            "location": "Mombasa, Kenya",
+            "location": "Lagos, Nigeria",
             "image_url": "https://images.unsplash.com/photo-1553279768-865429fa0078?w=800",
             "starting_bid": 120.00,
             "current_bid": 180.00,
+            "buy_now_price": 300.00,
             "reserve_price": 200.00,
             "starts_at": now.isoformat(),
             "ends_at": (now + timedelta(hours=24)).isoformat(),
@@ -621,10 +849,11 @@ async def seed_data():
             "title": "Organic Maize - 1 Tonne",
             "description": "High quality organic maize, perfect for milling or animal feed. Certified organic.",
             "category": "Grains",
-            "location": "Nakuru, Kenya",
+            "location": "Kano, Nigeria",
             "image_url": "https://images.unsplash.com/photo-1551754655-cd27e38d2076?w=800",
             "starting_bid": 300.00,
             "current_bid": 350.00,
+            "buy_now_price": 500.00,
             "reserve_price": 400.00,
             "starts_at": now.isoformat(),
             "ends_at": (now + timedelta(hours=48)).isoformat(),
@@ -640,10 +869,11 @@ async def seed_data():
             "title": "Fresh Avocados - 200 pieces",
             "description": "Hass avocados, export quality. Perfect for guacamole and salads.",
             "category": "Fruits",
-            "location": "Kiambu, Kenya",
+            "location": "Ogun State, Nigeria",
             "image_url": "https://images.unsplash.com/photo-1523049673857-eb18f1d7b578?w=800",
             "starting_bid": 80.00,
             "current_bid": 95.00,
+            "buy_now_price": 180.00,
             "reserve_price": None,
             "starts_at": now.isoformat(),
             "ends_at": (now + timedelta(hours=6)).isoformat(),
@@ -659,10 +889,11 @@ async def seed_data():
             "title": "Organic Spinach - 30kg Fresh",
             "description": "Freshly harvested organic spinach, pesticide-free. Great for healthy cooking.",
             "category": "Vegetables",
-            "location": "Nairobi, Kenya",
+            "location": "Abia State, Nigeria",
             "image_url": "https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=800",
             "starting_bid": 25.00,
             "current_bid": 35.00,
+            "buy_now_price": 60.00,
             "reserve_price": None,
             "starts_at": now.isoformat(),
             "ends_at": (now + timedelta(hours=8)).isoformat(),
@@ -678,10 +909,11 @@ async def seed_data():
             "title": "Fresh Milk - 500 Liters Daily",
             "description": "Farm fresh milk, pasteurized and ready for distribution. Weekly contract available.",
             "category": "Dairy",
-            "location": "Eldoret, Kenya",
+            "location": "Kaduna, Nigeria",
             "image_url": "https://images.unsplash.com/photo-1628088062854-d1870b4553da?w=800",
             "starting_bid": 200.00,
             "current_bid": 250.00,
+            "buy_now_price": 400.00,
             "reserve_price": 280.00,
             "starts_at": now.isoformat(),
             "ends_at": (now + timedelta(hours=36)).isoformat(),
@@ -696,7 +928,6 @@ async def seed_data():
     
     return {"message": "Seeded successfully", "auctions": len(demo_auctions), "users": len(farmers) + 1}
 
-# Basic health check
 @api_router.get("/")
 async def root():
     return {"message": "jarnnmarket API", "version": "1.0.0"}
@@ -715,3 +946,6 @@ app.add_middleware(
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
+
+# Export the socket app for uvicorn
+app = socket_app
