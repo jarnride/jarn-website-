@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { io } from 'socket.io-client';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,9 +10,10 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import CountdownTimer from '@/components/CountdownTimer';
-import { MapPin, User, Calendar, Clock, TrendingUp, AlertCircle, CreditCard } from 'lucide-react';
+import { MapPin, User, Calendar, Clock, TrendingUp, AlertCircle, CreditCard, Zap, ShoppingCart } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+const WS_URL = process.env.REACT_APP_BACKEND_URL?.replace('https://', 'wss://').replace('http://', 'ws://');
 
 export default function AuctionDetail() {
   const { id } = useParams();
@@ -23,7 +25,10 @@ export default function AuctionDetail() {
   const [loading, setLoading] = useState(true);
   const [bidAmount, setBidAmount] = useState('');
   const [bidding, setBidding] = useState(false);
+  const [buyingNow, setBuyingNow] = useState(false);
   const [isExpired, setIsExpired] = useState(false);
+  const [isSold, setIsSold] = useState(false);
+  const socketRef = useRef(null);
 
   const fetchAuction = useCallback(async () => {
     try {
@@ -34,9 +39,10 @@ export default function AuctionDetail() {
       setAuction(auctionRes.data);
       setBids(bidsRes.data);
       
-      // Check if expired
+      // Check if expired or sold
       const endTime = new Date(auctionRes.data.ends_at).getTime();
       setIsExpired(Date.now() > endTime);
+      setIsSold(auctionRes.data.sold_via === 'buy_now' || !auctionRes.data.is_active);
       
       // Set minimum bid
       if (!bidAmount) {
@@ -51,12 +57,69 @@ export default function AuctionDetail() {
     }
   }, [id, navigate, bidAmount]);
 
+  // WebSocket connection
+  useEffect(() => {
+    if (!id) return;
+
+    // Connect to WebSocket
+    socketRef.current = io(WS_URL, {
+      transports: ['websocket', 'polling'],
+      path: '/socket.io'
+    });
+
+    socketRef.current.on('connect', () => {
+      console.log('WebSocket connected');
+      socketRef.current.emit('join_auction', id);
+    });
+
+    socketRef.current.on('bid_update', (data) => {
+      if (data.auction_id === id) {
+        // Update auction with new bid
+        setAuction(prev => ({
+          ...prev,
+          current_bid: data.current_bid,
+          bid_count: data.bid_count
+        }));
+        
+        // Add new bid to history
+        setBids(prev => [data.bid, ...prev]);
+        
+        // Update minimum bid amount
+        setBidAmount((data.current_bid + 1).toFixed(2));
+        
+        // Show toast notification
+        if (user && data.bid.bidder_id !== user.id) {
+          toast.info(`New bid: $${data.bid.amount.toFixed(2)} by ${data.bid.bidder_name}`);
+        }
+      }
+    });
+
+    socketRef.current.on('auction_sold', (data) => {
+      if (data.auction_id === id) {
+        setIsSold(true);
+        setAuction(prev => ({
+          ...prev,
+          is_active: false,
+          current_bid: data.final_price
+        }));
+        toast.success(`Auction sold to ${data.buyer_name} for $${data.final_price.toFixed(2)}!`);
+      }
+    });
+
+    socketRef.current.on('disconnect', () => {
+      console.log('WebSocket disconnected');
+    });
+
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.emit('leave_auction', id);
+        socketRef.current.disconnect();
+      }
+    };
+  }, [id, user]);
+
   useEffect(() => {
     fetchAuction();
-    
-    // Poll for updates every 5 seconds
-    const interval = setInterval(fetchAuction, 5000);
-    return () => clearInterval(interval);
   }, [fetchAuction]);
 
   const handleBid = async () => {
@@ -90,6 +153,29 @@ export default function AuctionDetail() {
     }
   };
 
+  const handleBuyNow = async () => {
+    if (!user) {
+      toast.error('Please login to buy');
+      navigate('/auth');
+      return;
+    }
+
+    setBuyingNow(true);
+    try {
+      const response = await axios.post(
+        `${API}/auctions/${id}/buy-now`,
+        { origin_url: window.location.origin },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      // Redirect to Stripe
+      window.location.href = response.data.url;
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to process Buy Now');
+      setBuyingNow(false);
+    }
+  };
+
   const handlePayment = async () => {
     try {
       const response = await axios.post(
@@ -101,7 +187,6 @@ export default function AuctionDetail() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       
-      // Redirect to Stripe
       window.location.href = response.data.url;
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to initiate payment');
@@ -118,9 +203,10 @@ export default function AuctionDetail() {
 
   if (!auction) return null;
 
-  const isWinner = user && auction.winner_id === user.id && isExpired;
+  const isWinner = user && auction.winner_id === user.id && (isExpired || isSold);
   const isSeller = user && auction.seller_id === user.id;
-  const canBid = user && !isSeller && !isExpired && auction.is_active;
+  const canBid = user && !isSeller && !isExpired && !isSold && auction.is_active;
+  const canBuyNow = canBid && auction.buy_now_price;
 
   return (
     <div className="min-h-screen bg-background" data-testid="auction-detail-page">
@@ -137,6 +223,11 @@ export default function AuctionDetail() {
                 data-testid="auction-image"
               />
               <Badge className="absolute top-4 left-4 bg-primary">{auction.category}</Badge>
+              {isSold && (
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                  <Badge className="bg-accent text-white text-2xl px-6 py-3">SOLD</Badge>
+                </div>
+              )}
             </div>
 
             {/* Details */}
@@ -182,9 +273,9 @@ export default function AuctionDetail() {
               <div className="bg-card rounded-xl border p-6" data-testid="bid-interface">
                 <div className="flex items-center justify-between mb-4">
                   <span className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                    {isExpired ? 'Auction Ended' : 'Time Remaining'}
+                    {isSold ? 'Sold' : isExpired ? 'Auction Ended' : 'Time Remaining'}
                   </span>
-                  {!isExpired && (
+                  {!isExpired && !isSold && (
                     <Badge variant="secondary" className="bg-accent/10 text-accent">
                       <Clock className="w-3 h-3 mr-1" />
                       Live
@@ -192,17 +283,19 @@ export default function AuctionDetail() {
                   )}
                 </div>
 
-                <CountdownTimer 
-                  endsAt={auction.ends_at} 
-                  onExpire={() => setIsExpired(true)}
-                />
+                {!isSold && (
+                  <CountdownTimer 
+                    endsAt={auction.ends_at} 
+                    onExpire={() => setIsExpired(true)}
+                  />
+                )}
 
                 <Separator className="my-6" />
 
                 {/* Current Bid */}
                 <div className="mb-6">
                   <span className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                    Current Bid
+                    {isSold ? 'Final Price' : 'Current Bid'}
                   </span>
                   <div className="flex items-baseline gap-2 mt-2">
                     <span 
@@ -215,13 +308,30 @@ export default function AuctionDetail() {
                       ({auction.bid_count} bids)
                     </span>
                   </div>
-                  {auction.reserve_price && auction.current_bid < auction.reserve_price && (
+                  {auction.reserve_price && auction.current_bid < auction.reserve_price && !isSold && (
                     <p className="text-sm text-accent mt-2 flex items-center gap-1">
                       <AlertCircle className="w-4 h-4" />
                       Reserve not met
                     </p>
                   )}
                 </div>
+
+                {/* Buy Now Price */}
+                {auction.buy_now_price && !isSold && !isExpired && (
+                  <div className="mb-6 p-4 bg-harvest/10 rounded-lg border border-harvest/20">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-sm font-medium text-harvest uppercase tracking-wide flex items-center gap-1">
+                          <Zap className="w-4 h-4" />
+                          Buy Now Price
+                        </span>
+                        <span className="text-2xl font-bold text-harvest font-mono">
+                          ${auction.buy_now_price.toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Bid Actions */}
                 {isWinner && !auction.is_paid ? (
@@ -242,6 +352,7 @@ export default function AuctionDetail() {
                   </div>
                 ) : canBid ? (
                   <div className="space-y-4">
+                    {/* Bid Input */}
                     <div className="bid-input-group">
                       <div className="relative flex-1">
                         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-mono text-muted-foreground">
@@ -280,6 +391,40 @@ export default function AuctionDetail() {
                     <p className="text-xs text-center text-muted-foreground">
                       Minimum bid: ${(auction.current_bid + 0.01).toFixed(2)}
                     </p>
+
+                    {/* Buy Now Button */}
+                    {canBuyNow && (
+                      <>
+                        <div className="relative flex items-center justify-center">
+                          <Separator className="flex-1" />
+                          <span className="px-3 text-xs text-muted-foreground uppercase">or</span>
+                          <Separator className="flex-1" />
+                        </div>
+                        <Button
+                          variant="outline"
+                          className="w-full rounded-full border-2 border-harvest text-harvest hover:bg-harvest hover:text-white py-6 text-lg"
+                          onClick={handleBuyNow}
+                          disabled={buyingNow}
+                          data-testid="buy-now-btn"
+                        >
+                          {buyingNow ? (
+                            <span className="flex items-center gap-2">
+                              <div className="w-5 h-5 border-2 border-harvest/30 border-t-harvest rounded-full animate-spin" />
+                              Processing...
+                            </span>
+                          ) : (
+                            <>
+                              <ShoppingCart className="w-5 h-5 mr-2" />
+                              Buy Now - ${auction.buy_now_price.toFixed(2)}
+                            </>
+                          )}
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                ) : isSold ? (
+                  <div className="p-4 bg-muted rounded-lg text-center">
+                    <p className="text-muted-foreground">This item has been sold</p>
                   </div>
                 ) : isExpired ? (
                   <div className="p-4 bg-muted rounded-lg text-center">
