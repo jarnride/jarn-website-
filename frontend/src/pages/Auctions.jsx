@@ -139,12 +139,12 @@ export default function Auctions() {
       {/* Location */}
       <div className="filter-section">
         <h3 className="filter-title">Location</h3>
-        <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+        <Select value={selectedLocation || "all"} onValueChange={(val) => setSelectedLocation(val === "all" ? "" : val)}>
           <SelectTrigger data-testid="filter-location">
             <SelectValue placeholder="All locations" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All locations</SelectItem>
+            <SelectItem value="all">All locations</SelectItem>
             {LOCATIONS.map(location => (
               <SelectItem key={location} value={location}>{location}</SelectItem>
             ))}
