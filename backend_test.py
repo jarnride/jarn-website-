@@ -444,6 +444,12 @@ class HarvestBidAPITester:
         self.test_place_bid()
         self.test_get_bid_history()
         
+        # Phase 1 Feature Tests
+        self.test_duplicate_email_prevention()
+        self.test_buy_now_functionality()
+        self.test_rate_limiting_login()
+        self.test_input_validation()
+        
         # Print summary
         print("\n" + "=" * 50)
         print(f"📊 Test Results: {self.tests_passed}/{self.tests_run} passed")
