@@ -9,8 +9,11 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 import CountdownTimer from '@/components/CountdownTimer';
-import { MapPin, User, Calendar, Clock, TrendingUp, AlertCircle, CreditCard, Zap, ShoppingCart } from 'lucide-react';
+import PhoneVerification from '@/components/PhoneVerification';
+import { MapPin, User, Calendar, Clock, TrendingUp, AlertCircle, CreditCard, Zap, ShoppingCart, Shield, Package } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const WS_URL = process.env.REACT_APP_BACKEND_URL?.replace('https://', 'wss://').replace('http://', 'ws://');
@@ -22,12 +25,16 @@ export default function AuctionDetail() {
   
   const [auction, setAuction] = useState(null);
   const [bids, setBids] = useState([]);
+  const [escrow, setEscrow] = useState(null);
   const [loading, setLoading] = useState(true);
   const [bidAmount, setBidAmount] = useState('');
   const [bidding, setBidding] = useState(false);
   const [buyingNow, setBuyingNow] = useState(false);
   const [isExpired, setIsExpired] = useState(false);
   const [isSold, setIsSold] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('stripe');
+  const [showPhoneVerification, setShowPhoneVerification] = useState(false);
+  const [confirmingDelivery, setConfirmingDelivery] = useState(false);
   const socketRef = useRef(null);
 
   const fetchAuction = useCallback(async () => {
@@ -39,14 +46,24 @@ export default function AuctionDetail() {
       setAuction(auctionRes.data);
       setBids(bidsRes.data);
       
-      // Check if expired or sold
       const endTime = new Date(auctionRes.data.ends_at).getTime();
       setIsExpired(Date.now() > endTime);
       setIsSold(auctionRes.data.sold_via === 'buy_now' || !auctionRes.data.is_active);
       
-      // Set minimum bid
       if (!bidAmount) {
         setBidAmount((auctionRes.data.current_bid + 1).toFixed(2));
+      }
+
+      // Fetch escrow if paid
+      if (auctionRes.data.escrow_id && token) {
+        try {
+          const escrowRes = await axios.get(`${API}/escrow/${auctionRes.data.escrow_id}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          setEscrow(escrowRes.data);
+        } catch (e) {
+          // User might not have access
+        }
       }
     } catch (error) {
       console.error('Failed to fetch auction:', error);
@@ -55,13 +72,12 @@ export default function AuctionDetail() {
     } finally {
       setLoading(false);
     }
-  }, [id, navigate, bidAmount]);
+  }, [id, navigate, bidAmount, token]);
 
   // WebSocket connection
   useEffect(() => {
     if (!id) return;
 
-    // Connect to WebSocket
     socketRef.current = io(WS_URL, {
       transports: ['websocket', 'polling'],
       path: '/socket.io'
@@ -74,20 +90,15 @@ export default function AuctionDetail() {
 
     socketRef.current.on('bid_update', (data) => {
       if (data.auction_id === id) {
-        // Update auction with new bid
         setAuction(prev => ({
           ...prev,
           current_bid: data.current_bid,
           bid_count: data.bid_count
         }));
         
-        // Add new bid to history
         setBids(prev => [data.bid, ...prev]);
-        
-        // Update minimum bid amount
         setBidAmount((data.current_bid + 1).toFixed(2));
         
-        // Show toast notification
         if (user && data.bid.bidder_id !== user.id) {
           toast.info(`New bid: $${data.bid.amount.toFixed(2)} by ${data.bid.bidder_name}`);
         }
@@ -122,12 +133,22 @@ export default function AuctionDetail() {
     fetchAuction();
   }, [fetchAuction]);
 
+  const checkPhoneVerification = () => {
+    if (!user?.phone_verified) {
+      setShowPhoneVerification(true);
+      return false;
+    }
+    return true;
+  };
+
   const handleBid = async () => {
     if (!user) {
       toast.error('Please login to place a bid');
       navigate('/auth');
       return;
     }
+
+    if (!checkPhoneVerification()) return;
 
     if (!bidAmount || parseFloat(bidAmount) <= auction.current_bid) {
       toast.error('Bid must be higher than current bid');
@@ -147,7 +168,11 @@ export default function AuctionDetail() {
       setBidAmount((response.data.auction.current_bid + 1).toFixed(2));
       toast.success('Bid placed successfully!');
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to place bid');
+      const detail = error.response?.data?.detail || 'Failed to place bid';
+      if (detail.includes('phone')) {
+        setShowPhoneVerification(true);
+      }
+      toast.error(detail);
     } finally {
       setBidding(false);
     }
@@ -160,18 +185,34 @@ export default function AuctionDetail() {
       return;
     }
 
+    if (!checkPhoneVerification()) return;
+
     setBuyingNow(true);
     try {
       const response = await axios.post(
         `${API}/auctions/${id}/buy-now`,
-        { origin_url: window.location.origin },
+        { origin_url: window.location.origin, payment_method: paymentMethod },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       
-      // Redirect to Stripe
-      window.location.href = response.data.url;
+      if (paymentMethod === 'stripe') {
+        window.location.href = response.data.url;
+      } else if (paymentMethod === 'paypal') {
+        // For PayPal mock mode, show instructions
+        if (response.data.mock_mode) {
+          toast.success('PayPal order created (Mock Mode). Complete payment via API.');
+          // In production, would redirect to PayPal
+          navigate('/dashboard');
+        } else {
+          // Real PayPal would redirect here
+        }
+      }
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to process Buy Now');
+      const detail = error.response?.data?.detail || 'Failed to process Buy Now';
+      if (detail.includes('phone')) {
+        setShowPhoneVerification(true);
+      }
+      toast.error(detail);
       setBuyingNow(false);
     }
   };
@@ -193,6 +234,26 @@ export default function AuctionDetail() {
     }
   };
 
+  const handleConfirmDelivery = async () => {
+    if (!escrow) return;
+    
+    setConfirmingDelivery(true);
+    try {
+      await axios.post(
+        `${API}/escrow/confirm-delivery`,
+        { escrow_id: escrow.id },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      toast.success('Delivery confirmed! Payment released to seller.');
+      setEscrow(prev => ({ ...prev, status: 'released' }));
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to confirm delivery');
+    } finally {
+      setConfirmingDelivery(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -207,6 +268,7 @@ export default function AuctionDetail() {
   const isSeller = user && auction.seller_id === user.id;
   const canBid = user && !isSeller && !isExpired && !isSold && auction.is_active;
   const canBuyNow = canBid && auction.buy_now_price;
+  const canConfirmDelivery = isWinner && escrow && escrow.status === 'held' && escrow.buyer_id === user?.id;
 
   return (
     <div className="min-h-screen bg-background" data-testid="auction-detail-page">
@@ -264,6 +326,63 @@ export default function AuctionDetail() {
                 {auction.description}
               </p>
             </div>
+
+            {/* Escrow Status for Winner */}
+            {escrow && (isWinner || isSeller) && (
+              <div className="bg-card rounded-xl border p-6" data-testid="escrow-section">
+                <h2 className="text-xl font-semibold mb-4 flex items-center gap-2" style={{ fontFamily: 'Playfair Display, serif' }}>
+                  <Shield className="w-5 h-5 text-primary" />
+                  Escrow Status
+                </h2>
+                
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Amount in Escrow</span>
+                    <span className="font-bold font-mono text-lg">${escrow.amount.toFixed(2)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Status</span>
+                    <Badge variant={escrow.status === 'released' ? 'success' : 'secondary'}>
+                      {escrow.status === 'held' ? 'Funds Held' : 
+                       escrow.status === 'released' ? 'Released to Seller' : 
+                       escrow.status}
+                    </Badge>
+                  </div>
+                  
+                  {canConfirmDelivery && (
+                    <div className="pt-4 border-t">
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Received your order? Confirm delivery to release payment to the seller.
+                      </p>
+                      <Button
+                        className="w-full rounded-full bg-green-600 hover:bg-green-700"
+                        onClick={handleConfirmDelivery}
+                        disabled={confirmingDelivery}
+                        data-testid="confirm-delivery-btn"
+                      >
+                        {confirmingDelivery ? (
+                          <span className="flex items-center gap-2">
+                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            Confirming...
+                          </span>
+                        ) : (
+                          <>
+                            <Package className="w-4 h-4 mr-2" />
+                            Confirm Delivery & Release Payment
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                  
+                  {isSeller && escrow.status === 'held' && (
+                    <p className="text-sm text-amber-600 bg-amber-50 p-3 rounded-lg">
+                      Payment is held in escrow until the buyer confirms delivery.
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Right: Bidding Interface */}
@@ -352,6 +471,20 @@ export default function AuctionDetail() {
                   </div>
                 ) : canBid ? (
                   <div className="space-y-4">
+                    {/* Phone verification notice */}
+                    {user && !user.phone_verified && (
+                      <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 text-sm text-amber-800">
+                        <Shield className="w-4 h-4 inline mr-1" />
+                        Verify your phone to bid.{' '}
+                        <button 
+                          onClick={() => setShowPhoneVerification(true)}
+                          className="underline font-medium"
+                        >
+                          Verify now
+                        </button>
+                      </div>
+                    )}
+
                     {/* Bid Input */}
                     <div className="bid-input-group">
                       <div className="relative flex-1">
@@ -392,14 +525,35 @@ export default function AuctionDetail() {
                       Minimum bid: ${(auction.current_bid + 0.01).toFixed(2)}
                     </p>
 
-                    {/* Buy Now Button */}
+                    {/* Buy Now Section */}
                     {canBuyNow && (
                       <>
                         <div className="relative flex items-center justify-center">
                           <Separator className="flex-1" />
-                          <span className="px-3 text-xs text-muted-foreground uppercase">or</span>
+                          <span className="px-3 text-xs text-muted-foreground uppercase">or buy now</span>
                           <Separator className="flex-1" />
                         </div>
+
+                        {/* Payment Method Selection */}
+                        <div className="space-y-3">
+                          <Label className="text-sm font-medium">Payment Method</Label>
+                          <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="flex gap-4">
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="stripe" id="stripe" />
+                              <Label htmlFor="stripe" className="cursor-pointer flex items-center gap-2">
+                                <CreditCard className="w-4 h-4" />
+                                Card (Stripe)
+                              </Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="paypal" id="paypal" />
+                              <Label htmlFor="paypal" className="cursor-pointer flex items-center gap-2">
+                                <span className="text-blue-600 font-bold text-sm">PayPal</span>
+                              </Label>
+                            </div>
+                          </RadioGroup>
+                        </div>
+
                         <Button
                           variant="outline"
                           className="w-full rounded-full border-2 border-harvest text-harvest hover:bg-harvest hover:text-white py-6 text-lg"
@@ -419,6 +573,11 @@ export default function AuctionDetail() {
                             </>
                           )}
                         </Button>
+
+                        <p className="text-xs text-center text-muted-foreground flex items-center justify-center gap-1">
+                          <Shield className="w-3 h-3" />
+                          Secure payment • Funds held in escrow
+                        </p>
                       </>
                     )}
                   </div>
@@ -488,6 +647,13 @@ export default function AuctionDetail() {
           </div>
         </div>
       </div>
+
+      {/* Phone Verification Modal */}
+      <PhoneVerification 
+        open={showPhoneVerification}
+        onOpenChange={setShowPhoneVerification}
+        onVerified={fetchAuction}
+      />
     </div>
   );
 }
