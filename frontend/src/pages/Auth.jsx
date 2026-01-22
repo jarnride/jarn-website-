@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Gavel, Mail, Lock, User, Tractor, ShoppingCart } from 'lucide-react';
+import { Gavel, Mail, Lock, User, Tractor, ShoppingCart, Phone } from 'lucide-react';
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -23,6 +23,7 @@ export default function Auth() {
     email: '', 
     password: '', 
     confirmPassword: '',
+    phone: '',
     role: searchParams.get('role') || 'buyer'
   });
 
@@ -61,7 +62,7 @@ export default function Auth() {
     
     setLoading(true);
     try {
-      await register(registerForm.name, registerForm.email, registerForm.password, registerForm.role);
+      await register(registerForm.name, registerForm.email, registerForm.password, registerForm.role, registerForm.phone || null);
       toast.success('Account created successfully!');
       navigate('/dashboard');
     } catch (error) {
