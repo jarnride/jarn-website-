@@ -620,6 +620,15 @@ class HarvestBidAPITester:
         self.test_rate_limiting_login()
         self.test_input_validation()
         
+        # Phase 2 Feature Tests
+        self.test_feature_flags()
+        self.test_phone_verification_send_code()
+        self.test_phone_verification_verify_code()
+        self.test_paypal_buy_now()
+        self.test_paypal_capture()
+        self.test_escrow_endpoints()
+        self.test_escrow_confirm_delivery()
+        
         # Print summary
         print("\n" + "=" * 50)
         print(f"📊 Test Results: {self.tests_passed}/{self.tests_run} passed")
