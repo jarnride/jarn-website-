@@ -222,6 +222,7 @@ class HarvestBidAPITester:
             "category": "Vegetables",
             "location": "Test Farm, Kenya",
             "starting_bid": 25.00,
+            "buy_now_price": 50.00,  # Test Buy Now feature
             "duration_hours": 24
         }
         
@@ -230,11 +231,11 @@ class HarvestBidAPITester:
         
         if success and 'id' in response:
             self.test_auction_id = response['id']  # Update with new auction
-            details = f"Created auction: {response.get('title', 'Unknown')}"
+            details = f"Created auction: {response.get('title', 'Unknown')} with Buy Now: ${response.get('buy_now_price', 0)}"
         else:
             details = f"Creation failed: {response}"
         
-        self.log_test("Create Auction", success, details)
+        self.log_test("Create Auction with Buy Now", success, details)
         return success
 
     def test_place_bid(self):
