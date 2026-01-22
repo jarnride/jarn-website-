@@ -48,15 +48,15 @@ export const Footer = () => {
             <ul className="space-y-3">
               <li className="flex items-center gap-2 text-white/70">
                 <Mail className="w-4 h-4" />
-                <span>support@harvestbid.com</span>
+                <span>info@jarnnmarket.com</span>
               </li>
               <li className="flex items-center gap-2 text-white/70">
                 <Phone className="w-4 h-4" />
-                <span>+254 700 123 456</span>
+                <span>+2348189275367</span>
               </li>
               <li className="flex items-center gap-2 text-white/70">
                 <MapPin className="w-4 h-4" />
-                <span>Nairobi, Kenya</span>
+                <span>Abia State, Nigeria</span>
               </li>
             </ul>
           </div>
