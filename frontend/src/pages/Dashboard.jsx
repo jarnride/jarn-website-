@@ -7,7 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AuctionCard from '@/components/AuctionCard';
-import { Plus, Package, Gavel, Trophy, TrendingUp, Clock } from 'lucide-react';
+import PhoneVerification from '@/components/PhoneVerification';
+import { Plus, Package, Gavel, Trophy, TrendingUp, Clock, Shield, Phone, CheckCircle } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -18,7 +19,9 @@ export default function Dashboard() {
   const [myAuctions, setMyAuctions] = useState([]);
   const [myBids, setMyBids] = useState([]);
   const [wonAuctions, setWonAuctions] = useState([]);
+  const [escrows, setEscrows] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showPhoneVerification, setShowPhoneVerification] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -32,6 +35,10 @@ export default function Dashboard() {
     try {
       const headers = { Authorization: `Bearer ${token}` };
       
+      // Fetch escrows
+      const escrowsRes = await axios.get(`${API}/users/me/escrows`, { headers });
+      setEscrows(escrowsRes.data);
+
       if (user.role === 'farmer') {
         const response = await axios.get(`${API}/users/${user.id}/auctions`, { headers });
         setMyAuctions(response.data);
@@ -59,6 +66,9 @@ export default function Dashboard() {
     !a.is_active || new Date(a.ends_at) <= new Date()
   );
 
+  const heldEscrows = escrows.filter(e => e.status === 'held');
+  const totalEscrowAmount = heldEscrows.reduce((sum, e) => sum + e.amount, 0);
+
   return (
     <div className="min-h-screen bg-muted/30" data-testid="dashboard-page">
       {/* Header */}
@@ -76,16 +86,46 @@ export default function Dashboard() {
                 {user.role === 'farmer' ? 'Manage your auctions and sales' : 'Track your bids and purchases'}
               </p>
             </div>
-            {user.role === 'farmer' && (
-              <Button 
-                className="rounded-full bg-white text-primary hover:bg-white/90"
-                onClick={() => navigate('/create-auction')}
-                data-testid="dashboard-create-btn"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Create Auction
-              </Button>
-            )}
+            <div className="flex gap-3">
+              {!user.phone_verified && (
+                <Button 
+                  variant="outline"
+                  className="rounded-full border-white text-white hover:bg-white hover:text-primary"
+                  onClick={() => setShowPhoneVerification(true)}
+                  data-testid="verify-phone-btn"
+                >
+                  <Phone className="w-4 h-4 mr-2" />
+                  Verify Phone
+                </Button>
+              )}
+              {user.role === 'farmer' && (
+                <Button 
+                  className="rounded-full bg-white text-primary hover:bg-white/90"
+                  onClick={() => navigate('/create-auction')}
+                  data-testid="dashboard-create-btn"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Auction
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Verification Status */}
+          <div className="mt-6 flex items-center gap-4">
+            <div className="flex items-center gap-2 text-white/80">
+              {user.phone_verified ? (
+                <>
+                  <CheckCircle className="w-5 h-5 text-green-400" />
+                  <span>Phone Verified</span>
+                </>
+              ) : (
+                <>
+                  <Phone className="w-5 h-5 text-amber-400" />
+                  <span>Phone Not Verified</span>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -130,13 +170,11 @@ export default function Dashboard() {
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-4">
                     <div className="p-3 bg-harvest/10 rounded-xl">
-                      <Gavel className="w-6 h-6 text-harvest" />
+                      <Shield className="w-6 h-6 text-harvest" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold">
-                        {myAuctions.reduce((sum, a) => sum + a.bid_count, 0)}
-                      </p>
-                      <p className="text-sm text-muted-foreground">Total Bids</p>
+                      <p className="text-2xl font-bold font-mono">${totalEscrowAmount.toFixed(0)}</p>
+                      <p className="text-sm text-muted-foreground">In Escrow</p>
                     </div>
                   </div>
                 </CardContent>
@@ -158,6 +196,23 @@ export default function Dashboard() {
               </Card>
             </div>
 
+            {/* Escrow Alert */}
+            {heldEscrows.length > 0 && (
+              <div className="mb-8 p-4 bg-amber-50 rounded-xl border border-amber-200">
+                <div className="flex items-center gap-3">
+                  <Shield className="w-6 h-6 text-amber-600" />
+                  <div>
+                    <p className="font-semibold text-amber-800">
+                      {heldEscrows.length} payment(s) in escrow
+                    </p>
+                    <p className="text-sm text-amber-700">
+                      Total: ${totalEscrowAmount.toFixed(2)} - Waiting for buyer delivery confirmation
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Auctions Tabs */}
             <Tabs defaultValue="active">
               <TabsList>
@@ -166,6 +221,9 @@ export default function Dashboard() {
                 </TabsTrigger>
                 <TabsTrigger value="ended" data-testid="tab-ended">
                   Ended ({endedAuctions.length})
+                </TabsTrigger>
+                <TabsTrigger value="escrow" data-testid="tab-escrow">
+                  Escrow ({escrows.length})
                 </TabsTrigger>
               </TabsList>
 
@@ -181,12 +239,21 @@ export default function Dashboard() {
                     <Package className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
                     <h3 className="text-xl font-semibold mb-2">No active auctions</h3>
                     <p className="text-muted-foreground mb-4">
-                      Create your first auction to start selling
+                      {user.phone_verified 
+                        ? 'Create your first auction to start selling'
+                        : 'Verify your phone number first'}
                     </p>
-                    <Button onClick={() => navigate('/create-auction')}>
-                      <Plus className="w-4 h-4 mr-2" />
-                      Create Auction
-                    </Button>
+                    {user.phone_verified ? (
+                      <Button onClick={() => navigate('/create-auction')}>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Create Auction
+                      </Button>
+                    ) : (
+                      <Button onClick={() => setShowPhoneVerification(true)}>
+                        <Phone className="w-4 h-4 mr-2" />
+                        Verify Phone
+                      </Button>
+                    )}
                   </div>
                 )}
               </TabsContent>
@@ -206,13 +273,45 @@ export default function Dashboard() {
                   </div>
                 )}
               </TabsContent>
+
+              <TabsContent value="escrow" className="mt-6">
+                {escrows.length > 0 ? (
+                  <div className="space-y-4">
+                    {escrows.map(escrow => (
+                      <Card key={escrow.id}>
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="font-semibold">Escrow #{escrow.id.slice(0, 8)}</p>
+                              <p className="text-sm text-muted-foreground">
+                                Created {new Date(escrow.created_at).toLocaleDateString()}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-bold font-mono text-lg">${escrow.amount.toFixed(2)}</p>
+                              <Badge variant={escrow.status === 'released' ? 'success' : 'secondary'}>
+                                {escrow.status}
+                              </Badge>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="empty-state">
+                    <Shield className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">No escrow transactions yet</p>
+                  </div>
+                )}
+              </TabsContent>
             </Tabs>
           </>
         ) : (
           // Buyer Dashboard
           <>
             {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
               <Card>
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-4">
@@ -243,7 +342,20 @@ export default function Dashboard() {
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-4">
                     <div className="p-3 bg-harvest/10 rounded-xl">
-                      <TrendingUp className="w-6 h-6 text-harvest" />
+                      <Shield className="w-6 h-6 text-harvest" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold">{heldEscrows.length}</p>
+                      <p className="text-sm text-muted-foreground">Pending Delivery</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-accent/10 rounded-xl">
+                      <TrendingUp className="w-6 h-6 text-accent" />
                     </div>
                     <div>
                       <p className="text-2xl font-bold font-mono">
@@ -255,6 +367,23 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Pending Delivery Alert */}
+            {heldEscrows.length > 0 && (
+              <div className="mb-8 p-4 bg-blue-50 rounded-xl border border-blue-200">
+                <div className="flex items-center gap-3">
+                  <Package className="w-6 h-6 text-blue-600" />
+                  <div>
+                    <p className="font-semibold text-blue-800">
+                      {heldEscrows.length} order(s) awaiting delivery confirmation
+                    </p>
+                    <p className="text-sm text-blue-700">
+                      Once you receive your items, confirm delivery to release payment to seller
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Won Auctions */}
             {wonAuctions.length > 0 && (
@@ -338,17 +467,33 @@ export default function Dashboard() {
                   <Gavel className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
                   <h3 className="text-xl font-semibold mb-2">No bids yet</h3>
                   <p className="text-muted-foreground mb-4">
-                    Start bidding on auctions to see your history
+                    {user.phone_verified 
+                      ? 'Start bidding on auctions to see your history'
+                      : 'Verify your phone number to start bidding'}
                   </p>
-                  <Button onClick={() => navigate('/auctions')}>
-                    Browse Auctions
-                  </Button>
+                  {user.phone_verified ? (
+                    <Button onClick={() => navigate('/auctions')}>
+                      Browse Auctions
+                    </Button>
+                  ) : (
+                    <Button onClick={() => setShowPhoneVerification(true)}>
+                      <Phone className="w-4 h-4 mr-2" />
+                      Verify Phone
+                    </Button>
+                  )}
                 </div>
               )}
             </div>
           </>
         )}
       </div>
+
+      {/* Phone Verification Modal */}
+      <PhoneVerification 
+        open={showPhoneVerification}
+        onOpenChange={setShowPhoneVerification}
+        onVerified={fetchData}
+      />
     </div>
   );
 }
