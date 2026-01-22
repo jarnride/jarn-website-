@@ -416,6 +416,176 @@ class HarvestBidAPITester:
         self.log_test("Input Validation", success, details)
         return success
 
+    def test_feature_flags(self):
+        """Test Phase 2 feature flags endpoint"""
+        success, response = self.make_request('GET', '/')
+        
+        if success and 'features' in response:
+            features = response['features']
+            has_sms = 'sms_verification' in features
+            has_paypal = 'paypal' in features
+            has_escrow = 'escrow' in features
+            
+            if has_sms and has_paypal and has_escrow:
+                details = f"Features: SMS={features['sms_verification']}, PayPal={features['paypal']}, Escrow={features['escrow']}"
+            else:
+                success = False
+                details = "Missing required feature flags"
+        else:
+            success = False
+            details = f"No features in response: {response}"
+        
+        self.log_test("Feature Flags (Phase 2)", success, details)
+        return success
+
+    def test_phone_verification_send_code(self):
+        """Test SMS verification - send code (MOCK)"""
+        if not self.farmer_token:
+            self.log_test("Phone Verification - Send Code", False, "No farmer token available")
+            return False
+        
+        phone_data = {
+            "phone": "+2348189275367"
+        }
+        
+        success, response = self.make_request('POST', '/auth/phone/send-code', phone_data, 
+                                            self.farmer_token)
+        
+        if success and response.get('success'):
+            mock_code = response.get('mock_code')
+            details = f"Code sent successfully. Mock mode: {response.get('mock_mode')}"
+            if mock_code:
+                details += f", Mock code: {mock_code}"
+                # Store mock code for verification test
+                self.mock_otp_code = mock_code
+        else:
+            details = f"Send code failed: {response}"
+        
+        self.log_test("Phone Verification - Send Code (MOCK)", success, details)
+        return success
+
+    def test_phone_verification_verify_code(self):
+        """Test SMS verification - verify code (MOCK)"""
+        if not self.farmer_token:
+            self.log_test("Phone Verification - Verify Code", False, "No farmer token available")
+            return False
+        
+        if not hasattr(self, 'mock_otp_code'):
+            self.log_test("Phone Verification - Verify Code", False, "No OTP code from send test")
+            return False
+        
+        verify_data = {
+            "phone": "+2348189275367",
+            "code": self.mock_otp_code
+        }
+        
+        success, response = self.make_request('POST', '/auth/phone/verify', verify_data, 
+                                            self.farmer_token)
+        
+        if success and response.get('success'):
+            details = "Phone verification successful"
+        else:
+            details = f"Verification failed: {response}"
+        
+        self.log_test("Phone Verification - Verify Code (MOCK)", success, details)
+        return success
+
+    def test_paypal_buy_now(self):
+        """Test PayPal Buy Now (MOCK)"""
+        if not self.buyer_token or not self.test_auction_id:
+            self.log_test("PayPal Buy Now", False, "Missing buyer token or auction ID")
+            return False
+        
+        # First check if auction has buy_now_price
+        success, auction_data = self.make_request('GET', f'/auctions/{self.test_auction_id}')
+        if not success or not auction_data.get('buy_now_price'):
+            self.log_test("PayPal Buy Now", False, "Auction doesn't have Buy Now price")
+            return False
+        
+        paypal_data = {
+            "origin_url": "https://test.com",
+            "payment_method": "paypal"
+        }
+        
+        success, response = self.make_request('POST', f'/auctions/{self.test_auction_id}/buy-now', 
+                                            paypal_data, self.buyer_token)
+        
+        if success and 'order_id' in response:
+            mock_mode = response.get('mock_mode', False)
+            details = f"PayPal order created: {response['order_id']}, Mock mode: {mock_mode}"
+            # Store order ID for capture test
+            self.paypal_order_id = response['order_id']
+        else:
+            details = f"PayPal Buy Now failed: {response}"
+        
+        self.log_test("PayPal Buy Now (MOCK)", success, details)
+        return success
+
+    def test_paypal_capture(self):
+        """Test PayPal order capture (MOCK)"""
+        if not self.buyer_token:
+            self.log_test("PayPal Capture", False, "No buyer token available")
+            return False
+        
+        if not hasattr(self, 'paypal_order_id'):
+            self.log_test("PayPal Capture", False, "No PayPal order ID from buy now test")
+            return False
+        
+        success, response = self.make_request('POST', f'/paypal/capture/{self.paypal_order_id}', 
+                                            token=self.buyer_token)
+        
+        if success and response.get('success'):
+            escrow_id = response.get('escrow_id')
+            details = f"PayPal capture successful, Escrow created: {escrow_id}"
+            self.escrow_id = escrow_id
+        else:
+            details = f"PayPal capture failed: {response}"
+        
+        self.log_test("PayPal Capture (MOCK)", success, details)
+        return success
+
+    def test_escrow_endpoints(self):
+        """Test escrow system endpoints"""
+        if not self.buyer_token:
+            self.log_test("Escrow Endpoints", False, "No buyer token available")
+            return False
+        
+        # Test get user escrows
+        success, response = self.make_request('GET', '/users/me/escrows', token=self.buyer_token)
+        
+        if success and isinstance(response, list):
+            details = f"Found {len(response)} escrow transactions"
+        else:
+            details = f"Get escrows failed: {response}"
+        
+        self.log_test("Escrow - Get User Escrows", success, details)
+        return success
+
+    def test_escrow_confirm_delivery(self):
+        """Test escrow delivery confirmation"""
+        if not self.buyer_token:
+            self.log_test("Escrow Confirm Delivery", False, "No buyer token available")
+            return False
+        
+        if not hasattr(self, 'escrow_id'):
+            self.log_test("Escrow Confirm Delivery", False, "No escrow ID from PayPal test")
+            return False
+        
+        confirm_data = {
+            "escrow_id": self.escrow_id
+        }
+        
+        success, response = self.make_request('POST', '/escrow/confirm-delivery', confirm_data, 
+                                            self.buyer_token)
+        
+        if success and response.get('success'):
+            details = f"Delivery confirmed, escrow status: {response.get('status')}"
+        else:
+            details = f"Confirm delivery failed: {response}"
+        
+        self.log_test("Escrow - Confirm Delivery", success, details)
+        return success
+
     def run_all_tests(self):
         """Run complete test suite"""
         print("🚀 Starting HarvestBid API Test Suite")
