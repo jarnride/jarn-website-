@@ -1,0 +1,201 @@
+{
+  "design_system": {
+    "identity": {
+      "name": "HarvestBid",
+      "archetype": "Organic & Earthy",
+      "tone": "Trustworthy, Fresh, Community-Driven, Urgent (Auctions)",
+      "principles": [
+        "Fusion: Traditional Farming Aesthetics x High-Speed Auction Data",
+        "Emotion: Sunlight, Growth, and Honest Commerce",
+        "Clarity: Data (bids/timers) must be instantly readable",
+        "Texture: Use grain and paper textures to avoid 'SaaS flatness'"
+      ]
+    },
+    "typography": {
+      "font_family": {
+        "headings": "Playfair Display, serif",
+        "body": "Inter, sans-serif",
+        "mono": "JetBrains Mono, monospace"
+      },
+      "scale": {
+        "h1": "text-5xl md:text-7xl font-bold tracking-tight leading-none",
+        "h2": "text-4xl md:text-5xl font-semibold tracking-tight",
+        "h3": "text-2xl md:text-3xl font-medium",
+        "body_lg": "text-lg leading-relaxed",
+        "body_base": "text-base leading-relaxed text-muted-foreground",
+        "caption": "text-sm font-medium tracking-wide uppercase text-muted-foreground"
+      },
+      "imports": [
+        "@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap');"
+      ]
+    },
+    "colors": {
+      "palette": {
+        "primary": {
+          "DEFAULT": "#1A4D2E",
+          "foreground": "#FFFFFF",
+          "hover": "#143D24",
+          "description": "Deep Forest Green - Trust, Growth"
+        },
+        "secondary": {
+          "DEFAULT": "#E8F3E8",
+          "foreground": "#1A4D2E",
+          "description": "Pale Sage - Backgrounds, Soft Highlights"
+        },
+        "accent": {
+          "DEFAULT": "#D9534F",
+          "foreground": "#FFFFFF",
+          "description": "Urgent Red - Auction Timers, 'Bid Now' CTAs"
+        },
+        "harvest": {
+          "DEFAULT": "#F9A825",
+          "foreground": "#000000",
+          "description": "Harvest Gold - Success Stories, Ratings"
+        },
+        "background": {
+          "DEFAULT": "#FDFDF8",
+          "alt": "#F5F5F0",
+          "description": "Bone White / Natural Paper - Main Backgrounds"
+        },
+        "text": {
+          "primary": "#1A1A1A",
+          "secondary": "#4A4A4A",
+          "muted": "#7A7A7A"
+        }
+      },
+      "gradients": {
+        "hero": "linear-gradient(180deg, rgba(26, 77, 46, 0.9) 0%, rgba(26, 77, 46, 0.4) 100%)",
+        "card_overlay": "linear-gradient(0deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 50%)"
+      }
+    },
+    "layout": {
+      "spacing": {
+        "container_padding": "px-4 md:px-8 lg:px-12",
+        "section_gap": "py-20 md:py-32",
+        "grid_gap": "gap-6 md:gap-8"
+      },
+      "grids": {
+        "bento_marketing": "grid grid-cols-1 md:grid-cols-8 lg:grid-cols-12 gap-4 md:gap-8",
+        "auction_list": "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6",
+        "dashboard": "grid grid-cols-1 lg:grid-cols-4 gap-6"
+      },
+      "border_radius": {
+        "card": "rounded-xl",
+        "button": "rounded-full",
+        "input": "rounded-lg"
+      }
+    },
+    "components": {
+      "buttons": {
+        "primary": "bg-primary text-primary-foreground hover:bg-primary/90 rounded-full px-8 py-6 text-lg font-medium transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5",
+        "secondary": "bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-full px-6 py-4 font-medium",
+        "outline": "border-2 border-primary text-primary hover:bg-primary hover:text-white rounded-full px-6 py-4 font-medium transition-colors",
+        "destructive": "bg-accent text-white hover:bg-accent/90 rounded-full px-6 py-4 shadow-md"
+      },
+      "cards": {
+        "auction_card": "group relative overflow-hidden rounded-xl bg-white border border-border/40 shadow-sm hover:shadow-md transition-all duration-300",
+        "category_card": "relative overflow-hidden rounded-2xl aspect-[4/5] group cursor-pointer",
+        "feature_card": "bg-secondary/30 p-8 rounded-2xl border border-primary/10 hover:border-primary/30 transition-colors"
+      },
+      "inputs": {
+        "default": "h-12 rounded-lg border-input bg-background px-4 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+      }
+    },
+    "visual_enhancers": {
+      "shadows": {
+        "soft": "0 4px 20px -2px rgba(26, 77, 46, 0.08)",
+        "hover": "0 10px 40px -10px rgba(26, 77, 46, 0.15)"
+      },
+      "textures": {
+        "grain": "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E\")"
+      },
+      "glassmorphism": {
+        "nav": "bg-white/80 backdrop-blur-md border-b border-primary/5",
+        "overlay": "bg-black/20 backdrop-blur-sm"
+      }
+    },
+    "motion": {
+      "transitions": "transition-all duration-300 ease-out",
+      "hover_lift": "hover:-translate-y-1 hover:shadow-lg",
+      "fade_in": "animate-in fade-in duration-500 slide-in-from-bottom-4"
+    }
+  },
+  "assets": {
+    "images": {
+      "hero": {
+        "url": "https://images.unsplash.com/photo-1754810940905-19a8d26f870e?crop=entropy&cs=srgb&fm=jpg&q=85",
+        "alt": "Sunrise over lush cabbage fields",
+        "usage": "Full width hero background with overlay"
+      },
+      "categories": [
+        {
+          "name": "Vegetables",
+          "url": "https://images.unsplash.com/photo-1669154777196-aca4d45b581a?crop=entropy&cs=srgb&fm=jpg&q=85",
+          "alt": "Crates of fresh mixed vegetables"
+        },
+        {
+          "name": "Fruits",
+          "url": "https://images.unsplash.com/photo-1650012048722-c81295ccbe79?crop=entropy&cs=srgb&fm=jpg&q=85",
+          "alt": "Market display of fresh fruits"
+        },
+        {
+          "name": "Grains & Dairy",
+          "url": "https://images.pexels.com/photos/7843989/pexels-photo-7843989.jpeg",
+          "alt": "Sacks of grains and dairy products"
+        }
+      ],
+      "farmers": [
+        {
+          "name": "John Doe",
+          "url": "https://images.unsplash.com/photo-1628492058844-589eb5dc6a35?crop=entropy&cs=srgb&fm=jpg&q=85",
+          "alt": "Farmer standing proudly in field"
+        },
+        {
+          "name": "Jane Smith",
+          "url": "https://images.pexels.com/photos/32277759/pexels-photo-32277759.jpeg",
+          "alt": "Portrait of female farmer"
+        }
+      ]
+    },
+    "icons": {
+      "library": "lucide-react",
+      "style": "Stroke width 1.5px, rounded joins"
+    }
+  },
+  "instructions_to_main_agent": {
+    "general": [
+      "Use the 'Organic & Earthy' archetype. Avoid generic SaaS blues.",
+      "Implement the 'Bento' grid for the landing page categories.",
+      "Use 'Playfair Display' for all H1-H3 headings to give a premium/trust feel.",
+      "Ensure high contrast for auction timers (Red/Accent) against the white cards.",
+      "Use the provided image URLs for the respective sections. DO NOT use placeholders.",
+      "For the Auction Detail page, use a split layout: Left = Large Image Gallery, Right = Sticky Bidding Interface.",
+      "Real-time elements (bids, timers) must use a Monospace font (JetBrains Mono) for tabular data clarity."
+    ],
+    "components": {
+      "AuctionCard": "Must include: Image (top), Title (serif), Current Bid (large, bold), Timer (red, mono), 'Bid Now' button (pill shape).",
+      "HeroSection": "Full height (min-h-[80vh]), text-center or left-aligned. Overlay text must be readable (use dark overlay or text-shadow).",
+      "FilterSidebar": "Clean, checkbox-based. Use 'Accent' color for checked states."
+    },
+    "universal_guidelines": [
+      "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients",
+      "Don't make generic centered layouts, simplistic gradients, and uniform styling.",
+      "Create depth through layered design elements with z-index hierarchy",
+      "Use glass-morphism effects with backdrop filters (12-24px blur)",
+      "You MUST NOT apply universal transition. Eg: `transition: all`. This results in breaking transforms. Always add transitions for specific interactive elements like button, input excluding transforms",
+      "You MUST NOT center align the app container, ie do not add `.App { text-align: center; }` in the css file. This disrupts the human natural reading flow of text",
+      "Always use modern button styles like pill-shaped, or sharp button with interaction animations & color relevant to the app style",
+      "NEVER: use AI assistant Emoji characters like 🤖🧠💭💡🔮 etc for icons.",
+      "Every interaction needs micro-animations - hover states, transitions, parallax effects, and entrance animations. Static = dead.",
+      "Use 2-3x more spacing than feels comfortable. Cramped designs look cheap.",
+      "Subtle grain textures, noise overlays, custom cursors, selection states, and loading animations: separates good from extraordinary.",
+      "Main agent relies on these image URLs. Missing categories (especially sponsor logos) = main agent will use placeholder text which is FORBIDDEN",
+      "Prioritize using pre-existing components from src/components/ui when applicable",
+      "Create new components that match the style and conventions of existing components when needed",
+      "Examine existing components to understand the project's component patterns before creating new ones",
+      "Components MUST use named exports (export const ComponentName = ...)",
+      "Pages MUST use default exports (export default function PageName() {...})",
+      "Use `sonner` for toasts. Sonner component are located in `/app/src/components/ui/sonner.tsx`"
+    ]
+  }
+}
