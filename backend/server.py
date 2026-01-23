@@ -2669,6 +2669,167 @@ async def get_stats():
         "total_reviews": total_reviews
     }
 
+# ================== ADMIN ROUTES ==================
+
+ADMIN_EMAILS = ['admin@jarnnmarket.com', 'info@jarnnmarket.com']
+
+async def verify_admin(user: dict = Depends(get_current_user)):
+    if user['email'] not in ADMIN_EMAILS and user.get('role') != 'admin':
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return user
+
+@api_router.get("/admin/stats")
+async def admin_get_stats(admin: dict = Depends(verify_admin)):
+    total_users = await db.users.count_documents({})
+    total_farmers = await db.users.count_documents({"role": "farmer"})
+    total_buyers = await db.users.count_documents({"role": "buyer"})
+    total_auctions = await db.auctions.count_documents({})
+    active_auctions = await db.auctions.count_documents({
+        "is_active": True,
+        "ends_at": {"$gt": datetime.now(timezone.utc).isoformat()}
+    })
+    
+    # Calculate total volume
+    all_escrows = await db.escrow.find({}, {"_id": 0, "amount": 1, "status": 1}).to_list(None)
+    total_escrow = sum(e['amount'] for e in all_escrows if e.get('status') == 'held')
+    total_volume = sum(e['amount'] for e in all_escrows if e.get('status') == 'released')
+    
+    pending_payouts = await db.payouts.count_documents({"status": "pending"})
+    
+    return {
+        "total_users": total_users,
+        "total_farmers": total_farmers,
+        "total_buyers": total_buyers,
+        "total_auctions": total_auctions,
+        "active_auctions": active_auctions,
+        "total_volume": total_volume,
+        "total_escrow": total_escrow,
+        "pending_payouts": pending_payouts
+    }
+
+@api_router.get("/admin/users")
+async def admin_get_users(admin: dict = Depends(verify_admin)):
+    users = await db.users.find({}, {"_id": 0, "password_hash": 0}).to_list(None)
+    return users
+
+@api_router.get("/admin/auctions")
+async def admin_get_auctions(admin: dict = Depends(verify_admin)):
+    auctions = await db.auctions.find({}, {"_id": 0}).to_list(None)
+    # Add seller names
+    for auction in auctions:
+        seller = await db.users.find_one({"id": auction.get("seller_id")}, {"_id": 0, "name": 1})
+        auction['seller_name'] = seller['name'] if seller else 'Unknown'
+    return auctions
+
+@api_router.get("/admin/payouts")
+async def admin_get_payouts(admin: dict = Depends(verify_admin)):
+    payouts = await db.payouts.find({}, {"_id": 0}).to_list(None)
+    # Add seller names
+    for payout in payouts:
+        seller = await db.users.find_one({"id": payout.get("seller_id")}, {"_id": 0, "name": 1})
+        payout['seller_name'] = seller['name'] if seller else 'Unknown'
+    return payouts
+
+@api_router.post("/admin/payouts/{payout_id}/approve")
+async def admin_approve_payout(payout_id: str, admin: dict = Depends(verify_admin)):
+    payout = await db.payouts.find_one({"id": payout_id})
+    if not payout:
+        raise HTTPException(status_code=404, detail="Payout not found")
+    if payout['status'] != 'pending':
+        raise HTTPException(status_code=400, detail="Payout is not pending")
+    
+    await db.payouts.update_one(
+        {"id": payout_id},
+        {"$set": {"status": "completed", "completed_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    logger.info(f"Admin {admin['email']} approved payout {payout_id}")
+    return {"success": True, "message": "Payout approved"}
+
+@api_router.post("/admin/payouts/{payout_id}/reject")
+async def admin_reject_payout(payout_id: str, admin: dict = Depends(verify_admin)):
+    payout = await db.payouts.find_one({"id": payout_id})
+    if not payout:
+        raise HTTPException(status_code=404, detail="Payout not found")
+    if payout['status'] != 'pending':
+        raise HTTPException(status_code=400, detail="Payout is not pending")
+    
+    await db.payouts.update_one(
+        {"id": payout_id},
+        {"$set": {"status": "rejected", "rejected_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    logger.info(f"Admin {admin['email']} rejected payout {payout_id}")
+    return {"success": True, "message": "Payout rejected"}
+
+@api_router.post("/admin/users/{user_id}/toggle-status")
+async def admin_toggle_user_status(user_id: str, admin: dict = Depends(verify_admin)):
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    new_status = not user.get('is_active', True)
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"is_active": new_status}}
+    )
+    logger.info(f"Admin {admin['email']} toggled user {user_id} status to {new_status}")
+    return {"success": True, "is_active": new_status}
+
+# ================== SELLER ANALYTICS ROUTES ==================
+
+@api_router.get("/sellers/me/analytics")
+async def get_seller_analytics(user: dict = Depends(get_current_user)):
+    if user['role'] != 'farmer':
+        raise HTTPException(status_code=403, detail="Seller access required")
+    
+    seller_id = user['id']
+    
+    # Get all auctions by seller
+    auctions = await db.auctions.find({"seller_id": seller_id}, {"_id": 0}).to_list(None)
+    
+    active_listings = sum(1 for a in auctions if a.get('is_active') and datetime.fromisoformat(a['ends_at']) > datetime.now(timezone.utc))
+    
+    # Get completed sales (paid auctions)
+    completed_sales = sum(1 for a in auctions if a.get('is_paid'))
+    
+    # Calculate total revenue from escrow
+    escrows = await db.escrow.find({"seller_id": seller_id}, {"_id": 0}).to_list(None)
+    total_revenue = sum(e['amount'] for e in escrows if e.get('status') == 'released')
+    
+    # Calculate views (simple metric - count of unique viewers would require more tracking)
+    total_views = sum(a.get('view_count', 0) for a in auctions)
+    
+    # Get total bids on seller's auctions
+    auction_ids = [a['id'] for a in auctions]
+    total_bids = await db.bids.count_documents({"auction_id": {"$in": auction_ids}})
+    
+    # Calculate conversion rate
+    conversion_rate = (completed_sales / len(auctions) * 100) if auctions else 0
+    
+    # Average sale price
+    avg_sale_price = total_revenue / completed_sales if completed_sales > 0 else 0
+    
+    # Get categories count
+    category_count = {}
+    for a in auctions:
+        cat = a.get('category', 'Other')
+        category_count[cat] = category_count.get(cat, 0) + 1
+    top_categories = [{"name": k, "count": v} for k, v in sorted(category_count.items(), key=lambda x: -x[1])[:5]]
+    
+    return {
+        "total_sales": completed_sales,
+        "total_revenue": total_revenue,
+        "total_views": total_views,
+        "total_bids": total_bids,
+        "conversion_rate": round(conversion_rate, 1),
+        "avg_sale_price": round(avg_sale_price, 2),
+        "active_listings": active_listings,
+        "completed_sales": completed_sales,
+        "rating_avg": user.get('rating_avg', 0),
+        "rating_count": user.get('rating_count', 0),
+        "revenue_trend": 0,  # Would require historical data tracking
+        "top_categories": top_categories
+    }
+
 # ================== SEED DATA ==================
 
 @api_router.post("/seed")
