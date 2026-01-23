@@ -459,7 +459,7 @@ export default function AuctionDetail() {
                           </span>
                         </div>
                         <span className="font-mono">
-                          {opt.cost === 0 ? 'FREE' : `${auction.currency === 'NGN' ? '₦' : '$'}${opt.cost.toFixed(2)}`}
+                          {(opt.cost || 0) === 0 ? 'FREE' : `${auction.currency === 'NGN' ? '₦' : '$'}${(opt.cost || 0).toFixed(2)}`}
                         </span>
                       </div>
                     ))}
@@ -469,7 +469,7 @@ export default function AuctionDetail() {
             </div>
 
             {/* Seller Reviews Section */}
-            {sellerReviews.length > 0 && (
+            {sellerReviews && sellerReviews.length > 0 && (
               <div className="bg-card rounded-xl border p-6" data-testid="seller-reviews">
                 <h2 className="text-xl font-semibold mb-4 flex items-center gap-2" style={{ fontFamily: 'Playfair Display, serif' }}>
                   <Star className="w-5 h-5 text-yellow-500" />
