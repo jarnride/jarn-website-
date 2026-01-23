@@ -530,7 +530,7 @@ export default function AuctionDetail() {
                   <div className="space-y-4">
                     <div className="p-4 bg-green-50 rounded-lg border border-green-200">
                       <p className="text-green-800 font-medium">
-                        Congratulations! You won this auction.
+                        Congratulations! You won this {auction.sold_via === 'offer' ? 'listing with your offer' : 'auction'}.
                       </p>
                     </div>
                     <Button 
@@ -542,13 +542,99 @@ export default function AuctionDetail() {
                       Pay ${auction.current_bid.toFixed(2)}
                     </Button>
                   </div>
+                ) : isBuyNowOnly && canBuyNow ? (
+                  /* Buy Now Only - No Bidding */
+                  <div className="space-y-4">
+                    {/* Phone verification notice */}
+                    {user && !user.phone_verified && (
+                      <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 text-sm text-amber-800">
+                        <Shield className="w-4 h-4 inline mr-1" />
+                        Phone verification is mandatory.{' '}
+                        <button 
+                          onClick={() => setShowPhoneVerification(true)}
+                          className="underline font-medium"
+                        >
+                          Verify now
+                        </button>
+                      </div>
+                    )}
+
+                    <div className="p-3 bg-harvest/10 rounded-lg border border-harvest/20 text-sm text-harvest">
+                      <Zap className="w-4 h-4 inline mr-1" />
+                      This is a Buy Now Only listing. Bidding is not available.
+                    </div>
+
+                    {/* Payment Method Selection */}
+                    <div className="space-y-3">
+                      <Label className="text-sm font-medium">Payment Method</Label>
+                      <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="flex gap-4">
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="stripe" id="stripe" />
+                          <Label htmlFor="stripe" className="cursor-pointer flex items-center gap-2">
+                            <CreditCard className="w-4 h-4" />
+                            Card (Stripe)
+                          </Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="paypal" id="paypal" />
+                          <Label htmlFor="paypal" className="cursor-pointer flex items-center gap-2">
+                            <span className="text-blue-600 font-bold text-sm">PayPal</span>
+                          </Label>
+                        </div>
+                      </RadioGroup>
+                    </div>
+
+                    <Button
+                      className="w-full rounded-full bg-harvest hover:bg-harvest/90 text-black py-6 text-lg"
+                      onClick={handleBuyNow}
+                      disabled={buyingNow}
+                      data-testid="buy-now-btn"
+                    >
+                      {buyingNow ? (
+                        <span className="flex items-center gap-2">
+                          <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                          Processing...
+                        </span>
+                      ) : (
+                        <>
+                          <ShoppingCart className="w-5 h-5 mr-2" />
+                          Buy Now - ${auction.buy_now_price.toFixed(2)}
+                        </>
+                      )}
+                    </Button>
+
+                    {/* Make Offer Button */}
+                    {canMakeOffer && (
+                      <>
+                        <div className="relative flex items-center justify-center">
+                          <Separator className="flex-1" />
+                          <span className="px-3 text-xs text-muted-foreground uppercase">or</span>
+                          <Separator className="flex-1" />
+                        </div>
+                        <Button
+                          variant="outline"
+                          className="w-full rounded-full border-2 border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white py-6 text-lg"
+                          onClick={() => setShowOfferModal(true)}
+                          data-testid="make-offer-btn"
+                        >
+                          <MessageSquare className="w-5 h-5 mr-2" />
+                          Make an Offer
+                        </Button>
+                      </>
+                    )}
+
+                    <p className="text-xs text-center text-muted-foreground flex items-center justify-center gap-1">
+                      <Shield className="w-3 h-3" />
+                      Secure payment • Funds held in escrow
+                    </p>
+                  </div>
                 ) : canBid ? (
                   <div className="space-y-4">
                     {/* Phone verification notice */}
                     {user && !user.phone_verified && (
                       <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 text-sm text-amber-800">
                         <Shield className="w-4 h-4 inline mr-1" />
-                        Verify your phone to bid.{' '}
+                        Phone verification is mandatory.{' '}
                         <button 
                           onClick={() => setShowPhoneVerification(true)}
                           className="underline font-medium"
@@ -646,13 +732,33 @@ export default function AuctionDetail() {
                             </>
                           )}
                         </Button>
-
-                        <p className="text-xs text-center text-muted-foreground flex items-center justify-center gap-1">
-                          <Shield className="w-3 h-3" />
-                          Secure payment • Funds held in escrow
-                        </p>
                       </>
                     )}
+
+                    {/* Make Offer Button */}
+                    {canMakeOffer && (
+                      <>
+                        <div className="relative flex items-center justify-center">
+                          <Separator className="flex-1" />
+                          <span className="px-3 text-xs text-muted-foreground uppercase">or make an offer</span>
+                          <Separator className="flex-1" />
+                        </div>
+                        <Button
+                          variant="outline"
+                          className="w-full rounded-full border-2 border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white py-6 text-lg"
+                          onClick={() => setShowOfferModal(true)}
+                          data-testid="make-offer-btn"
+                        >
+                          <MessageSquare className="w-5 h-5 mr-2" />
+                          Make an Offer
+                        </Button>
+                      </>
+                    )}
+
+                    <p className="text-xs text-center text-muted-foreground flex items-center justify-center gap-1">
+                      <Shield className="w-3 h-3" />
+                      Secure payment • Funds held in escrow
+                    </p>
                   </div>
                 ) : isSold ? (
                   <div className="p-4 bg-muted rounded-lg text-center">
@@ -664,7 +770,7 @@ export default function AuctionDetail() {
                   </div>
                 ) : isSeller ? (
                   <div className="p-4 bg-muted rounded-lg text-center">
-                    <p className="text-muted-foreground">You cannot bid on your own auction</p>
+                    <p className="text-muted-foreground">You cannot bid on your own listing</p>
                   </div>
                 ) : (
                   <Button 
@@ -672,7 +778,7 @@ export default function AuctionDetail() {
                     onClick={() => navigate('/auth')}
                     data-testid="login-to-bid-btn"
                   >
-                    Login to Bid
+                    Login to {isBuyNowOnly ? 'Buy' : 'Bid'}
                   </Button>
                 )}
               </div>
