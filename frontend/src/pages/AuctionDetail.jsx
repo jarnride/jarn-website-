@@ -818,7 +818,7 @@ export default function AuctionDetail() {
                   </ScrollArea>
                 ) : (
                   <p className="text-center text-muted-foreground py-8">
-                    No bids yet. Be the first!
+                    {isBuyNowOnly ? 'This is a Buy Now Only listing.' : 'No bids yet. Be the first!'}
                   </p>
                 )}
               </div>
@@ -833,6 +833,87 @@ export default function AuctionDetail() {
         onOpenChange={setShowPhoneVerification}
         onVerified={fetchAuction}
       />
+
+      {/* Make Offer Modal */}
+      <Dialog open={showOfferModal} onOpenChange={setShowOfferModal}>
+        <DialogContent className="sm:max-w-md" data-testid="offer-modal">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2" style={{ fontFamily: 'Playfair Display, serif' }}>
+              <DollarSign className="w-5 h-5 text-primary" />
+              Make an Offer
+            </DialogTitle>
+            <DialogDescription>
+              Submit your best offer for "{auction?.title}". The seller will review and respond.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div>
+              <Label htmlFor="offer-amount">Your Offer ($)</Label>
+              <div className="relative mt-1">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-lg font-mono text-muted-foreground">$</span>
+                <Input
+                  id="offer-amount"
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  placeholder="Enter your offer"
+                  value={offerAmount}
+                  onChange={(e) => setOfferAmount(e.target.value)}
+                  className="pl-8 font-mono text-lg"
+                  data-testid="offer-amount-input"
+                />
+              </div>
+              {auction?.buy_now_price && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Buy Now price: ${auction.buy_now_price.toFixed(2)}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <Label htmlFor="offer-message">Message (Optional)</Label>
+              <Textarea
+                id="offer-message"
+                placeholder="Add a message to the seller..."
+                value={offerMessage}
+                onChange={(e) => setOfferMessage(e.target.value)}
+                className="mt-1"
+                maxLength={500}
+                data-testid="offer-message-input"
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              className="flex-1 rounded-full"
+              onClick={() => setShowOfferModal(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="flex-1 rounded-full bg-blue-500 hover:bg-blue-600"
+              onClick={handleMakeOffer}
+              disabled={submittingOffer || !offerAmount}
+              data-testid="submit-offer-btn"
+            >
+              {submittingOffer ? (
+                <span className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Submitting...
+                </span>
+              ) : (
+                <>
+                  <Send className="w-4 h-4 mr-2" />
+                  Submit Offer
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
