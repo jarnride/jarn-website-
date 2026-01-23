@@ -174,6 +174,12 @@ export default function CreateAuction() {
       toast.error('Buy Now price is required for Buy Now Only listings');
       return;
     }
+
+    // Validate at least one delivery option
+    if (!form.local_pickup && !form.city_to_city && !form.international_shipping) {
+      toast.error('Please select at least one delivery option');
+      return;
+    }
     
     setLoading(true);
     try {
@@ -182,6 +188,8 @@ export default function CreateAuction() {
         starting_bid: parseFloat(form.starting_bid),
         buy_now_price: form.buy_now_price ? parseFloat(form.buy_now_price) : null,
         reserve_price: form.reserve_price ? parseFloat(form.reserve_price) : null,
+        quantity: parseInt(form.quantity) || 1,
+        weight: form.weight ? parseFloat(form.weight) : null,
       };
       
       const response = await axios.post(`${API}/auctions`, payload, {
