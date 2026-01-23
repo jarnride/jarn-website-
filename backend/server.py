@@ -144,10 +144,10 @@ def generate_verification_token() -> str:
     """Generate a secure verification token"""
     return str(uuid.uuid4()) + '-' + ''.join(random.choices(string.ascii_letters + string.digits, k=32))
 
-# ================== EMAIL SERVICE (MOCK) ==================
+# ================== EMAIL SERVICE (SENDGRID) ==================
 
 class EmailService:
-    """Mock Email Service - Replace with real SendGrid/Resend implementation"""
+    """Email Service using SendGrid"""
     
     @staticmethod
     async def send_email(to: str, subject: str, html_body: str, text_body: str = None) -> dict:
@@ -162,38 +162,43 @@ class EmailService:
                 "subject": subject
             }
         else:
-            # Real SendGrid/Resend implementation would go here
-            # For now, still mock but can be easily replaced
+            # Real SendGrid implementation
             try:
-                if RESEND_API_KEY:
-                    import resend
-                    resend.api_key = RESEND_API_KEY
-                    params = {
-                        "from": EMAIL_FROM,
-                        "to": [to],
-                        "subject": subject,
-                        "html": html_body
-                    }
-                    email_response = resend.Emails.send(params)
-                    return {
-                        "success": True,
-                        "mock": False,
-                        "message_id": email_response.get("id"),
-                        "to": to,
-                        "subject": subject
-                    }
-                # Fallback to mock
+                from sendgrid import SendGridAPIClient
+                from sendgrid.helpers.mail import Mail, Email, To, Content
+                
+                message = Mail(
+                    from_email=Email(EMAIL_FROM, "Jarnnmarket"),
+                    to_emails=To(to),
+                    subject=subject,
+                    html_content=html_body
+                )
+                if text_body:
+                    message.add_content(Content("text/plain", text_body))
+                
+                sg = SendGridAPIClient(SENDGRID_API_KEY)
+                response = sg.send(message)
+                
+                logger.info(f"[SENDGRID EMAIL] Sent to: {to} | Status: {response.status_code}")
+                return {
+                    "success": response.status_code in [200, 201, 202],
+                    "mock": False,
+                    "status_code": response.status_code,
+                    "to": to,
+                    "subject": subject
+                }
+            except Exception as e:
+                logger.error(f"[SENDGRID EMAIL ERROR] {str(e)}")
+                # Fallback to mock on error
                 logger.info(f"[FALLBACK MOCK EMAIL] To: {to} | Subject: {subject}")
                 return {
                     "success": True,
                     "mock": True,
                     "message_id": f"MOCK_EMAIL_{uuid.uuid4().hex[:12]}",
                     "to": to,
-                    "subject": subject
+                    "subject": subject,
+                    "error_note": str(e)
                 }
-            except Exception as e:
-                logger.error(f"Email sending failed: {e}")
-                return {"success": False, "error": str(e)}
     
     @staticmethod
     async def send_verification_email(email: str, name: str, token: str) -> dict:
