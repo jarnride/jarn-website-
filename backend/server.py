@@ -936,6 +936,9 @@ async def place_bid(request: Request, auction_id: str, data: BidCreate, user: di
     if not auction["is_active"]:
         raise HTTPException(status_code=400, detail="Auction is not active")
     
+    if auction.get("buy_now_only"):
+        raise HTTPException(status_code=400, detail="This is a Buy Now only listing. Bidding is not allowed.")
+    
     if datetime.fromisoformat(auction["ends_at"]) < datetime.now(timezone.utc):
         raise HTTPException(status_code=400, detail="Auction has ended")
     
@@ -943,7 +946,7 @@ async def place_bid(request: Request, auction_id: str, data: BidCreate, user: di
         raise HTTPException(status_code=400, detail="Cannot bid on your own auction")
     
     if not user.get("phone_verified", False):
-        raise HTTPException(status_code=403, detail="Please verify your phone number before bidding")
+        raise HTTPException(status_code=403, detail="Phone verification is mandatory. Please verify your phone number before bidding.")
     
     if data.amount <= auction["current_bid"]:
         raise HTTPException(status_code=400, detail="Bid must be higher than current bid")
