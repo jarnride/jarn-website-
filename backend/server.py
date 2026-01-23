@@ -2813,19 +2813,24 @@ async def admin_unverify_seller(user_id: str, admin: dict = Depends(verify_admin
 
 @api_router.post("/admin/bulk/payouts")
 async def admin_bulk_process_payouts(
-    action: str,  # 'approve' or 'reject'
-    payout_ids: List[str],
+    action: str = Query(..., description="Action: 'approve' or 'reject'"),
+    payout_ids: str = Query(..., description="Comma-separated payout IDs"),
     admin: dict = Depends(verify_admin)
 ):
     """Bulk approve or reject payouts"""
     if action not in ['approve', 'reject']:
         raise HTTPException(status_code=400, detail="Action must be 'approve' or 'reject'")
     
+    # Parse comma-separated IDs
+    ids_list = [id.strip() for id in payout_ids.split(',') if id.strip()]
+    if not ids_list:
+        raise HTTPException(status_code=400, detail="No payout IDs provided")
+    
     status = 'completed' if action == 'approve' else 'rejected'
     timestamp_field = 'completed_at' if action == 'approve' else 'rejected_at'
     
     result = await db.payouts.update_many(
-        {"id": {"$in": payout_ids}, "status": "pending"},
+        {"id": {"$in": ids_list}, "status": "pending"},
         {"$set": {"status": status, timestamp_field: datetime.now(timezone.utc).isoformat()}}
     )
     
