@@ -699,7 +699,7 @@ export default function AuctionDetail() {
                       ) : (
                         <>
                           <ShoppingCart className="w-5 h-5 mr-2" />
-                          Buy Now - ${auction.buy_now_price.toFixed(2)}
+                          Buy Now - {currencySymbol}{auction.buy_now_price.toFixed(2)}
                         </>
                       )}
                     </Button>
@@ -829,7 +829,7 @@ export default function AuctionDetail() {
                           ) : (
                             <>
                               <ShoppingCart className="w-5 h-5 mr-2" />
-                              Buy Now - ${auction.buy_now_price.toFixed(2)}
+                              Buy Now - {currencySymbol}{auction.buy_now_price.toFixed(2)}
                             </>
                           )}
                         </Button>
