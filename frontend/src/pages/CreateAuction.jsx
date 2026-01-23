@@ -419,7 +419,7 @@ export default function CreateAuction() {
                 <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 flex items-start gap-2">
                   <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5" />
                   <p className="text-sm text-amber-700">
-                    Buy Now price is required when "Buy Now Only" is enabled
+                    Buy Now price is required when &quot;Buy Now Only&quot; is enabled
                   </p>
                 </div>
               )}
