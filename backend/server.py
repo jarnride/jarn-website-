@@ -1001,6 +1001,9 @@ async def create_auction(request: Request, data: AuctionCreate, user: dict = Dep
     if not user.get("phone_verified", False):
         raise HTTPException(status_code=403, detail="Phone verification is mandatory. Please verify your phone number before creating auctions.")
     
+    # Check subscription status (if required in future)
+    # subscription = await db.subscriptions.find_one({"user_id": user["id"], "status": "active"})
+    
     # Validate buy_now_only requires buy_now_price
     if data.buy_now_only and not data.buy_now_price:
         raise HTTPException(status_code=400, detail="Buy Now price is required when listing as Buy Now only")
@@ -1008,9 +1011,41 @@ async def create_auction(request: Request, data: AuctionCreate, user: dict = Dep
     if data.buy_now_price and data.buy_now_price <= data.starting_bid:
         raise HTTPException(status_code=400, detail="Buy Now price must be higher than starting bid")
     
+    # At least one delivery option required
+    if not data.local_pickup and not data.city_to_city and not data.international_shipping:
+        raise HTTPException(status_code=400, detail="At least one delivery option is required")
+    
     auction_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc)
     ends_at = now + timedelta(hours=data.duration_hours)
+    
+    # Build delivery options list
+    delivery_options = []
+    if data.local_pickup:
+        delivery_options.append({
+            "type": "local_pickup",
+            "price": 0,
+            "estimated_days": None,
+            "description": "Pick up from seller location"
+        })
+    if data.city_to_city:
+        delivery_options.append({
+            "type": "city_to_city",
+            "price": 0,  # Will be set by seller
+            "estimated_days": 3,
+            "description": "Delivery within Nigeria"
+        })
+    if data.international_shipping:
+        delivery_options.append({
+            "type": "international",
+            "price": 0,  # Will be set by seller
+            "estimated_days": 14,
+            "description": "International shipping available"
+        })
+    
+    # Add custom delivery options if provided
+    for opt in data.delivery_options:
+        delivery_options.append(opt.model_dump())
     
     auction_doc = {
         "id": auction_id,
@@ -1028,6 +1063,14 @@ async def create_auction(request: Request, data: AuctionCreate, user: dict = Dep
         "buy_now_only": data.buy_now_only,
         "accepts_offers": data.accepts_offers,
         "reserve_price": float(data.reserve_price) if data.reserve_price else None,
+        # New fields
+        "currency": data.currency,
+        "quantity": data.quantity,
+        "weight": data.weight,
+        "weight_unit": data.weight_unit,
+        "delivery_options": delivery_options,
+        "shipping_from": data.shipping_from or data.location,
+        # Timestamps
         "starts_at": now.isoformat(),
         "ends_at": ends_at.isoformat(),
         "is_active": True,
