@@ -11,9 +11,17 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import CountdownTimer from '@/components/CountdownTimer';
 import PhoneVerification from '@/components/PhoneVerification';
-import { MapPin, User, Calendar, Clock, TrendingUp, AlertCircle, CreditCard, Zap, ShoppingCart, Shield, Package } from 'lucide-react';
+import { MapPin, User, Calendar, Clock, TrendingUp, AlertCircle, CreditCard, Zap, ShoppingCart, Shield, Package, MessageSquare, Star, Send, DollarSign } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const WS_URL = process.env.REACT_APP_BACKEND_URL?.replace('https://', 'wss://').replace('http://', 'ws://');
