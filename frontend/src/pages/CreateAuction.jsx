@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -16,7 +17,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import PhoneVerification from '@/components/PhoneVerification';
-import { ImagePlus, Upload, X, Loader2, AlertCircle, Phone, Info } from 'lucide-react';
+import { ImagePlus, Upload, X, Loader2, AlertCircle, Phone, Info, Package, Truck, Globe, MapPin, Scale } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -28,6 +29,17 @@ const DURATIONS = [
   { value: 48, label: '2 days' },
   { value: 72, label: '3 days' },
   { value: 168, label: '1 week' },
+];
+
+const CURRENCIES = [
+  { value: 'USD', label: 'USD ($)', symbol: '$' },
+  { value: 'NGN', label: 'NGN (₦)', symbol: '₦' },
+];
+
+const WEIGHT_UNITS = [
+  { value: 'kg', label: 'Kilograms (kg)' },
+  { value: 'lb', label: 'Pounds (lb)' },
+  { value: 'g', label: 'Grams (g)' },
 ];
 
 const SAMPLE_IMAGES = [
@@ -59,7 +71,18 @@ export default function CreateAuction() {
     duration_hours: 24,
     buy_now_only: false,
     accepts_offers: false,
+    // New fields
+    currency: 'USD',
+    quantity: 1,
+    weight: '',
+    weight_unit: 'kg',
+    local_pickup: true,
+    city_to_city: false,
+    international_shipping: false,
+    shipping_from: '',
   });
+
+  const currencySymbol = CURRENCIES.find(c => c.value === form.currency)?.symbol || '$';
 
   // Check phone verification on mount
   useEffect(() => {
