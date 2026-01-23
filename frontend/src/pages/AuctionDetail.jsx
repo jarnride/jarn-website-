@@ -804,45 +804,47 @@ export default function AuctionDetail() {
                 )}
               </div>
 
-              {/* Bid History */}
-              <div className="bg-card rounded-xl border p-6" data-testid="bid-history">
-                <h3 className="text-lg font-semibold mb-4" style={{ fontFamily: 'Playfair Display, serif' }}>
-                  Bid History
-                </h3>
-                
-                {bids.length > 0 ? (
-                  <ScrollArea className="h-[300px]">
-                    <div className="space-y-1">
-                      {bids.map((bid, index) => (
-                        <div 
-                          key={bid.id} 
-                          className={`bid-history-item ${index === 0 ? 'bg-green-50' : ''} rounded px-2`}
-                        >
-                          <div className="flex items-center gap-2">
-                            <User className="w-4 h-4 text-muted-foreground" />
-                            <span className="font-medium">{bid.bidder_name}</span>
-                            {index === 0 && (
-                              <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs">
-                                Highest
-                              </Badge>
-                            )}
+              {/* Bid History - Only show for regular auctions */}
+              {!isBuyNowOnly && (
+                <div className="bg-card rounded-xl border p-6" data-testid="bid-history">
+                  <h3 className="text-lg font-semibold mb-4" style={{ fontFamily: 'Playfair Display, serif' }}>
+                    Bid History
+                  </h3>
+                  
+                  {bids.length > 0 ? (
+                    <ScrollArea className="h-[300px]">
+                      <div className="space-y-1">
+                        {bids.map((bid, index) => (
+                          <div 
+                            key={bid.id} 
+                            className={`bid-history-item ${index === 0 ? 'bg-green-50' : ''} rounded px-2`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <User className="w-4 h-4 text-muted-foreground" />
+                              <span className="font-medium">{bid.bidder_name}</span>
+                              {index === 0 && (
+                                <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs">
+                                  Highest
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="text-right">
+                              <span className="font-mono font-semibold">${bid.amount.toFixed(2)}</span>
+                              <p className="text-xs text-muted-foreground">
+                                {new Date(bid.created_at).toLocaleTimeString()}
+                              </p>
+                            </div>
                           </div>
-                          <div className="text-right">
-                            <span className="font-mono font-semibold">${bid.amount.toFixed(2)}</span>
-                            <p className="text-xs text-muted-foreground">
-                              {new Date(bid.created_at).toLocaleTimeString()}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                ) : (
-                  <p className="text-center text-muted-foreground py-8">
-                    {isBuyNowOnly ? 'This is a Buy Now Only listing.' : 'No bids yet. Be the first!'}
-                  </p>
-                )}
-              </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  ) : (
+                    <p className="text-center text-muted-foreground py-8">
+                      No bids yet. Be the first!
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
