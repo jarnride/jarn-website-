@@ -2906,12 +2906,22 @@ async def admin_export_auctions(format: str = "json", admin: dict = Depends(veri
         import io
         output = io.StringIO()
         if auctions:
+            # Collect all unique keys from all auctions
+            all_keys = set()
+            for a in auctions:
+                all_keys.update(a.keys())
+            all_keys = sorted(all_keys)
+            
             # Flatten complex fields for CSV
             flat_auctions = []
             for a in auctions:
-                flat = {k: str(v) if isinstance(v, (list, dict)) else v for k, v in a.items()}
+                flat = {}
+                for k in all_keys:
+                    v = a.get(k, '')
+                    flat[k] = str(v) if isinstance(v, (list, dict)) else v
                 flat_auctions.append(flat)
-            writer = csv.DictWriter(output, fieldnames=flat_auctions[0].keys())
+            
+            writer = csv.DictWriter(output, fieldnames=all_keys)
             writer.writeheader()
             writer.writerows(flat_auctions)
         return {"format": "csv", "data": output.getvalue(), "count": len(auctions)}
