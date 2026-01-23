@@ -13,6 +13,7 @@ import Dashboard from "@/pages/Dashboard";
 import PaymentSuccess from "@/pages/PaymentSuccess";
 import PaymentCancel from "@/pages/PaymentCancel";
 import Policies from "@/pages/Policies";
+import Subscription from "@/pages/Subscription";
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
               <Route path="/payment/cancel" element={<PaymentCancel />} />
               <Route path="/policies" element={<Policies />} />
               <Route path="/policies/:type" element={<Policies />} />
+              <Route path="/subscription" element={<Subscription />} />
             </Routes>
           </main>
           <Footer />
