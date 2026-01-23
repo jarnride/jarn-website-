@@ -1702,7 +1702,44 @@ async def buy_now(request: Request, auction_id: str, data: BuyNowRequest, user: 
     if not auction.get("buy_now_price"):
         raise HTTPException(status_code=400, detail="This auction does not have a Buy Now option")
     
+    # Validate delivery option
+    available_delivery_options = auction.get("delivery_options", [])
+    selected_delivery = data.delivery_option
+    delivery_cost = 0.0
+    
+    if available_delivery_options and selected_delivery:
+        # Find the selected delivery option
+        delivery_match = None
+        for opt in available_delivery_options:
+            if opt.get("type") == selected_delivery:
+                delivery_match = opt
+                break
+        
+        if not delivery_match:
+            raise HTTPException(status_code=400, detail=f"Invalid delivery option: {selected_delivery}")
+        
+        delivery_cost = delivery_match.get("cost", 0.0)
+    elif available_delivery_options and not selected_delivery:
+        # Default to first available delivery option
+        selected_delivery = available_delivery_options[0].get("type", "local_pickup")
+        delivery_cost = available_delivery_options[0].get("cost", 0.0)
+    
     buy_now_price = float(auction["buy_now_price"])
+    total_amount = buy_now_price + delivery_cost
+    
+    # Get currency from auction (default USD)
+    currency = auction.get("currency", "USD").lower()
+    currency_symbol = "₦" if currency == "ngn" else "$"
+    
+    # Store order details
+    order_details = {
+        "delivery_option": selected_delivery,
+        "delivery_address": data.delivery_address,
+        "delivery_cost": delivery_cost,
+        "item_price": buy_now_price,
+        "total_amount": total_amount,
+        "currency": currency.upper()
+    }
     
     if data.payment_method == "stripe":
         host_url = str(request.base_url).rstrip('/')
@@ -1714,15 +1751,17 @@ async def buy_now(request: Request, auction_id: str, data: BuyNowRequest, user: 
         cancel_url = f"{data.origin_url}/payment/cancel"
         
         checkout_request = CheckoutSessionRequest(
-            amount=buy_now_price,
-            currency="usd",
+            amount=total_amount,
+            currency=currency,
             success_url=success_url,
             cancel_url=cancel_url,
             metadata={
                 "auction_id": auction_id,
                 "user_id": user["id"],
                 "auction_title": auction["title"],
-                "type": "buy_now"
+                "type": "buy_now",
+                "delivery_option": selected_delivery or "",
+                "delivery_cost": str(delivery_cost)
             }
         )
         
@@ -1734,11 +1773,12 @@ async def buy_now(request: Request, auction_id: str, data: BuyNowRequest, user: 
             "session_id": session.session_id,
             "auction_id": auction_id,
             "user_id": user["id"],
-            "amount": buy_now_price,
-            "currency": "usd",
+            "amount": total_amount,
+            "currency": currency.upper(),
             "payment_method": "stripe",
             "payment_status": "pending",
             "payment_type": "buy_now",
+            "order_details": order_details,
             "metadata": {"auction_title": auction["title"]},
             "created_at": datetime.now(timezone.utc).isoformat()
         }
@@ -1750,7 +1790,8 @@ async def buy_now(request: Request, auction_id: str, data: BuyNowRequest, user: 
                 "is_active": False,
                 "winner_id": user["id"],
                 "current_bid": buy_now_price,
-                "sold_via": "buy_now"
+                "sold_via": "buy_now",
+                "order_details": order_details
             }}
         )
         
@@ -1760,10 +1801,10 @@ async def buy_now(request: Request, auction_id: str, data: BuyNowRequest, user: 
     
     elif data.payment_method == "paypal":
         paypal_order = await PayPalService.create_order(
-            amount=buy_now_price,
-            currency="usd",
+            amount=total_amount,
+            currency=currency.upper(),
             auction_id=auction_id,
-            description=f"Buy Now: {auction['title']}"
+            description=f"Buy Now: {auction['title']} ({selected_delivery or 'No delivery'})"
         )
         
         payment_id = str(uuid.uuid4())
@@ -1772,11 +1813,12 @@ async def buy_now(request: Request, auction_id: str, data: BuyNowRequest, user: 
             "paypal_order_id": paypal_order["order_id"],
             "auction_id": auction_id,
             "user_id": user["id"],
-            "amount": buy_now_price,
-            "currency": "usd",
+            "amount": total_amount,
+            "currency": currency.upper(),
             "payment_method": "paypal",
             "payment_status": "pending",
             "payment_type": "buy_now",
+            "order_details": order_details,
             "metadata": {"auction_title": auction["title"]},
             "created_at": datetime.now(timezone.utc).isoformat()
         }
@@ -1788,7 +1830,8 @@ async def buy_now(request: Request, auction_id: str, data: BuyNowRequest, user: 
                 "is_active": False,
                 "winner_id": user["id"],
                 "current_bid": buy_now_price,
-                "sold_via": "buy_now"
+                "sold_via": "buy_now",
+                "order_details": order_details
             }}
         )
         
