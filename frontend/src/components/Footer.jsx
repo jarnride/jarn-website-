@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
-import { Gavel, Mail, Phone, MapPin, Facebook, Twitter, Instagram } from 'lucide-react';
+import { Mail, Phone, MapPin, Facebook, Twitter, Instagram } from 'lucide-react';
+import JarnnLogo from '@/components/JarnnLogo';
 
 export const Footer = () => {
   return (
@@ -9,7 +10,7 @@ export const Footer = () => {
           {/* Brand */}
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center gap-2 mb-4">
-              <Gavel className="w-8 h-8" />
+              <JarnnLogo className="w-10 h-10 text-white" />
               <span className="text-2xl font-bold" style={{ fontFamily: 'Playfair Display, serif' }}>
                 jarnnmarket
               </span>
