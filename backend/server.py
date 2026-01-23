@@ -1929,6 +1929,47 @@ async def confirm_delivery(data: DeliveryConfirmation, user: dict = Depends(get_
     auction = await db.auctions.find_one({"id": escrow["auction_id"]}, {"_id": 0})
     seller = await db.users.find_one({"id": escrow["seller_id"]}, {"_id": 0})
     
+    # Create review if rating provided
+    if data.rating and auction and seller:
+        existing_review = await db.reviews.find_one({
+            "auction_id": escrow["auction_id"],
+            "reviewer_id": user["id"]
+        })
+        
+        if not existing_review:
+            review_id = str(uuid.uuid4())
+            review_doc = {
+                "id": review_id,
+                "auction_id": escrow["auction_id"],
+                "seller_id": escrow["seller_id"],
+                "reviewer_id": user["id"],
+                "reviewer_name": user["name"],
+                "rating": data.rating,
+                "comment": data.review_comment or "",
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+            await db.reviews.insert_one(review_doc)
+            
+            # Update seller's average rating
+            all_reviews = await db.reviews.find({"seller_id": escrow["seller_id"]}, {"_id": 0}).to_list(1000)
+            total_rating = sum(r["rating"] for r in all_reviews)
+            avg_rating = total_rating / len(all_reviews) if all_reviews else 0
+            
+            await db.users.update_one(
+                {"id": escrow["seller_id"]},
+                {"$set": {"rating_avg": round(avg_rating, 2), "rating_count": len(all_reviews)}}
+            )
+            
+            # Notify seller of review
+            await EmailService.send_review_received_notification(
+                seller["email"],
+                seller["name"],
+                data.rating,
+                user["name"]
+            )
+            
+            result["review_created"] = True
+    
     if seller and auction:
         await EmailService.send_delivery_confirmed_notification(
             seller["email"],
@@ -1937,9 +1978,11 @@ async def confirm_delivery(data: DeliveryConfirmation, user: dict = Depends(get_
             escrow["amount"]
         )
         if seller.get("phone") and seller.get("phone_verified"):
+            currency = auction.get("currency", "USD")
+            symbol = "₦" if currency == "NGN" else "$"
             await SMSService.send_sms(
                 seller["phone"],
-                f"Payment released! ${escrow['amount']:.2f} from escrow is now available. Thank you for using jarnnmarket!"
+                f"Payment released! {symbol}{escrow['amount']:.2f} from escrow is now available. Thank you for using Jarnnmarket!"
             )
     
     return result
