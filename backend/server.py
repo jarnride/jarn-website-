@@ -56,8 +56,12 @@ PAYPAL_MOCK_MODE = PAYPAL_CLIENT_ID == 'MOCK_CLIENT_ID'
 # Email config (MOCK MODE)
 EMAIL_PROVIDER = os.environ.get('EMAIL_PROVIDER', 'MOCK')
 SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY', '')
+RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '')
 EMAIL_FROM = os.environ.get('EMAIL_FROM', 'noreply@jarnnmarket.com')
 EMAIL_MOCK_MODE = EMAIL_PROVIDER == 'MOCK'
+
+# Frontend URL for verification links
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://jarnnmarket.preview.emergentagent.com')
 
 # High-value bid threshold for notifications
 HIGH_VALUE_BID_THRESHOLD = float(os.environ.get('HIGH_VALUE_BID_THRESHOLD', '100'))
