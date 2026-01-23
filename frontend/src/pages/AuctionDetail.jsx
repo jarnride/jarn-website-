@@ -617,7 +617,7 @@ export default function AuctionDetail() {
                               Buy Now Price
                             </span>
                             <span className="text-2xl font-bold text-harvest font-mono">
-                              ${auction.buy_now_price.toFixed(2)}
+                              {currencySymbol}{auction.buy_now_price.toFixed(2)}
                             </span>
                           </div>
                         </div>
