@@ -548,6 +548,10 @@ export default function Dashboard() {
                   </div>
                 )}
               </TabsContent>
+
+              <TabsContent value="analytics" className="mt-6">
+                <SellerAnalytics token={token} userId={user.id} />
+              </TabsContent>
             </Tabs>
           </>
         ) : (
