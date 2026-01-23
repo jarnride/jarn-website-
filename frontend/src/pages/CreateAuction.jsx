@@ -630,7 +630,7 @@ export default function CreateAuction() {
                   type="number"
                   step="0.01"
                   min="0.01"
-                  placeholder="50.00"
+                  placeholder={form.currency === 'NGN' ? '5000' : '50.00'}
                   value={form.starting_bid}
                   onChange={(e) => setForm({ ...form, starting_bid: e.target.value })}
                   className="mt-1 font-mono"
@@ -641,14 +641,14 @@ export default function CreateAuction() {
 
               <div className="form-group">
                 <Label htmlFor="buy_now_price">
-                  Buy Now Price ($) {form.buy_now_only && '*'}
+                  Buy Now Price ({currencySymbol}) {form.buy_now_only && '*'}
                 </Label>
                 <Input
                   id="buy_now_price"
                   type="number"
                   step="0.01"
                   min="0"
-                  placeholder="100.00"
+                  placeholder={form.currency === 'NGN' ? '10000' : '100.00'}
                   value={form.buy_now_price}
                   onChange={(e) => setForm({ ...form, buy_now_price: e.target.value })}
                   className="mt-1 font-mono"
@@ -661,7 +661,7 @@ export default function CreateAuction() {
               </div>
 
               <div className="form-group">
-                <Label htmlFor="reserve_price">Reserve Price ($)</Label>
+                <Label htmlFor="reserve_price">Reserve Price ({currencySymbol})</Label>
                 <Input
                   id="reserve_price"
                   type="number"
