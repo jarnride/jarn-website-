@@ -456,11 +456,174 @@ export default function CreateAuction() {
               )}
             </div>
 
+            {/* Quantity & Weight */}
+            <div className="p-4 bg-muted/50 rounded-xl space-y-4">
+              <h3 className="font-semibold flex items-center gap-2">
+                <Scale className="w-4 h-4" />
+                Quantity & Weight
+              </h3>
+              
+              <div className="grid md:grid-cols-3 gap-4">
+                <div className="form-group">
+                  <Label htmlFor="quantity">Quantity *</Label>
+                  <Input
+                    id="quantity"
+                    type="number"
+                    min="1"
+                    max="10000"
+                    value={form.quantity}
+                    onChange={(e) => setForm({ ...form, quantity: e.target.value })}
+                    className="mt-1"
+                    data-testid="auction-quantity-input"
+                  />
+                </div>
+                
+                <div className="form-group">
+                  <Label htmlFor="weight">Weight</Label>
+                  <Input
+                    id="weight"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="Optional"
+                    value={form.weight}
+                    onChange={(e) => setForm({ ...form, weight: e.target.value })}
+                    className="mt-1"
+                    data-testid="auction-weight-input"
+                  />
+                </div>
+                
+                <div className="form-group">
+                  <Label>Weight Unit</Label>
+                  <Select 
+                    value={form.weight_unit} 
+                    onValueChange={(value) => setForm({ ...form, weight_unit: value })}
+                  >
+                    <SelectTrigger className="mt-1" data-testid="weight-unit-select">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {WEIGHT_UNITS.map(unit => (
+                        <SelectItem key={unit.value} value={unit.value}>{unit.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+            {/* Delivery Options */}
+            <div className="p-4 bg-muted/50 rounded-xl space-y-4">
+              <h3 className="font-semibold flex items-center gap-2">
+                <Truck className="w-4 h-4" />
+                Delivery Options
+              </h3>
+              <p className="text-xs text-muted-foreground -mt-2">
+                Select at least one delivery option
+              </p>
+              
+              <div className="space-y-3">
+                <div className="flex items-start gap-3 p-3 bg-background rounded-lg border">
+                  <Checkbox
+                    id="local_pickup"
+                    checked={form.local_pickup}
+                    onCheckedChange={(checked) => setForm({ ...form, local_pickup: checked })}
+                    data-testid="local-pickup-checkbox"
+                  />
+                  <div className="flex-1">
+                    <Label htmlFor="local_pickup" className="font-medium flex items-center gap-2 cursor-pointer">
+                      <MapPin className="w-4 h-4 text-primary" />
+                      Local Pickup
+                    </Label>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Buyer picks up from your location - Free
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-3 p-3 bg-background rounded-lg border">
+                  <Checkbox
+                    id="city_to_city"
+                    checked={form.city_to_city}
+                    onCheckedChange={(checked) => setForm({ ...form, city_to_city: checked })}
+                    data-testid="city-to-city-checkbox"
+                  />
+                  <div className="flex-1">
+                    <Label htmlFor="city_to_city" className="font-medium flex items-center gap-2 cursor-pointer">
+                      <Truck className="w-4 h-4 text-blue-500" />
+                      City-to-City Delivery
+                    </Label>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Delivery within Nigeria (estimated 2-5 days)
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-3 p-3 bg-background rounded-lg border">
+                  <Checkbox
+                    id="international_shipping"
+                    checked={form.international_shipping}
+                    onCheckedChange={(checked) => setForm({ ...form, international_shipping: checked })}
+                    data-testid="international-shipping-checkbox"
+                  />
+                  <div className="flex-1">
+                    <Label htmlFor="international_shipping" className="font-medium flex items-center gap-2 cursor-pointer">
+                      <Globe className="w-4 h-4 text-green-500" />
+                      International Shipping
+                    </Label>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Ship worldwide (estimated 7-21 days)
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              {!form.local_pickup && !form.city_to_city && !form.international_shipping && (
+                <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5" />
+                  <p className="text-sm text-amber-700">
+                    Please select at least one delivery option
+                  </p>
+                </div>
+              )}
+              
+              <div className="form-group">
+                <Label htmlFor="shipping_from">Ship From Location</Label>
+                <Input
+                  id="shipping_from"
+                  placeholder="e.g., Lagos, Nigeria"
+                  value={form.shipping_from}
+                  onChange={(e) => setForm({ ...form, shipping_from: e.target.value })}
+                  className="mt-1"
+                  maxLength={100}
+                  data-testid="shipping-from-input"
+                />
+              </div>
+            </div>
+
+            {/* Currency & Pricing */}
+            <div className="form-group">
+              <Label>Currency *</Label>
+              <Select 
+                value={form.currency} 
+                onValueChange={(value) => setForm({ ...form, currency: value })}
+              >
+                <SelectTrigger className="mt-1 w-48" data-testid="currency-select">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CURRENCIES.map(curr => (
+                    <SelectItem key={curr.value} value={curr.value}>{curr.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Pricing */}
             <div className="grid md:grid-cols-3 gap-6">
               <div className="form-group">
                 <Label htmlFor="starting_bid">
-                  {form.buy_now_only ? 'Base Price ($) *' : 'Starting Bid ($) *'}
+                  {form.buy_now_only ? `Base Price (${currencySymbol}) *` : `Starting Bid (${currencySymbol}) *`}
                 </Label>
                 <Input
                   id="starting_bid"
