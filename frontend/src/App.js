@@ -16,6 +16,8 @@ import PaymentCancel from "@/pages/PaymentCancel";
 import Policies from "@/pages/Policies";
 import Subscription from "@/pages/Subscription";
 import VerifyEmail from "@/pages/VerifyEmail";
+import HelpCenter from "@/pages/HelpCenter";
+import AdminDashboard from "@/pages/AdminDashboard";
 
 function App() {
   return (
@@ -37,6 +39,8 @@ function App() {
               <Route path="/policies/:type" element={<Policies />} />
               <Route path="/subscription" element={<Subscription />} />
               <Route path="/verify-email" element={<VerifyEmail />} />
+              <Route path="/help" element={<HelpCenter />} />
+              <Route path="/admin" element={<AdminDashboard />} />
             </Routes>
           </main>
           <Footer />
