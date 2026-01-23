@@ -658,7 +658,36 @@ async def broadcast_auction_sold(auction_id: str, auction: dict, buyer_name: str
 async def register(request: Request, data: UserCreate):
     existing = await db.users.find_one({"email": data.email.lower()})
     if existing:
-        raise HTTPException(status_code=400, detail="Email already registered")
+        # Check if email is already verified
+        if existing.get("email_verified"):
+            raise HTTPException(status_code=400, detail="Email already registered")
+        else:
+            # User exists but email not verified - resend verification
+            token = generate_verification_token()
+            expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
+            
+            await db.email_verifications.update_one(
+                {"user_id": existing["id"]},
+                {"$set": {
+                    "user_id": existing["id"],
+                    "email": existing["email"],
+                    "token": token,
+                    "expires_at": expires_at.isoformat(),
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                }},
+                upsert=True
+            )
+            
+            # Send verification email
+            await EmailService.send_verification_email(existing["email"], existing["name"], token)
+            
+            return {
+                "success": True,
+                "message": "A verification email has been sent. Please check your inbox.",
+                "email_verification_required": True,
+                "mock_mode": EMAIL_MOCK_MODE,
+                "mock_token": token if EMAIL_MOCK_MODE else None
+            }
     
     # Enhanced password validation
     is_valid, error_msg = validate_password(data.password)
@@ -669,12 +698,16 @@ async def register(request: Request, data: UserCreate):
         raise HTTPException(status_code=400, detail="Invalid phone number format")
     
     user_id = str(uuid.uuid4())
+    verification_token = generate_verification_token()
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
+    
     user_doc = {
         "id": user_id,
         "name": sanitize_string(data.name),
         "email": data.email.lower(),
         "phone": data.phone,
         "phone_verified": False,
+        "email_verified": False,  # New field
         "password_hash": hash_password(data.password),
         "role": data.role,
         "rating_avg": 0.0,
@@ -683,23 +716,94 @@ async def register(request: Request, data: UserCreate):
     }
     await db.users.insert_one(user_doc)
     
-    # Log registration (without sensitive data)
-    logger.info(f"New user registered: {user_id}, role: {data.role}")
+    # Store email verification token
+    await db.email_verifications.insert_one({
+        "user_id": user_id,
+        "email": data.email.lower(),
+        "token": verification_token,
+        "expires_at": expires_at.isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
     
-    token = create_token(user_id)
+    # Send verification email
+    await EmailService.send_verification_email(data.email.lower(), sanitize_string(data.name), verification_token)
+    
+    # Log registration (without sensitive data)
+    logger.info(f"New user registered: {user_id}, role: {data.role}, email verification required")
+    
     return {
-        "user": {
-            "id": user_id,
-            "name": sanitize_string(data.name),
-            "email": data.email.lower(),
-            "phone": data.phone,
-            "phone_verified": False,
-            "role": data.role,
-            "rating_avg": 0.0,
-            "rating_count": 0,
-            "created_at": user_doc["created_at"]
-        },
-        "token": token
+        "success": True,
+        "message": "Registration successful! Please check your email to verify your account.",
+        "email_verification_required": True,
+        "mock_mode": EMAIL_MOCK_MODE,
+        "mock_token": verification_token if EMAIL_MOCK_MODE else None
+    }
+
+@api_router.post("/auth/verify-email")
+@limiter.limit("10/minute")
+async def verify_email(request: Request, data: EmailVerificationToken):
+    """Verify user's email address"""
+    verification = await db.email_verifications.find_one({"token": data.token})
+    
+    if not verification:
+        raise HTTPException(status_code=400, detail="Invalid or expired verification token")
+    
+    if datetime.fromisoformat(verification["expires_at"]) < datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="Verification token has expired. Please register again.")
+    
+    # Update user's email_verified status
+    await db.users.update_one(
+        {"id": verification["user_id"]},
+        {"$set": {"email_verified": True}}
+    )
+    
+    # Delete the verification record
+    await db.email_verifications.delete_one({"token": data.token})
+    
+    logger.info(f"Email verified for user: {verification['user_id']}")
+    
+    return {
+        "success": True,
+        "message": "Email verified successfully! You can now login."
+    }
+
+@api_router.post("/auth/resend-verification")
+@limiter.limit("3/minute")
+async def resend_verification_email(request: Request, data: ResendVerificationEmail):
+    """Resend email verification link"""
+    user = await db.users.find_one({"email": data.email.lower()}, {"_id": 0})
+    
+    if not user:
+        # Don't reveal if email exists
+        return {"success": True, "message": "If this email is registered, a verification link has been sent."}
+    
+    if user.get("email_verified"):
+        return {"success": True, "message": "Email is already verified. Please login."}
+    
+    # Generate new token
+    token = generate_verification_token()
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
+    
+    await db.email_verifications.update_one(
+        {"user_id": user["id"]},
+        {"$set": {
+            "user_id": user["id"],
+            "email": user["email"],
+            "token": token,
+            "expires_at": expires_at.isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }},
+        upsert=True
+    )
+    
+    # Send verification email
+    await EmailService.send_verification_email(user["email"], user["name"], token)
+    
+    return {
+        "success": True,
+        "message": "Verification email sent. Please check your inbox.",
+        "mock_mode": EMAIL_MOCK_MODE,
+        "mock_token": token if EMAIL_MOCK_MODE else None
     }
 
 @api_router.post("/auth/login")
@@ -709,6 +813,15 @@ async def login(request: Request, data: UserLogin):
     if not user or not verify_password(data.password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
+    # Check if email is verified
+    if not user.get("email_verified", False):
+        # For demo users (seeded data), allow login without email verification
+        if user["email"] not in ["john@farm.com", "sarah@farm.com", "peter@farm.com", "buyer@demo.com"]:
+            raise HTTPException(
+                status_code=403, 
+                detail="Please verify your email before logging in. Check your inbox for the verification link."
+            )
+    
     token = create_token(user["id"])
     return {
         "user": {
@@ -717,6 +830,7 @@ async def login(request: Request, data: UserLogin):
             "email": user["email"],
             "phone": user.get("phone"),
             "phone_verified": user.get("phone_verified", False),
+            "email_verified": user.get("email_verified", True),  # For legacy users
             "role": user["role"],
             "rating_avg": user.get("rating_avg", 0.0),
             "rating_count": user.get("rating_count", 0),
