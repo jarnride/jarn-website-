@@ -29,7 +29,40 @@ A full-stack auction platform connecting farmers directly with buyers through re
 - [x] Category filtering
 - [x] Search functionality
 
-### Notifications System (NEW)
+### NEW: Delivery Options
+- [x] **Local Pickup** - Free pickup from seller location
+- [x] **City-to-City Delivery** - Delivery within Nigeria (2-5 days)
+- [x] **International Shipping** - Worldwide delivery (7-21 days)
+- [x] Ship-from location configuration
+
+### NEW: Quantity & Weight
+- [x] Quantity field (1-10,000 units)
+- [x] Weight field with unit selection (kg, lb, g)
+
+### NEW: Multi-Currency Support
+- [x] **USD ($)** - US Dollars
+- [x] **NGN (₦)** - Nigerian Naira
+- [x] Currency selection during listing creation
+
+### NEW: Seller Subscription Plans
+- [x] **5-Day Plan** - $4.99 / ₦7,500
+  - Up to 10 listings
+  - Basic analytics
+  - Email support
+- [x] **Weekly Plan** - $6.99 / ₦10,500
+  - Up to 25 listings
+  - Advanced analytics
+  - Priority support
+  - Featured listings
+- [x] **Monthly Plan** - $19.99 / ₦30,000
+  - Unlimited listings
+  - Full analytics
+  - 24/7 support
+  - Featured listings
+  - Promotional tools
+  - Verified seller badge
+
+### Notifications System
 - [x] Real-time notification bell in navbar (desktop & mobile)
 - [x] Notifications for sellers: new offers, escrow held, payouts ready
 - [x] Notifications for buyers: offer responses, won auctions, delivery confirmations, outbid alerts
@@ -46,66 +79,31 @@ A full-stack auction platform connecting farmers directly with buyers through re
 - [x] Stripe payment integration
 - [x] PayPal payment option (MOCKED)
 - [x] Escrow system - funds held until delivery confirmation
-- [x] **Payout system** - Sellers request payout after escrow release (MOCKED)
+- [x] Payout system - Sellers request payout after escrow release (MOCKED)
 - [x] Delivery confirmation by buyer releases funds
 
 ### Policies & Legal
-- [x] **Terms & Conditions**
-- [x] **Privacy Policy**
-- [x] **Return & Refund Policy**
-- [x] **Seller Guidelines**
-- [x] **Buyer Guidelines**
-
-### Dashboard Features
-- [x] Farmer dashboard: Active auctions, ended auctions, escrows, offers, payouts
-- [x] Buyer dashboard: Bids, won auctions, offers, delivery confirmations
-- [x] Phone verification status
-- [x] Escrow balance tracking
+- [x] Terms & Conditions
+- [x] Privacy Policy
+- [x] Return & Refund Policy
+- [x] Seller Guidelines
+- [x] Buyer Guidelines
 
 ## API Endpoints
 
-### Authentication
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-- `POST /api/auth/phone/send-code`
-- `POST /api/auth/phone/verify`
+### Subscriptions (NEW)
+- `GET /api/subscriptions/plans` - Get all subscription plans
+- `GET /api/users/me/subscription` - Get current subscription
+- `POST /api/subscriptions/subscribe` - Subscribe to a plan
+- `POST /api/subscriptions/cancel` - Cancel subscription
 
-### Auctions
-- `GET /api/auctions` - List all auctions
-- `GET /api/auctions/featured` - Featured auctions
-- `GET /api/auctions/categories` - Categories
-- `POST /api/auctions` - Create auction
-- `GET /api/auctions/{id}` - Get auction details
-- `POST /api/auctions/{id}/bids` - Place bid
-- `POST /api/auctions/{id}/buy` - Buy Now
-
-### Offers
-- `POST /api/auctions/{id}/offers` - Make offer
-- `GET /api/auctions/{id}/offers` - Get auction offers (seller only)
-- `POST /api/offers/{id}/respond` - Accept/reject offer
-- `GET /api/users/me/offers` - Get my offers
-
-### Notifications (NEW)
-- `GET /api/users/me/notifications` - Get user notifications with unread count
-
-### Payments & Escrow
-- `POST /api/payments/stripe/create-session`
-- `GET /api/payments/stripe/verify-session`
-- `POST /api/payments/paypal/create-order` (MOCKED)
-- `GET /api/users/me/escrows`
-- `POST /api/escrow/confirm-delivery`
-
-### Payouts
-- `GET /api/users/me/payouts`
-- `POST /api/payouts/request`
-
-### Images
-- `POST /api/upload/image` - Upload with quality validation
-- `GET /api/images/{id}` - Retrieve image
+### Auctions (Updated)
+- `POST /api/auctions` - Now accepts: currency, quantity, weight, weight_unit, delivery_options, shipping_from
 
 ## Database Collections
 - `users` - User accounts with phone verification status
-- `auctions` - Listings with buy_now_only and accepts_offers flags
+- `auctions` - Listings with delivery options, currency, quantity, weight
+- `subscriptions` - Seller subscription records (NEW)
 - `bids` - Bid history
 - `offers` - Make offer submissions
 - `escrow` - Payment escrow records
@@ -118,51 +116,30 @@ A full-stack auction platform connecting farmers directly with buyers through re
 - Phone: +2348189275367
 - Location: Abia State, Nigeria
 
-## Test Credentials
-- Farmer: john@farm.com / password123
-- Buyer: buyer@demo.com / password123
-
 ## Mocked Services
 - Phone SMS verification
 - PayPal payments
 - Email notifications
 - Payout processing
+- Subscription payments
 
 ---
 
 ## Changelog
 
-### December 2025 - Notification Bell & Buy Now Only UI
-- Added real-time notification bell to navbar (desktop & mobile responsive)
-- Notification types: new offers, outbid alerts, won auctions, delivery confirmations, payouts ready
-- Fixed Buy Now Only auction display - no bidding UI, only fixed price shown
-- Bid history hidden for Buy Now Only listings
-- Added default values for legacy auctions (buy_now_only, accepts_offers)
-
-### December 2025 - Phase 3 Complete
-- Added image quality validation (400x300px min, 20KB min)
-- Added Buy Now Only listing option
-- Added Make Offer feature
-- Made phone verification mandatory (cannot skip)
-- Added seller payout system
-- Added comprehensive policy pages (Terms, Privacy, Returns, Seller, Buyer)
-- Updated Dashboard with Offers and Payouts tabs
-- Added footer links to policy pages
+### December 2025 - eBay-style Features
+- Added delivery options: Local Pickup, City-to-City, International Shipping
+- Added seller subscription plans (5-day, Weekly, Monthly) with NGN/USD pricing
+- Added Nigerian Naira (NGN) currency support
+- Changed branding from "jarnnmarket" to "Jarnnmarket" (capital J)
+- Added quantity and weight fields for listings
+- Created Subscription page for sellers
 
 ### Previous Updates
-- Phase 1: WebSocket real-time bidding, Buy Now feature, image uploads
-- Phase 2: Phone verification (mock), PayPal (mock), Escrow system (mock)
-- MVP: Core auction platform with Stripe payments
-
-## Future Tasks
-- Replace mock services with real integrations:
-  - Twilio SMS for phone verification
-  - PayPal SDK for payments
-  - SendGrid/Resend for email notifications
-  - Real bank transfer for payouts
-- Security hardening:
-  - bcrypt password hashing
-  - Input validation
-  - Rate limiting (partially implemented)
-- Unit and integration tests
-- Seller ratings/reviews UI completion
+- Notification bell with real-time updates
+- Buy Now Only listings without bidding
+- Make Offer feature
+- Image quality validation
+- Mandatory phone verification
+- Seller payout system
+- Comprehensive policy pages
