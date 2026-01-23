@@ -976,6 +976,26 @@ export default function AuctionDetail() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Checkout Modal with Delivery Options */}
+      <CheckoutModal
+        open={showCheckoutModal}
+        onOpenChange={setShowCheckoutModal}
+        auction={auction}
+        onCheckout={handleCheckoutConfirm}
+        loading={buyingNow}
+      />
+
+      {/* Review Modal */}
+      <ReviewModal
+        open={showReviewModal}
+        onOpenChange={setShowReviewModal}
+        escrowId={escrow?.id}
+        sellerName={auction?.seller_name}
+        auctionTitle={auction?.title}
+        onSubmit={handleReviewSubmit}
+        loading={confirmingDelivery}
+      />
     </div>
   );
 }
