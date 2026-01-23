@@ -71,6 +71,18 @@ export const Footer = () => {
                 <MapPin className="w-4 h-4" />
                 <span>Abia State, Nigeria</span>
               </li>
+              <li>
+                <a 
+                  href={WHATSAPP_LINK}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-green-400 hover:text-green-300 transition-colors"
+                  data-testid="whatsapp-support"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  <span>WhatsApp Support</span>
+                </a>
+              </li>
             </ul>
           </div>
         </div>
