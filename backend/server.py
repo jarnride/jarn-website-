@@ -2884,9 +2884,24 @@ async def admin_export_users(format: str = "json", admin: dict = Depends(verify_
         import io
         output = io.StringIO()
         if users:
-            writer = csv.DictWriter(output, fieldnames=users[0].keys())
+            # Collect all unique keys from all users
+            all_keys = set()
+            for u in users:
+                all_keys.update(u.keys())
+            all_keys = sorted(all_keys)
+            
+            # Ensure all users have all keys
+            flat_users = []
+            for u in users:
+                flat = {}
+                for k in all_keys:
+                    v = u.get(k, '')
+                    flat[k] = str(v) if isinstance(v, (list, dict)) else v
+                flat_users.append(flat)
+            
+            writer = csv.DictWriter(output, fieldnames=all_keys)
             writer.writeheader()
-            writer.writerows(users)
+            writer.writerows(flat_users)
         return {"format": "csv", "data": output.getvalue(), "count": len(users)}
     
     return {"format": "json", "data": users, "count": len(users)}
