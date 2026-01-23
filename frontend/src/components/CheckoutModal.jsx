@@ -26,12 +26,14 @@ import {
 const DELIVERY_ICONS = {
   local_pickup: Home,
   city_delivery: Truck,
+  city_to_city: Truck,
   international: Globe
 };
 
 const DELIVERY_LABELS = {
   local_pickup: 'Local Pickup',
   city_delivery: 'City-to-City Delivery',
+  city_to_city: 'City-to-City Delivery',
   international: 'International Shipping'
 };
 
