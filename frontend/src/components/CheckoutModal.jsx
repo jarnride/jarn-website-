@@ -54,14 +54,14 @@ export default function CheckoutModal({
   // Get selected delivery cost
   const selectedDeliveryOption = deliveryOptions.find(d => d.type === selectedDelivery);
   const deliveryCost = selectedDeliveryOption?.cost || 0;
-  const totalAmount = buyNowPrice + deliveryCost;
+  const totalAmount = (buyNowPrice || 0) + (deliveryCost || 0);
 
   // Auto-select first delivery option if none selected
-  useState(() => {
+  useEffect(() => {
     if (deliveryOptions.length > 0 && !selectedDelivery) {
       setSelectedDelivery(deliveryOptions[0].type);
     }
-  }, [deliveryOptions]);
+  }, [deliveryOptions, selectedDelivery]);
 
   const handleCheckout = () => {
     onCheckout({
