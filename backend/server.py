@@ -1870,6 +1870,137 @@ async def get_notifications(user: dict = Depends(get_current_user)):
         "unread_count": len(notifications)
     }
 
+# ================== SUBSCRIPTION ROUTES ==================
+
+@api_router.get("/subscriptions/plans")
+async def get_subscription_plans():
+    """Get all available subscription plans"""
+    return {
+        "plans": list(SUBSCRIPTION_PLANS.values()),
+        "currencies": SUPPORTED_CURRENCIES
+    }
+
+@api_router.get("/users/me/subscription")
+async def get_my_subscription(user: dict = Depends(get_current_user)):
+    """Get current user's subscription status"""
+    if user["role"] != "farmer":
+        raise HTTPException(status_code=403, detail="Only farmers can have subscriptions")
+    
+    subscription = await db.subscriptions.find_one(
+        {"user_id": user["id"], "status": "active"},
+        {"_id": 0}
+    )
+    
+    if subscription:
+        # Check if expired
+        if datetime.fromisoformat(subscription["expires_at"]) < datetime.now(timezone.utc):
+            await db.subscriptions.update_one(
+                {"id": subscription["id"]},
+                {"$set": {"status": "expired"}}
+            )
+            subscription["status"] = "expired"
+    
+    return {
+        "has_subscription": subscription is not None and subscription.get("status") == "active",
+        "subscription": subscription
+    }
+
+@api_router.post("/subscriptions/subscribe")
+@limiter.limit("5/minute")
+async def create_subscription(request: Request, data: SubscriptionCreate, user: dict = Depends(get_current_user)):
+    """Subscribe to a plan"""
+    if user["role"] != "farmer":
+        raise HTTPException(status_code=403, detail="Only farmers can subscribe")
+    
+    if not user.get("phone_verified", False):
+        raise HTTPException(status_code=403, detail="Phone verification required before subscribing")
+    
+    plan = SUBSCRIPTION_PLANS.get(data.plan_id)
+    if not plan:
+        raise HTTPException(status_code=400, detail="Invalid plan")
+    
+    # Check for existing active subscription
+    existing = await db.subscriptions.find_one({
+        "user_id": user["id"],
+        "status": "active"
+    })
+    if existing:
+        raise HTTPException(status_code=400, detail="You already have an active subscription")
+    
+    # Get price based on currency
+    price = plan["price_ngn"] if data.currency == "NGN" else plan["price_usd"]
+    currency_symbol = CURRENCY_SYMBOLS.get(data.currency, "$")
+    
+    subscription_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc)
+    expires_at = now + timedelta(days=plan["duration_days"])
+    
+    subscription_doc = {
+        "id": subscription_id,
+        "user_id": user["id"],
+        "plan_id": data.plan_id,
+        "plan_name": plan["name"],
+        "price": price,
+        "currency": data.currency,
+        "duration_days": plan["duration_days"],
+        "features": plan["features"],
+        "status": "pending",  # Will be active after payment
+        "created_at": now.isoformat(),
+        "starts_at": None,
+        "expires_at": None,
+        "payment_id": None
+    }
+    
+    await db.subscriptions.insert_one(subscription_doc)
+    
+    # For now, mock the payment and activate immediately
+    # In production, this would redirect to Stripe/PayPal
+    await db.subscriptions.update_one(
+        {"id": subscription_id},
+        {"$set": {
+            "status": "active",
+            "starts_at": now.isoformat(),
+            "expires_at": expires_at.isoformat(),
+            "payment_id": f"MOCK_SUB_{uuid.uuid4().hex[:12]}"
+        }}
+    )
+    
+    logger.info(f"[MOCK SUBSCRIPTION] User {user['id']} subscribed to {plan['name']} for {currency_symbol}{price}")
+    
+    return {
+        "success": True,
+        "subscription_id": subscription_id,
+        "plan": plan["name"],
+        "price": price,
+        "currency": data.currency,
+        "expires_at": expires_at.isoformat(),
+        "mock": True
+    }
+
+@api_router.post("/subscriptions/cancel")
+async def cancel_subscription(user: dict = Depends(get_current_user)):
+    """Cancel current subscription"""
+    if user["role"] != "farmer":
+        raise HTTPException(status_code=403, detail="Only farmers can have subscriptions")
+    
+    subscription = await db.subscriptions.find_one({
+        "user_id": user["id"],
+        "status": "active"
+    })
+    
+    if not subscription:
+        raise HTTPException(status_code=404, detail="No active subscription found")
+    
+    await db.subscriptions.update_one(
+        {"id": subscription["id"]},
+        {"$set": {
+            "status": "cancelled",
+            "cancelled_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"success": True, "message": "Subscription cancelled"}
+
 # ================== PAYMENT ROUTES ==================
 
 @api_router.post("/payments/create-checkout")
