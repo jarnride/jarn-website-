@@ -2774,6 +2774,170 @@ async def admin_toggle_user_status(user_id: str, admin: dict = Depends(verify_ad
     logger.info(f"Admin {admin['email']} toggled user {user_id} status to {new_status}")
     return {"success": True, "is_active": new_status}
 
+@api_router.post("/admin/users/{user_id}/verify")
+async def admin_verify_seller(user_id: str, admin: dict = Depends(verify_admin)):
+    """Verify a seller (adds verified badge)"""
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user['role'] != 'farmer':
+        raise HTTPException(status_code=400, detail="Only sellers can be verified")
+    
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {
+            "is_verified": True,
+            "verified_at": datetime.now(timezone.utc).isoformat(),
+            "verified_by": admin['email']
+        }}
+    )
+    logger.info(f"Admin {admin['email']} verified seller {user_id}")
+    return {"success": True, "message": "Seller verified successfully"}
+
+@api_router.post("/admin/users/{user_id}/unverify")
+async def admin_unverify_seller(user_id: str, admin: dict = Depends(verify_admin)):
+    """Remove verified badge from seller"""
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"is_verified": False}, "$unset": {"verified_at": "", "verified_by": ""}}
+    )
+    logger.info(f"Admin {admin['email']} unverified seller {user_id}")
+    return {"success": True, "message": "Seller verification removed"}
+
+@api_router.post("/admin/bulk/payouts")
+async def admin_bulk_process_payouts(
+    action: str,  # 'approve' or 'reject'
+    payout_ids: List[str],
+    admin: dict = Depends(verify_admin)
+):
+    """Bulk approve or reject payouts"""
+    if action not in ['approve', 'reject']:
+        raise HTTPException(status_code=400, detail="Action must be 'approve' or 'reject'")
+    
+    status = 'completed' if action == 'approve' else 'rejected'
+    timestamp_field = 'completed_at' if action == 'approve' else 'rejected_at'
+    
+    result = await db.payouts.update_many(
+        {"id": {"$in": payout_ids}, "status": "pending"},
+        {"$set": {"status": status, timestamp_field: datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    logger.info(f"Admin {admin['email']} bulk {action}d {result.modified_count} payouts")
+    return {"success": True, "processed": result.modified_count}
+
+@api_router.post("/admin/bulk/users")
+async def admin_bulk_update_users(
+    action: str,  # 'activate', 'deactivate', 'verify', 'unverify'
+    user_ids: List[str],
+    admin: dict = Depends(verify_admin)
+):
+    """Bulk update users"""
+    if action == 'activate':
+        update = {"$set": {"is_active": True}}
+    elif action == 'deactivate':
+        update = {"$set": {"is_active": False}}
+    elif action == 'verify':
+        update = {"$set": {
+            "is_verified": True,
+            "verified_at": datetime.now(timezone.utc).isoformat(),
+            "verified_by": admin['email']
+        }}
+    elif action == 'unverify':
+        update = {"$set": {"is_verified": False}, "$unset": {"verified_at": "", "verified_by": ""}}
+    else:
+        raise HTTPException(status_code=400, detail="Invalid action")
+    
+    # For verify/unverify, only apply to farmers
+    query = {"id": {"$in": user_ids}}
+    if action in ['verify', 'unverify']:
+        query["role"] = "farmer"
+    
+    result = await db.users.update_many(query, update)
+    
+    logger.info(f"Admin {admin['email']} bulk {action} {result.modified_count} users")
+    return {"success": True, "processed": result.modified_count}
+
+@api_router.get("/admin/export/users")
+async def admin_export_users(format: str = "json", admin: dict = Depends(verify_admin)):
+    """Export users data"""
+    users = await db.users.find({}, {"_id": 0, "password_hash": 0}).to_list(None)
+    
+    if format == "csv":
+        import csv
+        import io
+        output = io.StringIO()
+        if users:
+            writer = csv.DictWriter(output, fieldnames=users[0].keys())
+            writer.writeheader()
+            writer.writerows(users)
+        return {"format": "csv", "data": output.getvalue(), "count": len(users)}
+    
+    return {"format": "json", "data": users, "count": len(users)}
+
+@api_router.get("/admin/export/auctions")
+async def admin_export_auctions(format: str = "json", admin: dict = Depends(verify_admin)):
+    """Export auctions data"""
+    auctions = await db.auctions.find({}, {"_id": 0}).to_list(None)
+    
+    # Add seller names
+    for auction in auctions:
+        seller = await db.users.find_one({"id": auction.get("seller_id")}, {"_id": 0, "name": 1})
+        auction['seller_name'] = seller['name'] if seller else 'Unknown'
+    
+    if format == "csv":
+        import csv
+        import io
+        output = io.StringIO()
+        if auctions:
+            # Flatten complex fields for CSV
+            flat_auctions = []
+            for a in auctions:
+                flat = {k: str(v) if isinstance(v, (list, dict)) else v for k, v in a.items()}
+                flat_auctions.append(flat)
+            writer = csv.DictWriter(output, fieldnames=flat_auctions[0].keys())
+            writer.writeheader()
+            writer.writerows(flat_auctions)
+        return {"format": "csv", "data": output.getvalue(), "count": len(auctions)}
+    
+    return {"format": "json", "data": auctions, "count": len(auctions)}
+
+@api_router.get("/admin/export/transactions")
+async def admin_export_transactions(format: str = "json", admin: dict = Depends(verify_admin)):
+    """Export all transactions (escrow + payouts)"""
+    escrows = await db.escrow.find({}, {"_id": 0}).to_list(None)
+    payouts = await db.payouts.find({}, {"_id": 0}).to_list(None)
+    
+    # Combine and add type field
+    transactions = []
+    for e in escrows:
+        e['type'] = 'escrow'
+        transactions.append(e)
+    for p in payouts:
+        p['type'] = 'payout'
+        transactions.append(p)
+    
+    # Sort by created_at
+    transactions.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+    
+    if format == "csv":
+        import csv
+        import io
+        output = io.StringIO()
+        if transactions:
+            all_keys = set()
+            for t in transactions:
+                all_keys.update(t.keys())
+            writer = csv.DictWriter(output, fieldnames=sorted(all_keys))
+            writer.writeheader()
+            writer.writerows(transactions)
+        return {"format": "csv", "data": output.getvalue(), "count": len(transactions)}
+    
+    return {"format": "json", "data": transactions, "count": len(transactions)}
+
 # ================== SELLER ANALYTICS ROUTES ==================
 
 @api_router.get("/sellers/me/analytics")
