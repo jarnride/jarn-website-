@@ -95,6 +95,20 @@ export const AuctionCard = ({ auction }) => {
         <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
           <User className="w-4 h-4" />
           <span>{auction.seller_name}</span>
+          {auction.seller_verified && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <span className="inline-flex items-center">
+                    <Shield className="w-4 h-4 text-blue-500 fill-blue-100" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">Verified Seller</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
           {auction.seller_rating > 0 && (
             <span className="flex items-center gap-1 text-harvest">
               <Star className="w-3 h-3 fill-harvest" />
