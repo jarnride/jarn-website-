@@ -1408,11 +1408,12 @@ async def search_auctions(
     total = await db.auctions.count_documents(query)
     auctions = await db.auctions.find(query, {"_id": 0}).sort(sort).skip(skip).limit(limit).to_list(limit)
     
-    # Add seller ratings
+    # Add seller ratings and verification status
     for auction in auctions:
-        seller = await db.users.find_one({"id": auction["seller_id"]}, {"_id": 0, "rating_avg": 1, "rating_count": 1})
+        seller = await db.users.find_one({"id": auction["seller_id"]}, {"_id": 0, "rating_avg": 1, "rating_count": 1, "is_verified": 1})
         auction["seller_rating"] = seller.get("rating_avg", 0) if seller else 0
         auction["seller_rating_count"] = seller.get("rating_count", 0) if seller else 0
+        auction["seller_verified"] = seller.get("is_verified", False) if seller else False
         auction.setdefault("buy_now_only", False)
         auction.setdefault("accepts_offers", False)
         auction.setdefault("currency", "USD")
