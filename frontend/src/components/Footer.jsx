@@ -12,7 +12,7 @@ export const Footer = () => {
             <div className="flex items-center gap-2 mb-4">
               <JarnnLogo className="w-10 h-10 text-white" />
               <span className="text-2xl font-bold" style={{ fontFamily: 'Playfair Display, serif' }}>
-                jarnnmarket
+                Jarnnmarket
               </span>
             </div>
             <p className="text-white/70 mb-6 max-w-md">
