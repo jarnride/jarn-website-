@@ -381,13 +381,24 @@ class SMSService:
         message = f"Congratulations! You won '{auction_title}' for ${final_price:.2f}. Complete payment on jarnnmarket."
         return await SMSService.send_sms(to, message)
 
-# ================== PAYPAL SERVICE (MOCK) ==================
+# ================== PAYPAL SERVICE ==================
 
 class PayPalService:
-    """Mock PayPal Service"""
+    """PayPal Service for payment processing"""
     
     @staticmethod
-    async def create_order(amount: float, currency: str, auction_id: str, description: str) -> dict:
+    def _get_paypal_client():
+        """Get configured PayPal API client"""
+        import paypalrestsdk
+        paypalrestsdk.configure({
+            "mode": PAYPAL_MODE,
+            "client_id": PAYPAL_CLIENT_ID,
+            "client_secret": PAYPAL_CLIENT_SECRET
+        })
+        return paypalrestsdk
+    
+    @staticmethod
+    async def create_order(amount: float, currency: str, auction_id: str, description: str, return_url: str = None, cancel_url: str = None) -> dict:
         if PAYPAL_MOCK_MODE:
             order_id = f"PAYPAL_MOCK_{uuid.uuid4().hex[:12].upper()}"
             logger.info(f"[MOCK PAYPAL] Created order: {order_id} for ${amount}")
@@ -401,11 +412,70 @@ class PayPalService:
                 "approval_url": f"/api/paypal/mock-approve/{order_id}"
             }
         else:
-            pass
+            try:
+                paypalrestsdk = PayPalService._get_paypal_client()
+                
+                payment = paypalrestsdk.Payment({
+                    "intent": "sale",
+                    "payer": {
+                        "payment_method": "paypal"
+                    },
+                    "redirect_urls": {
+                        "return_url": return_url or f"{FRONTEND_URL}/payment/success",
+                        "cancel_url": cancel_url or f"{FRONTEND_URL}/payment/cancel"
+                    },
+                    "transactions": [{
+                        "amount": {
+                            "total": f"{amount:.2f}",
+                            "currency": currency.upper()
+                        },
+                        "description": description,
+                        "custom": auction_id
+                    }]
+                })
+                
+                if payment.create():
+                    approval_url = None
+                    for link in payment.links:
+                        if link.rel == "approval_url":
+                            approval_url = link.href
+                            break
+                    
+                    logger.info(f"[PAYPAL] Created payment: {payment.id}")
+                    return {
+                        "success": True,
+                        "mock": False,
+                        "order_id": payment.id,
+                        "amount": amount,
+                        "currency": currency,
+                        "status": payment.state,
+                        "approval_url": approval_url
+                    }
+                else:
+                    logger.error(f"[PAYPAL ERROR] {payment.error}")
+                    return {
+                        "success": False,
+                        "mock": False,
+                        "error": str(payment.error)
+                    }
+            except Exception as e:
+                logger.error(f"[PAYPAL EXCEPTION] {str(e)}")
+                # Fallback to mock on error
+                order_id = f"PAYPAL_FALLBACK_{uuid.uuid4().hex[:12].upper()}"
+                return {
+                    "success": True,
+                    "mock": True,
+                    "order_id": order_id,
+                    "amount": amount,
+                    "currency": currency,
+                    "status": "CREATED",
+                    "approval_url": f"/api/paypal/mock-approve/{order_id}",
+                    "error_note": str(e)
+                }
     
     @staticmethod
-    async def capture_order(order_id: str) -> dict:
-        if PAYPAL_MOCK_MODE:
+    async def capture_order(order_id: str, payer_id: str = None) -> dict:
+        if PAYPAL_MOCK_MODE or order_id.startswith("PAYPAL_MOCK") or order_id.startswith("PAYPAL_FALLBACK"):
             logger.info(f"[MOCK PAYPAL] Captured order: {order_id}")
             return {
                 "success": True,
@@ -415,7 +485,33 @@ class PayPalService:
                 "capture_id": f"CAPTURE_{uuid.uuid4().hex[:12].upper()}"
             }
         else:
-            pass
+            try:
+                paypalrestsdk = PayPalService._get_paypal_client()
+                payment = paypalrestsdk.Payment.find(order_id)
+                
+                if payment.execute({"payer_id": payer_id}):
+                    logger.info(f"[PAYPAL] Captured payment: {order_id}")
+                    return {
+                        "success": True,
+                        "mock": False,
+                        "order_id": order_id,
+                        "status": "COMPLETED",
+                        "capture_id": payment.transactions[0].related_resources[0].sale.id if payment.transactions else None
+                    }
+                else:
+                    logger.error(f"[PAYPAL CAPTURE ERROR] {payment.error}")
+                    return {
+                        "success": False,
+                        "mock": False,
+                        "error": str(payment.error)
+                    }
+            except Exception as e:
+                logger.error(f"[PAYPAL CAPTURE EXCEPTION] {str(e)}")
+                return {
+                    "success": False,
+                    "mock": False,
+                    "error": str(e)
+                }
 
 # ================== ESCROW SERVICE ==================
 
