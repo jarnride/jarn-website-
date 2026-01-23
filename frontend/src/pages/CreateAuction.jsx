@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -14,7 +15,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ImagePlus, Upload, X, Loader2 } from 'lucide-react';
+import PhoneVerification from '@/components/PhoneVerification';
+import { ImagePlus, Upload, X, Loader2, AlertCircle, Phone, Info } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -43,6 +45,7 @@ export default function CreateAuction() {
   const fileInputRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [showPhoneVerification, setShowPhoneVerification] = useState(false);
   
   const [form, setForm] = useState({
     title: '',
@@ -54,7 +57,16 @@ export default function CreateAuction() {
     buy_now_price: '',
     reserve_price: '',
     duration_hours: 24,
+    buy_now_only: false,
+    accepts_offers: false,
   });
+
+  // Check phone verification on mount
+  useEffect(() => {
+    if (user && !user.phone_verified) {
+      setShowPhoneVerification(true);
+    }
+  }, [user]);
 
   // Redirect if not farmer
   if (user && user.role !== 'farmer') {
@@ -84,6 +96,12 @@ export default function CreateAuction() {
       return;
     }
 
+    // Validate minimum file size (quality indicator)
+    if (file.size < 20 * 1024) {
+      toast.error('Image quality too low. Please upload a higher quality image (minimum 20KB)');
+      return;
+    }
+
     setUploading(true);
     try {
       const formData = new FormData();
@@ -110,6 +128,13 @@ export default function CreateAuction() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    // Check phone verification first
+    if (!user.phone_verified) {
+      toast.error('Phone verification is mandatory. Please verify your phone number first.');
+      setShowPhoneVerification(true);
+      return;
+    }
+    
     if (!form.title || !form.category || !form.starting_bid) {
       toast.error('Please fill in all required fields');
       return;
@@ -118,6 +143,12 @@ export default function CreateAuction() {
     // Validate buy now price
     if (form.buy_now_price && parseFloat(form.buy_now_price) <= parseFloat(form.starting_bid)) {
       toast.error('Buy Now price must be higher than starting bid');
+      return;
+    }
+
+    // Validate buy_now_only requires buy_now_price
+    if (form.buy_now_only && !form.buy_now_price) {
+      toast.error('Buy Now price is required for Buy Now Only listings');
       return;
     }
     
@@ -137,10 +168,20 @@ export default function CreateAuction() {
       toast.success('Auction created successfully!');
       navigate(`/auctions/${response.data.id}`);
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to create auction');
+      const detail = error.response?.data?.detail || 'Failed to create auction';
+      if (detail.includes('phone')) {
+        setShowPhoneVerification(true);
+      }
+      toast.error(detail);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Handle phone verification complete
+  const handlePhoneVerified = () => {
+    setShowPhoneVerification(false);
+    toast.success('Phone verified! You can now create auctions.');
   };
 
   return (
@@ -157,6 +198,29 @@ export default function CreateAuction() {
             List your produce and start receiving bids
           </p>
         </div>
+
+        {/* Phone Verification Warning */}
+        {!user.phone_verified && (
+          <div className="mb-6 p-4 bg-amber-50 rounded-xl border border-amber-200">
+            <div className="flex items-start gap-3">
+              <Phone className="w-5 h-5 text-amber-600 mt-0.5" />
+              <div>
+                <p className="font-semibold text-amber-800">Phone Verification Required</p>
+                <p className="text-sm text-amber-700 mb-3">
+                  Phone verification is mandatory before you can create auctions. This helps build trust with buyers.
+                </p>
+                <Button 
+                  size="sm"
+                  onClick={() => setShowPhoneVerification(true)}
+                  className="bg-amber-600 hover:bg-amber-700"
+                  data-testid="verify-phone-cta"
+                >
+                  Verify Phone Now
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="bg-card rounded-2xl border shadow-sm p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -225,7 +289,10 @@ export default function CreateAuction() {
 
             {/* Image Upload */}
             <div className="form-group">
-              <Label>Product Image</Label>
+              <Label>Product Image *</Label>
+              <p className="text-xs text-muted-foreground mb-2">
+                High-quality images are required. Minimum resolution: 400x300 pixels, minimum size: 20KB
+              </p>
               <div className="mt-2">
                 {form.image_url ? (
                   <div className="relative rounded-xl overflow-hidden aspect-video bg-muted">
@@ -245,7 +312,7 @@ export default function CreateAuction() {
                 ) : (
                   <div className="border-2 border-dashed rounded-xl p-8 text-center">
                     <ImagePlus className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground mb-4">Upload an image or enter URL</p>
+                    <p className="text-muted-foreground mb-4">Upload a high-quality image or enter URL</p>
                     
                     {/* Upload Button */}
                     <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -285,7 +352,7 @@ export default function CreateAuction() {
                       />
                     </div>
                     <p className="text-xs text-muted-foreground mt-2">
-                      Max 5MB • JPEG, PNG, WebP, GIF
+                      Max 5MB • JPEG, PNG, WebP, GIF • Min 400x300px
                     </p>
                   </div>
                 )}
@@ -311,10 +378,59 @@ export default function CreateAuction() {
               )}
             </div>
 
+            {/* Listing Type Options */}
+            <div className="p-4 bg-muted/50 rounded-xl space-y-4">
+              <h3 className="font-semibold flex items-center gap-2">
+                <Info className="w-4 h-4" />
+                Listing Options
+              </h3>
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="buy_now_only" className="font-medium">Buy Now Only</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Disable bidding - buyers can only use Buy Now
+                  </p>
+                </div>
+                <Switch
+                  id="buy_now_only"
+                  checked={form.buy_now_only}
+                  onCheckedChange={(checked) => setForm({ ...form, buy_now_only: checked })}
+                  data-testid="buy-now-only-switch"
+                />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="accepts_offers" className="font-medium">Accept Offers</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Allow buyers to make price offers
+                  </p>
+                </div>
+                <Switch
+                  id="accepts_offers"
+                  checked={form.accepts_offers}
+                  onCheckedChange={(checked) => setForm({ ...form, accepts_offers: checked })}
+                  data-testid="accepts-offers-switch"
+                />
+              </div>
+
+              {form.buy_now_only && !form.buy_now_price && (
+                <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5" />
+                  <p className="text-sm text-amber-700">
+                    Buy Now price is required when "Buy Now Only" is enabled
+                  </p>
+                </div>
+              )}
+            </div>
+
             {/* Pricing */}
             <div className="grid md:grid-cols-3 gap-6">
               <div className="form-group">
-                <Label htmlFor="starting_bid">Starting Bid ($) *</Label>
+                <Label htmlFor="starting_bid">
+                  {form.buy_now_only ? 'Base Price ($) *' : 'Starting Bid ($) *'}
+                </Label>
                 <Input
                   id="starting_bid"
                   type="number"
@@ -330,7 +446,9 @@ export default function CreateAuction() {
               </div>
 
               <div className="form-group">
-                <Label htmlFor="buy_now_price">Buy Now Price ($)</Label>
+                <Label htmlFor="buy_now_price">
+                  Buy Now Price ($) {form.buy_now_only && '*'}
+                </Label>
                 <Input
                   id="buy_now_price"
                   type="number"
@@ -340,6 +458,7 @@ export default function CreateAuction() {
                   value={form.buy_now_price}
                   onChange={(e) => setForm({ ...form, buy_now_price: e.target.value })}
                   className="mt-1 font-mono"
+                  required={form.buy_now_only}
                   data-testid="auction-buy-now-input"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
@@ -358,6 +477,7 @@ export default function CreateAuction() {
                   value={form.reserve_price}
                   onChange={(e) => setForm({ ...form, reserve_price: e.target.value })}
                   className="mt-1 font-mono"
+                  disabled={form.buy_now_only}
                   data-testid="auction-reserve-price-input"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
@@ -368,7 +488,7 @@ export default function CreateAuction() {
 
             {/* Duration */}
             <div className="form-group">
-              <Label>Auction Duration *</Label>
+              <Label>Listing Duration *</Label>
               <Select 
                 value={String(form.duration_hours)} 
                 onValueChange={(value) => setForm({ ...form, duration_hours: parseInt(value) })}
@@ -397,7 +517,7 @@ export default function CreateAuction() {
               <Button
                 type="submit"
                 className="flex-1 rounded-full bg-primary hover:bg-primary/90"
-                disabled={loading}
+                disabled={loading || !user.phone_verified}
                 data-testid="create-auction-submit"
               >
                 {loading ? (
@@ -408,7 +528,7 @@ export default function CreateAuction() {
                 ) : (
                   <>
                     <Upload className="w-4 h-4 mr-2" />
-                    Create Auction
+                    Create Listing
                   </>
                 )}
               </Button>
@@ -416,6 +536,13 @@ export default function CreateAuction() {
           </form>
         </div>
       </div>
+
+      {/* Phone Verification Modal */}
+      <PhoneVerification 
+        open={showPhoneVerification}
+        onOpenChange={setShowPhoneVerification}
+        onVerified={handlePhoneVerified}
+      />
     </div>
   );
 }
