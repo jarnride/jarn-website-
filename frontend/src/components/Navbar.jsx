@@ -31,7 +31,7 @@ export const Navbar = () => {
           <Link to="/" className="flex items-center gap-2" data-testid="logo">
             <JarnnLogo className="w-9 h-9 text-primary" />
             <span className="text-xl font-bold text-primary" style={{ fontFamily: 'Playfair Display, serif' }}>
-              jarnnmarket
+              Jarnnmarket
             </span>
           </Link>
 
