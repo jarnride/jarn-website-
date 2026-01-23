@@ -340,6 +340,18 @@ export default function AuctionDetail() {
                 data-testid="auction-image"
               />
               <Badge className="absolute top-4 left-4 bg-primary">{auction.category}</Badge>
+              {isBuyNowOnly && !isSold && (
+                <Badge className="absolute top-4 left-28 bg-harvest text-black">
+                  <Zap className="w-3 h-3 mr-1" />
+                  Buy Now Only
+                </Badge>
+              )}
+              {acceptsOffers && !isSold && (
+                <Badge className="absolute top-4 right-4 bg-blue-500 text-white">
+                  <MessageSquare className="w-3 h-3 mr-1" />
+                  Accepts Offers
+                </Badge>
+              )}
               {isSold && (
                 <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                   <Badge className="bg-accent text-white text-2xl px-6 py-3">SOLD</Badge>
@@ -361,6 +373,12 @@ export default function AuctionDetail() {
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <User className="w-4 h-4" />
                   <span>{auction.seller_name}</span>
+                  {auction.seller_rating > 0 && (
+                    <span className="flex items-center gap-1 text-harvest">
+                      <Star className="w-3 h-3 fill-harvest" />
+                      {auction.seller_rating.toFixed(1)}
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <MapPin className="w-4 h-4" />
