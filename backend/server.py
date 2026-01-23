@@ -671,9 +671,13 @@ class PaymentCreate(BaseModel):
 class BuyNowRequest(BaseModel):
     origin_url: str
     payment_method: str = Field(default="stripe", pattern="^(stripe|paypal)$")
+    delivery_option: Optional[str] = Field(default=None)  # local_pickup, city_delivery, international
+    delivery_address: Optional[str] = Field(default=None, max_length=500)
 
 class DeliveryConfirmation(BaseModel):
     escrow_id: str
+    rating: Optional[int] = Field(default=None, ge=1, le=5)  # Optional rating on delivery confirmation
+    review_comment: Optional[str] = Field(default=None, max_length=1000)
 
 class OfferCreate(BaseModel):
     amount: float = Field(..., gt=0)
