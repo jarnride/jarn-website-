@@ -100,7 +100,7 @@ export default function Policies() {
                   <section className="mb-8">
                     <h3 className="text-lg font-semibold mb-3">1. Acceptance of Terms</h3>
                     <p className="text-muted-foreground mb-4">
-                      By accessing and using jarnnmarket ("the Platform"), you accept and agree to be bound by these Terms and Conditions. If you do not agree to these terms, please do not use our services.
+                      By accessing and using jarnnmarket (&quot;the Platform&quot;), you accept and agree to be bound by these Terms and Conditions. If you do not agree to these terms, please do not use our services.
                     </p>
                   </section>
 
