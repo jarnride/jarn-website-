@@ -593,7 +593,7 @@ export default function AuctionDetail() {
                           className="text-4xl font-bold text-primary font-mono"
                           data-testid="current-bid"
                         >
-                          ${auction.current_bid.toFixed(2)}
+                          {currencySymbol}{auction.current_bid.toFixed(2)}
                         </span>
                         <span className="text-muted-foreground">
                           ({auction.bid_count} bids)
@@ -640,7 +640,7 @@ export default function AuctionDetail() {
                       data-testid="pay-now-btn"
                     >
                       <CreditCard className="w-5 h-5 mr-2" />
-                      Pay ${auction.current_bid.toFixed(2)}
+                      Pay {currencySymbol}{auction.current_bid.toFixed(2)}
                     </Button>
                   </div>
                 ) : isBuyNowOnly && canBuyNow ? (
