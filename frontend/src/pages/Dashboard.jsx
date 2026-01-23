@@ -376,6 +376,28 @@ export default function Dashboard() {
                               </Badge>
                             </div>
                           </div>
+                          {escrow.status === 'released' && !payouts.payouts.find(p => p.escrow_id === escrow.id) && (
+                            <div className="mt-4 pt-4 border-t">
+                              <Button
+                                size="sm"
+                                onClick={() => handleRequestPayout(escrow.id)}
+                                disabled={requestingPayout === escrow.id}
+                                data-testid={`request-payout-${escrow.id}`}
+                              >
+                                {requestingPayout === escrow.id ? (
+                                  <span className="flex items-center gap-2">
+                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    Processing...
+                                  </span>
+                                ) : (
+                                  <>
+                                    <DollarSign className="w-4 h-4 mr-2" />
+                                    Request Payout
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          )}
                         </CardContent>
                       </Card>
                     ))}
@@ -384,6 +406,118 @@ export default function Dashboard() {
                   <div className="empty-state">
                     <Shield className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
                     <p className="text-muted-foreground">No escrow transactions yet</p>
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="offers" className="mt-6">
+                {receivedOffers.length > 0 ? (
+                  <div className="space-y-4">
+                    {receivedOffers.map(offer => (
+                      <Card key={offer.id}>
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <div>
+                              <p className="font-semibold">{offer.auction_title || 'Offer'}</p>
+                              <p className="text-sm text-muted-foreground">
+                                From: {offer.buyer_name} • {new Date(offer.created_at).toLocaleDateString()}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-bold font-mono text-xl text-blue-600">${offer.amount.toFixed(2)}</p>
+                            </div>
+                          </div>
+                          {offer.message && (
+                            <p className="text-sm text-muted-foreground mb-4 p-3 bg-muted rounded-lg">
+                              &quot;{offer.message}&quot;
+                            </p>
+                          )}
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              className="flex-1 bg-green-600 hover:bg-green-700"
+                              onClick={() => handleRespondToOffer(offer.id, 'accepted')}
+                              disabled={processingOffer === offer.id}
+                              data-testid={`accept-offer-${offer.id}`}
+                            >
+                              <Check className="w-4 h-4 mr-1" />
+                              Accept
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="flex-1 border-red-300 text-red-600 hover:bg-red-50"
+                              onClick={() => handleRespondToOffer(offer.id, 'rejected')}
+                              disabled={processingOffer === offer.id}
+                              data-testid={`reject-offer-${offer.id}`}
+                            >
+                              <X className="w-4 h-4 mr-1" />
+                              Reject
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="empty-state">
+                    <MessageSquare className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">No pending offers</p>
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="payouts" className="mt-6">
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="text-center">
+                        <p className="text-3xl font-bold font-mono text-green-600">
+                          ${payouts.total_released.toFixed(2)}
+                        </p>
+                        <p className="text-sm text-muted-foreground">Total Paid Out</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="text-center">
+                        <p className="text-3xl font-bold font-mono text-amber-600">
+                          ${payouts.total_pending.toFixed(2)}
+                        </p>
+                        <p className="text-sm text-muted-foreground">Pending Payout</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+                
+                {payouts.payouts?.length > 0 ? (
+                  <div className="space-y-4">
+                    {payouts.payouts.map(payout => (
+                      <Card key={payout.id}>
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="font-semibold">Payout #{payout.id.slice(0, 8)}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {new Date(payout.created_at).toLocaleDateString()}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-bold font-mono text-lg">${payout.amount.toFixed(2)}</p>
+                              <Badge variant={payout.status === 'completed' ? 'success' : 'secondary'}>
+                                {payout.status}
+                              </Badge>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="empty-state">
+                    <DollarSign className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">No payouts yet. Complete sales to receive payments.</p>
                   </div>
                 )}
               </TabsContent>
