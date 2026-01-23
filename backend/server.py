@@ -586,8 +586,10 @@ async def register(request: Request, data: UserCreate):
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
     
-    if not validate_password(data.password):
-        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+    # Enhanced password validation
+    is_valid, error_msg = validate_password(data.password)
+    if not is_valid:
+        raise HTTPException(status_code=400, detail=error_msg)
     
     if data.phone and not validate_phone(data.phone):
         raise HTTPException(status_code=400, detail="Invalid phone number format")
@@ -595,7 +597,7 @@ async def register(request: Request, data: UserCreate):
     user_id = str(uuid.uuid4())
     user_doc = {
         "id": user_id,
-        "name": data.name,
+        "name": sanitize_string(data.name),
         "email": data.email.lower(),
         "phone": data.phone,
         "phone_verified": False,
@@ -607,11 +609,14 @@ async def register(request: Request, data: UserCreate):
     }
     await db.users.insert_one(user_doc)
     
+    # Log registration (without sensitive data)
+    logger.info(f"New user registered: {user_id}, role: {data.role}")
+    
     token = create_token(user_id)
     return {
         "user": {
             "id": user_id,
-            "name": data.name,
+            "name": sanitize_string(data.name),
             "email": data.email.lower(),
             "phone": data.phone,
             "phone_verified": False,
