@@ -376,6 +376,8 @@ class AuctionCreate(BaseModel):
     buy_now_price: Optional[float] = Field(default=None, gt=0)
     reserve_price: Optional[float] = Field(default=None, gt=0)
     duration_hours: int = Field(default=24, ge=1, le=168)
+    buy_now_only: bool = Field(default=False)  # If true, no bidding allowed
+    accepts_offers: bool = Field(default=False)  # If true, buyers can make offers
     
     @field_validator('title', 'description', 'category', 'location')
     @classmethod
