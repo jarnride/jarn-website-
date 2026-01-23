@@ -11,12 +11,17 @@ import {
 } from '@/components/ui/dropdown-menu';
 import NotificationBell from '@/components/NotificationBell';
 import JarnnLogo from '@/components/JarnnLogo';
-import { Menu, X, User, LogOut, LayoutDashboard, Plus } from 'lucide-react';
+import { Menu, X, User, LogOut, LayoutDashboard, Plus, HelpCircle, Shield } from 'lucide-react';
 
 export const Navbar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Check if user is admin
+  const isAdmin = user?.email === 'admin@jarnnmarket.com' || 
+                  user?.email === 'info@jarnnmarket.com' ||
+                  user?.role === 'admin';
 
   const handleLogout = () => {
     logout();
@@ -42,6 +47,7 @@ export const Navbar = () => {
             {user?.role === 'farmer' && (
               <Link to="/create-auction" className="nav-link" data-testid="nav-create">Sell Produce</Link>
             )}
+            <Link to="/help" className="nav-link" data-testid="nav-help">Help</Link>
           </div>
 
           {/* Desktop Auth */}
