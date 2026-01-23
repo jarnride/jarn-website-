@@ -11,7 +11,7 @@ from datetime import datetime
 from typing import Dict, Any, Optional
 
 class HarvestBidAPITester:
-    def __init__(self, base_url: str = "https://producemart.preview.emergentagent.com/api"):
+    def __init__(self, base_url: str = "https://farmauctions.preview.emergentagent.com/api"):
         self.base_url = base_url
         self.session = requests.Session()
         self.session.headers.update({'Content-Type': 'application/json'})
