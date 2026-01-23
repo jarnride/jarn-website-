@@ -750,6 +750,62 @@ async def get_user_rating(user_id: str):
 
 # ================== IMAGE UPLOAD ==================
 
+# Minimum image quality requirements
+MIN_IMAGE_WIDTH = 400
+MIN_IMAGE_HEIGHT = 300
+MIN_IMAGE_SIZE_KB = 20  # Minimum 20KB to avoid very low quality images
+
+def get_image_dimensions(content: bytes, content_type: str) -> tuple:
+    """Get image dimensions from binary content"""
+    import struct
+    import imghdr
+    
+    # Try to get dimensions based on image type
+    if content_type == 'image/png':
+        # PNG: width and height are at bytes 16-24
+        if len(content) >= 24:
+            w, h = struct.unpack('>LL', content[16:24])
+            return (w, h)
+    elif content_type in ['image/jpeg', 'image/jpg']:
+        # JPEG: need to parse markers
+        try:
+            # Skip to start of image data
+            i = 2
+            while i < len(content):
+                if content[i] != 0xFF:
+                    i += 1
+                    continue
+                marker = content[i+1]
+                if marker == 0xC0 or marker == 0xC2:  # SOF0 or SOF2
+                    h = struct.unpack('>H', content[i+5:i+7])[0]
+                    w = struct.unpack('>H', content[i+7:i+9])[0]
+                    return (w, h)
+                elif marker == 0xD9:  # EOI
+                    break
+                else:
+                    length = struct.unpack('>H', content[i+2:i+4])[0]
+                    i += 2 + length
+        except:
+            pass
+    elif content_type == 'image/webp':
+        # WebP: dimensions at specific offset
+        if len(content) >= 30 and content[12:16] == b'VP8 ':
+            w = struct.unpack('<H', content[26:28])[0] & 0x3FFF
+            h = struct.unpack('<H', content[28:30])[0] & 0x3FFF
+            return (w, h)
+        elif len(content) >= 30 and content[12:16] == b'VP8L':
+            bits = struct.unpack('<I', content[21:25])[0]
+            w = (bits & 0x3FFF) + 1
+            h = ((bits >> 14) & 0x3FFF) + 1
+            return (w, h)
+    elif content_type == 'image/gif':
+        if len(content) >= 10:
+            w = struct.unpack('<H', content[6:8])[0]
+            h = struct.unpack('<H', content[8:10])[0]
+            return (w, h)
+    
+    return (0, 0)
+
 @api_router.post("/upload/image", response_model=ImageUploadResponse)
 @limiter.limit("10/minute")
 async def upload_image(request: Request, file: UploadFile = File(...), user: dict = Depends(get_current_user)):
@@ -758,8 +814,26 @@ async def upload_image(request: Request, file: UploadFile = File(...), user: dic
         raise HTTPException(status_code=400, detail="Invalid file type. Allowed: JPEG, PNG, WebP, GIF")
     
     content = await file.read()
+    content_size_kb = len(content) / 1024
+    
     if len(content) > 5 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="File too large. Maximum size: 5MB")
+    
+    # Check minimum file size (quality indicator)
+    if content_size_kb < MIN_IMAGE_SIZE_KB:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Image quality too low. Minimum file size: {MIN_IMAGE_SIZE_KB}KB. Your image: {content_size_kb:.1f}KB"
+        )
+    
+    # Check image dimensions
+    width, height = get_image_dimensions(content, file.content_type)
+    if width > 0 and height > 0:
+        if width < MIN_IMAGE_WIDTH or height < MIN_IMAGE_HEIGHT:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Image resolution too low. Minimum: {MIN_IMAGE_WIDTH}x{MIN_IMAGE_HEIGHT} pixels. Your image: {width}x{height} pixels"
+            )
     
     ext = file.filename.split('.')[-1] if '.' in file.filename else 'jpg'
     filename = f"{uuid.uuid4()}.{ext}"
@@ -772,6 +846,9 @@ async def upload_image(request: Request, file: UploadFile = File(...), user: dic
         "content_type": file.content_type,
         "data": base64_data,
         "user_id": user["id"],
+        "width": width,
+        "height": height,
+        "size_kb": round(content_size_kb, 2),
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.images.insert_one(image_doc)
