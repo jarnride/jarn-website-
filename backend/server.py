@@ -2865,7 +2865,7 @@ async def admin_bulk_update_users(
         raise HTTPException(status_code=400, detail="Invalid action")
     
     # For verify/unverify, only apply to farmers
-    query = {"id": {"$in": user_ids}}
+    query = {"id": {"$in": ids_list}}
     if action in ['verify', 'unverify']:
         query["role"] = "farmer"
     
