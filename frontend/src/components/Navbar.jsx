@@ -75,6 +75,16 @@ export const Navbar = () => {
                         Create Auction
                       </DropdownMenuItem>
                     )}
+                    {isAdmin && (
+                      <DropdownMenuItem onClick={() => navigate('/admin')} data-testid="menu-admin">
+                        <Shield className="w-4 h-4 mr-2" />
+                        Admin Panel
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem onClick={() => navigate('/help')} data-testid="menu-help">
+                      <HelpCircle className="w-4 h-4 mr-2" />
+                      Help Center
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleLogout} data-testid="menu-logout">
                       <LogOut className="w-4 h-4 mr-2" />
