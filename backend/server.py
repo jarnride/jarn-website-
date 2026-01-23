@@ -863,7 +863,11 @@ async def create_auction(request: Request, data: AuctionCreate, user: dict = Dep
         raise HTTPException(status_code=403, detail="Only farmers can create auctions")
     
     if not user.get("phone_verified", False):
-        raise HTTPException(status_code=403, detail="Please verify your phone number before creating auctions")
+        raise HTTPException(status_code=403, detail="Phone verification is mandatory. Please verify your phone number before creating auctions.")
+    
+    # Validate buy_now_only requires buy_now_price
+    if data.buy_now_only and not data.buy_now_price:
+        raise HTTPException(status_code=400, detail="Buy Now price is required when listing as Buy Now only")
     
     if data.buy_now_price and data.buy_now_price <= data.starting_bid:
         raise HTTPException(status_code=400, detail="Buy Now price must be higher than starting bid")
@@ -885,6 +889,8 @@ async def create_auction(request: Request, data: AuctionCreate, user: dict = Dep
         "starting_bid": float(data.starting_bid),
         "current_bid": float(data.starting_bid),
         "buy_now_price": float(data.buy_now_price) if data.buy_now_price else None,
+        "buy_now_only": data.buy_now_only,
+        "accepts_offers": data.accepts_offers,
         "reserve_price": float(data.reserve_price) if data.reserve_price else None,
         "starts_at": now.isoformat(),
         "ends_at": ends_at.isoformat(),
