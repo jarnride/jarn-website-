@@ -82,7 +82,7 @@ export default function PhoneVerification({ open, onOpenChange, onVerified }) {
           </DialogTitle>
           <DialogDescription>
             {step === 'phone' 
-              ? 'Verify your phone number to start bidding and selling on jarnnmarket.'
+              ? 'Verify your phone number to start bidding and selling on Jarnnmarket.'
               : 'Enter the 6-digit code sent to your phone.'
             }
           </DialogDescription>

@@ -83,7 +83,7 @@ export default function Auth() {
               className="text-3xl font-bold text-primary"
               style={{ fontFamily: 'Playfair Display, serif' }}
             >
-              jarnnmarket
+              Jarnnmarket
             </span>
           </div>
           <p className="text-muted-foreground">
