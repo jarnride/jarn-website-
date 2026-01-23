@@ -969,7 +969,7 @@ export default function AuctionDetail() {
               </div>
               {auction?.buy_now_price && (
                 <p className="text-xs text-muted-foreground mt-1">
-                  Buy Now price: ${auction.buy_now_price.toFixed(2)}
+                  Buy Now price: {currencySymbol}{auction.buy_now_price.toFixed(2)}
                 </p>
               )}
             </div>
