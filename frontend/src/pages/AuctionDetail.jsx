@@ -437,7 +437,47 @@ export default function AuctionDetail() {
               <p className="text-muted-foreground whitespace-pre-wrap" data-testid="auction-description">
                 {auction.description}
               </p>
+
+              {/* Delivery Options Display */}
+              {auction.delivery_options && auction.delivery_options.length > 0 && (
+                <div className="mt-6 pt-6 border-t">
+                  <h3 className="font-semibold mb-3 flex items-center gap-2">
+                    <Truck className="w-4 h-4" />
+                    Delivery Options
+                  </h3>
+                  <div className="space-y-2">
+                    {auction.delivery_options.map((opt, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg text-sm">
+                        <div className="flex items-center gap-2">
+                          {opt.type === 'local_pickup' && <Home className="w-4 h-4 text-muted-foreground" />}
+                          {opt.type === 'city_delivery' && <Truck className="w-4 h-4 text-muted-foreground" />}
+                          {opt.type === 'international' && <Globe className="w-4 h-4 text-muted-foreground" />}
+                          <span>
+                            {opt.type === 'local_pickup' ? 'Local Pickup' : 
+                             opt.type === 'city_delivery' ? 'City-to-City Delivery' : 
+                             opt.type === 'international' ? 'International Shipping' : opt.type}
+                          </span>
+                        </div>
+                        <span className="font-mono">
+                          {opt.cost === 0 ? 'FREE' : `${auction.currency === 'NGN' ? '₦' : '$'}${opt.cost.toFixed(2)}`}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
+
+            {/* Seller Reviews Section */}
+            {sellerReviews.length > 0 && (
+              <div className="bg-card rounded-xl border p-6" data-testid="seller-reviews">
+                <h2 className="text-xl font-semibold mb-4 flex items-center gap-2" style={{ fontFamily: 'Playfair Display, serif' }}>
+                  <Star className="w-5 h-5 text-yellow-500" />
+                  Seller Reviews ({sellerReviews.length})
+                </h2>
+                <ReviewsList reviews={sellerReviews} />
+              </div>
+            )}
 
             {/* Escrow Status for Winner */}
             {escrow && (isWinner || isSeller) && (
