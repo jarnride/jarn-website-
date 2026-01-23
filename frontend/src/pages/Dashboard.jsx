@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AuctionCard from '@/components/AuctionCard';
 import PhoneVerification from '@/components/PhoneVerification';
-import { Plus, Package, Gavel, Trophy, TrendingUp, Clock, Shield, Phone, CheckCircle } from 'lucide-react';
+import { Plus, Package, Gavel, Trophy, TrendingUp, Clock, Shield, Phone, CheckCircle, MessageSquare, DollarSign, Check, X } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -18,10 +19,15 @@ export default function Dashboard() {
   
   const [myAuctions, setMyAuctions] = useState([]);
   const [myBids, setMyBids] = useState([]);
+  const [myOffers, setMyOffers] = useState([]);
+  const [receivedOffers, setReceivedOffers] = useState([]);
   const [wonAuctions, setWonAuctions] = useState([]);
   const [escrows, setEscrows] = useState([]);
+  const [payouts, setPayouts] = useState({ payouts: [], total_released: 0, total_pending: 0 });
   const [loading, setLoading] = useState(true);
   const [showPhoneVerification, setShowPhoneVerification] = useState(false);
+  const [processingOffer, setProcessingOffer] = useState(null);
+  const [requestingPayout, setRequestingPayout] = useState(null);
 
   useEffect(() => {
     if (!user) {
@@ -40,20 +46,72 @@ export default function Dashboard() {
       setEscrows(escrowsRes.data);
 
       if (user.role === 'farmer') {
-        const response = await axios.get(`${API}/users/${user.id}/auctions`, { headers });
-        setMyAuctions(response.data);
+        const [auctionsRes, payoutsRes] = await Promise.all([
+          axios.get(`${API}/users/${user.id}/auctions`, { headers }),
+          axios.get(`${API}/users/me/payouts`, { headers })
+        ]);
+        setMyAuctions(auctionsRes.data);
+        setPayouts(payoutsRes.data);
+        
+        // Fetch received offers for each active auction
+        const allOffers = [];
+        for (const auction of auctionsRes.data.filter(a => a.is_active)) {
+          try {
+            const offersRes = await axios.get(`${API}/auctions/${auction.id}/offers`, { headers });
+            allOffers.push(...offersRes.data.map(o => ({ ...o, auction_title: auction.title })));
+          } catch (e) {
+            // Ignore errors for auctions without offers
+          }
+        }
+        setReceivedOffers(allOffers.filter(o => o.status === 'pending'));
       } else {
-        const [bidsRes, wonRes] = await Promise.all([
+        const [bidsRes, wonRes, offersRes] = await Promise.all([
           axios.get(`${API}/users/me/bids`, { headers }),
-          axios.get(`${API}/users/me/won`, { headers })
+          axios.get(`${API}/users/me/won`, { headers }),
+          axios.get(`${API}/users/me/offers`, { headers })
         ]);
         setMyBids(bidsRes.data);
         setWonAuctions(wonRes.data);
+        setMyOffers(offersRes.data);
       }
     } catch (error) {
       console.error('Failed to fetch data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRespondToOffer = async (offerId, status) => {
+    setProcessingOffer(offerId);
+    try {
+      await axios.post(
+        `${API}/offers/${offerId}/respond`,
+        { offer_id: offerId, status },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success(`Offer ${status}!`);
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to respond to offer');
+    } finally {
+      setProcessingOffer(null);
+    }
+  };
+
+  const handleRequestPayout = async (escrowId) => {
+    setRequestingPayout(escrowId);
+    try {
+      await axios.post(
+        `${API}/payouts/request`,
+        { escrow_id: escrowId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success('Payout requested successfully!');
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to request payout');
+    } finally {
+      setRequestingPayout(null);
     }
   };
 
@@ -67,6 +125,7 @@ export default function Dashboard() {
   );
 
   const heldEscrows = escrows.filter(e => e.status === 'held');
+  const releasedEscrows = escrows.filter(e => e.status === 'released');
   const totalEscrowAmount = heldEscrows.reduce((sum, e) => sum + e.amount, 0);
 
   return (
