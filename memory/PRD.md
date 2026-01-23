@@ -1,13 +1,13 @@
 # Jarnnmarket - Farmers Auction Platform
 
 ## Overview
-A full-stack auction platform connecting farmers directly with buyers through real-time auctions, featuring escrow-protected payments, email and phone verification, and comprehensive buyer/seller policies.
+A full-stack auction platform connecting farmers directly with buyers through real-time auctions, featuring escrow-protected payments, multi-currency support, and comprehensive buyer/seller policies.
 
 ## Tech Stack
 - **Backend:** FastAPI (Python), MongoDB
 - **Frontend:** React, TailwindCSS, Shadcn/UI
 - **Payments:** Stripe (integrated), PayPal (sandbox mode)
-- **Email:** SendGrid (configured - needs sender verification)
+- **Email:** SendGrid (configured)
 - **SMS:** Twilio (configured)
 - **Real-time:** WebSockets (socket.io)
 - **Authentication:** JWT
@@ -15,135 +15,116 @@ A full-stack auction platform connecting farmers directly with buyers through re
 
 ## Core Features
 
-### Authentication & Verification
-- [x] User registration (Farmer/Buyer/Admin roles)
-- [x] JWT-based authentication
-- [x] **Email verification (MANDATORY)**
-- [x] **Phone verification (MANDATORY)**
-- [x] Admin user support (admin@jarnnmarket.com)
+### Checkout & Delivery Options ✨ NEW
+- [x] **Delivery selection at checkout** - Buyers choose from seller's delivery options
+- [x] **Delivery address input** - Required for non-local pickup options
+- [x] **Delivery cost calculation** - Added to total at checkout
+- [x] **Multiple delivery types**:
+  - Local Pickup (FREE)
+  - City-to-City Delivery
+  - International Shipping
 
-### Seller Verification Badge ✨ NEW
-- [x] **Verified badge** - Blue shield icon for verified sellers
-- [x] **Admin verification** - Admins can verify/unverify sellers
-- [x] **Badge display** - Shows on auction cards and profiles
-- [x] **Trust indicator** - Builds buyer confidence
+### Multi-Currency Support ✨ ENHANCED
+- [x] **USD ($)** - US Dollars
+- [x] **NGN (₦)** - Nigerian Naira
+- [x] **Currency display at checkout** - Shows correct symbol and currency code
+- [x] **Currency in payment processing** - Stripe/PayPal use auction currency
+
+### Seller Reviews ✨ NEW
+- [x] **Review on delivery confirmation** - Buyers can rate sellers (1-5 stars)
+- [x] **Review comments** - Optional feedback text (up to 1000 chars)
+- [x] **Seller rating aggregation** - Average rating calculated automatically
+- [x] **Reviews display on auction page** - Shows seller's review history
+- [x] **Review notification** - Seller notified of new reviews
+
+### Authentication & Verification
+- [x] Email verification (MANDATORY)
+- [x] Phone verification (MANDATORY)
+- [x] Admin user support
+
+### Seller Verification Badge
+- [x] Verified badge for trusted sellers
+- [x] Admin can verify/unverify sellers
 
 ### Admin Dashboard
-- [x] **User management** - View, activate/deactivate, verify sellers
-- [x] **Auction management** - View all auctions
-- [x] **Payout management** - Approve/reject payouts
-- [x] **Platform statistics** - Users, auctions, escrow, revenue
-
-### Bulk Operations ✨ NEW
-- [x] **Bulk user actions** - Activate, deactivate, verify multiple users
-- [x] **Bulk payout actions** - Approve, reject multiple payouts
-- [x] **Selection UI** - Checkbox selection with action bar
-
-### Advanced Reporting & Exports ✨ NEW
-- [x] **Export Users** - JSON and CSV format
-- [x] **Export Auctions** - JSON and CSV format
-- [x] **Export Transactions** - Escrow + Payouts in JSON/CSV
-- [x] **Download files** - Automatic file download with date-stamped names
-
-### Mobile App (PWA) ✨ NEW
-- [x] **Progressive Web App** - Install on mobile/desktop
-- [x] **Standalone mode** - Full-screen app experience
-- [x] **App shortcuts** - Quick access to Auctions, Dashboard, Help
-- [x] **Theme color** - Jarnnmarket green (#16a34a)
-- [x] **Offline capable** - Service worker ready
-
-### Customer Support
-- [x] **WhatsApp Support** - Floating button (+447449858053)
-- [x] **Help Center / FAQ** - Searchable FAQs with categories
-- [x] **Contact options** - WhatsApp, Email, Phone
+- [x] User management with bulk operations
+- [x] Auction management
+- [x] Payout management with bulk approve/reject
+- [x] Data export (JSON/CSV)
 
 ### Seller Analytics
-- [x] **Revenue metrics** - Total revenue, avg sale price
-- [x] **Performance metrics** - Conversion rate, views, bids
-- [x] **Listing stats** - Active listings, completed sales
+- [x] Revenue and performance metrics
+- [x] Conversion rate tracking
+- [x] Rating display
 
-### Auction Management
-- [x] Create auctions with images
-- [x] **Buy Now Only option**
-- [x] **Accepts Offers option**
-- [x] Real-time bidding via WebSockets
-- [x] Search with filters
-
-### Multi-Currency & Delivery
-- [x] **USD ($)** and **NGN (₦)** support
-- [x] **Delivery options** - Local Pickup, City-to-City, International
+### Customer Support
+- [x] WhatsApp Support (+447449858053)
+- [x] Help Center / FAQ
+- [x] Email and phone contact
 
 ### Payment & Escrow
-- [x] Stripe integration
-- [x] PayPal integration (sandbox)
+- [x] Stripe and PayPal integration
 - [x] Escrow protection
 - [x] Seller payouts
 
 ## API Endpoints
 
-### Admin (Restricted)
-- `POST /api/admin/users/{id}/verify` - Verify seller
-- `POST /api/admin/users/{id}/unverify` - Remove verification
-- `POST /api/admin/bulk/users?action=X&user_ids=X,Y,Z` - Bulk user actions
-- `POST /api/admin/bulk/payouts?action=X&payout_ids=X,Y,Z` - Bulk payout actions
-- `GET /api/admin/export/users?format=json|csv` - Export users
-- `GET /api/admin/export/auctions?format=json|csv` - Export auctions
-- `GET /api/admin/export/transactions?format=json|csv` - Export transactions
+### Checkout & Delivery
+- `POST /api/auctions/{id}/buy-now` - Buy now with delivery option selection
+  - Body: `{ origin_url, payment_method, delivery_option, delivery_address }`
+  - Returns: Stripe/PayPal checkout URL with delivery cost included
 
-### Seller Analytics
-- `GET /api/sellers/me/analytics` - Seller performance metrics
+### Reviews
+- `GET /api/users/{user_id}/reviews` - Get seller's reviews
+- `POST /api/escrow/confirm-delivery` - Confirm delivery with optional review
+  - Body: `{ escrow_id, rating (1-5), review_comment }`
 
-## Integration Status
+### Currency Support
+- All prices displayed in auction's currency (USD or NGN)
+- Payment processors handle currency conversion
 
-| Service | Status | Notes |
-|---------|--------|-------|
-| Stripe | ✅ Active | Test mode |
-| Twilio SMS | ✅ Configured | API keys provided |
-| SendGrid Email | ⚠️ Pending | Needs sender verification |
-| PayPal | ✅ Configured | Sandbox mode |
+## Database Schema Updates
+
+### auctions collection
+- `currency`: "USD" | "NGN"
+- `delivery_options`: Array of { type, cost, estimated_days }
+- `order_details`: { delivery_option, delivery_address, delivery_cost, item_price, total_amount, currency }
+
+### reviews collection
+- `id`, `auction_id`, `seller_id`
+- `reviewer_id`, `reviewer_name`
+- `rating` (1-5), `comment`
+- `created_at`
 
 ## Test Credentials
 - **Farmer:** john@farm.com / password123
 - **Buyer:** buyer@demo.com / password123
-- **Admin:** admin@jarnnmarket.com / AdminPass123!
-
-## PWA Installation
-1. Visit the site on mobile browser
-2. Tap "Add to Home Screen" or install prompt
-3. App will be available as standalone app
+- **Admin:** admin@jarnnmarket.com, info@jarnnmarket.com
 
 ---
 
 ## Changelog
 
-### January 2026 - Seller Verification, Bulk Ops, Exports, PWA
-- Added Seller Verification Badge (blue shield icon)
-- Added Admin verify/unverify seller endpoints
-- Added Bulk operations for users and payouts
-- Added Data export to JSON and CSV formats
-- Added PWA manifest for mobile app installation
-- Added seller_verified field to auction API responses
-- Fixed bulk operations to use query params
-- Fixed CSV export for records with different fields
+### January 2026 - Delivery Options, Currency & Reviews
+- Added delivery option selection at checkout
+- Added delivery address input for shipping options
+- Added delivery cost calculation in checkout totals
+- Enhanced currency support with proper symbols (₦ for NGN, $ for USD)
+- Added seller review system integrated with delivery confirmation
+- Added star rating (1-5) on delivery confirmation
+- Added optional review comments
+- Added reviews display on auction detail page
+- Updated payment processing to use auction currency
 
-### January 2026 - Admin Dashboard, Analytics & Help Center
-- Added Admin Dashboard
-- Added Seller Analytics
-- Added Help Center with FAQ
-
-### January 2026 - Email Verification & Integrations
-- Added mandatory email verification
-- Integrated Twilio, SendGrid, PayPal
+### Previous Updates
+- Seller Verification Badge
+- Admin Dashboard with bulk operations
+- Data exports (JSON/CSV)
+- Mobile PWA support
+- Help Center / FAQ
+- Email/Phone verification
+- Search & filters
+- Multi-currency listing
 
 ## All Features Complete ✅
-- Seller Verification Badge
-- Mobile App (PWA)
-- Advanced Reporting & Exports
-- Bulk Operations in Admin
-- Admin Dashboard
-- Seller Analytics
-- Help Center
-- Email/Phone Verification
-- Search & Filters
-- Multi-currency
-- Delivery Options
+All requested features have been implemented and tested.
