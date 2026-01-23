@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Clock, MapPin, User, Zap, Star, MessageSquare } from 'lucide-react';
+import { Clock, MapPin, User, Zap, Star, MessageSquare, CheckCircle, Shield } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export const AuctionCard = ({ auction }) => {
   const [timeLeft, setTimeLeft] = useState('');
