@@ -330,6 +330,10 @@ export default function Dashboard() {
                 <TabsTrigger value="payouts" data-testid="tab-payouts">
                   Payouts
                 </TabsTrigger>
+                <TabsTrigger value="analytics" data-testid="tab-analytics">
+                  <BarChart3 className="w-4 h-4 mr-1" />
+                  Analytics
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="active" className="mt-6">
