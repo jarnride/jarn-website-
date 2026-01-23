@@ -997,6 +997,124 @@ async def get_featured_auctions(limit: int = 6):
     
     return auctions
 
+@api_router.get("/auctions/search")
+async def search_auctions(
+    q: str = "",
+    category: str = "",
+    min_price: float = 0,
+    max_price: float = 0,
+    currency: str = "",
+    location: str = "",
+    delivery: str = "",  # local_pickup, city_to_city, international
+    sort_by: str = "newest",  # newest, ending_soon, price_low, price_high, most_bids
+    page: int = 1,
+    limit: int = 20
+):
+    """
+    Search and filter auctions
+    - q: Search query (searches title and description)
+    - category: Filter by category
+    - min_price, max_price: Price range filter
+    - currency: Filter by currency (USD, NGN)
+    - location: Filter by location
+    - delivery: Filter by delivery option
+    - sort_by: Sort results
+    - page, limit: Pagination
+    """
+    # Sanitize inputs
+    q = sanitize_search_query(q)
+    category = sanitize_string(category) if category else ""
+    location = sanitize_string(location) if location else ""
+    currency = currency.upper() if currency in ["USD", "NGN"] else ""
+    
+    # Build query
+    query = {
+        "is_active": True,
+        "ends_at": {"$gt": datetime.now(timezone.utc).isoformat()}
+    }
+    
+    # Text search on title and description
+    if q:
+        query["$or"] = [
+            {"title": {"$regex": q, "$options": "i"}},
+            {"description": {"$regex": q, "$options": "i"}}
+        ]
+    
+    # Category filter
+    if category:
+        query["category"] = category
+    
+    # Currency filter
+    if currency:
+        query["currency"] = currency
+    
+    # Location filter (partial match)
+    if location:
+        query["location"] = {"$regex": location, "$options": "i"}
+    
+    # Price range filter
+    if min_price > 0:
+        query["current_bid"] = {"$gte": min_price}
+    if max_price > 0:
+        if "current_bid" in query:
+            query["current_bid"]["$lte"] = max_price
+        else:
+            query["current_bid"] = {"$lte": max_price}
+    
+    # Delivery option filter
+    if delivery:
+        if delivery == "local_pickup":
+            query["delivery_options.type"] = "local_pickup"
+        elif delivery == "city_to_city":
+            query["delivery_options.type"] = "city_to_city"
+        elif delivery == "international":
+            query["delivery_options.type"] = "international"
+    
+    # Sort options
+    sort_options = {
+        "newest": [("created_at", -1)],
+        "ending_soon": [("ends_at", 1)],
+        "price_low": [("current_bid", 1)],
+        "price_high": [("current_bid", -1)],
+        "most_bids": [("bid_count", -1)]
+    }
+    sort = sort_options.get(sort_by, [("created_at", -1)])
+    
+    # Pagination
+    skip = (page - 1) * limit
+    limit = min(limit, 50)  # Max 50 per page
+    
+    # Execute query
+    total = await db.auctions.count_documents(query)
+    auctions = await db.auctions.find(query, {"_id": 0}).sort(sort).skip(skip).limit(limit).to_list(limit)
+    
+    # Add seller ratings
+    for auction in auctions:
+        seller = await db.users.find_one({"id": auction["seller_id"]}, {"_id": 0, "rating_avg": 1, "rating_count": 1})
+        auction["seller_rating"] = seller.get("rating_avg", 0) if seller else 0
+        auction["seller_rating_count"] = seller.get("rating_count", 0) if seller else 0
+        auction.setdefault("buy_now_only", False)
+        auction.setdefault("accepts_offers", False)
+        auction.setdefault("currency", "USD")
+        auction.setdefault("quantity", 1)
+    
+    return {
+        "auctions": auctions,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "total_pages": (total + limit - 1) // limit,
+        "query": q,
+        "filters": {
+            "category": category,
+            "min_price": min_price,
+            "max_price": max_price,
+            "currency": currency,
+            "location": location,
+            "delivery": delivery
+        }
+    }
+
 @api_router.get("/auctions/categories")
 async def get_categories():
     categories = [
