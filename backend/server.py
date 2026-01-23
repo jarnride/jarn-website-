@@ -998,6 +998,10 @@ async def get_auction(auction_id: str):
     auction["seller_rating"] = seller.get("rating_avg", 0) if seller else 0
     auction["seller_rating_count"] = seller.get("rating_count", 0) if seller else 0
     
+    # Ensure new fields have default values for legacy auctions
+    auction.setdefault("buy_now_only", False)
+    auction.setdefault("accepts_offers", False)
+    
     # Check if there's a review for this auction
     review = await db.reviews.find_one({"auction_id": auction_id}, {"_id": 0})
     auction["has_review"] = review is not None
