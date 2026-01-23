@@ -847,6 +847,7 @@ async def get_me(user: dict = Depends(get_current_user)):
         "email": user["email"],
         "phone": user.get("phone"),
         "phone_verified": user.get("phone_verified", False),
+        "email_verified": user.get("email_verified", True),  # For legacy users
         "role": user["role"],
         "rating_avg": user.get("rating_avg", 0.0),
         "rating_count": user.get("rating_count", 0),
