@@ -484,45 +484,66 @@ export default function AuctionDetail() {
 
                 <Separator className="my-6" />
 
-                {/* Current Bid */}
-                <div className="mb-6">
-                  <span className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                    {isSold ? 'Final Price' : 'Current Bid'}
-                  </span>
-                  <div className="flex items-baseline gap-2 mt-2">
-                    <span 
-                      className="text-4xl font-bold text-primary font-mono"
-                      data-testid="current-bid"
-                    >
-                      ${auction.current_bid.toFixed(2)}
+                {/* Price Display - Different for Buy Now Only vs Regular Auction */}
+                {isBuyNowOnly ? (
+                  /* Buy Now Only - Show fixed price only */
+                  <div className="mb-6">
+                    <span className="text-sm font-medium text-harvest uppercase tracking-wide flex items-center gap-1">
+                      <Zap className="w-4 h-4" />
+                      {isSold ? 'Final Price' : 'Fixed Price'}
                     </span>
-                    <span className="text-muted-foreground">
-                      ({auction.bid_count} bids)
-                    </span>
-                  </div>
-                  {auction.reserve_price && auction.current_bid < auction.reserve_price && !isSold && (
-                    <p className="text-sm text-accent mt-2 flex items-center gap-1">
-                      <AlertCircle className="w-4 h-4" />
-                      Reserve not met
-                    </p>
-                  )}
-                </div>
-
-                {/* Buy Now Price */}
-                {auction.buy_now_price && !isSold && !isExpired && (
-                  <div className="mb-6 p-4 bg-harvest/10 rounded-lg border border-harvest/20">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-sm font-medium text-harvest uppercase tracking-wide flex items-center gap-1">
-                          <Zap className="w-4 h-4" />
-                          Buy Now Price
-                        </span>
-                        <span className="text-2xl font-bold text-harvest font-mono">
-                          ${auction.buy_now_price.toFixed(2)}
-                        </span>
-                      </div>
+                    <div className="flex items-baseline gap-2 mt-2">
+                      <span 
+                        className="text-4xl font-bold text-harvest font-mono"
+                        data-testid="buy-now-price"
+                      >
+                        ${auction.buy_now_price?.toFixed(2) || auction.current_bid.toFixed(2)}
+                      </span>
                     </div>
                   </div>
+                ) : (
+                  /* Regular Auction - Show current bid */
+                  <>
+                    <div className="mb-6">
+                      <span className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                        {isSold ? 'Final Price' : 'Current Bid'}
+                      </span>
+                      <div className="flex items-baseline gap-2 mt-2">
+                        <span 
+                          className="text-4xl font-bold text-primary font-mono"
+                          data-testid="current-bid"
+                        >
+                          ${auction.current_bid.toFixed(2)}
+                        </span>
+                        <span className="text-muted-foreground">
+                          ({auction.bid_count} bids)
+                        </span>
+                      </div>
+                      {auction.reserve_price && auction.current_bid < auction.reserve_price && !isSold && (
+                        <p className="text-sm text-accent mt-2 flex items-center gap-1">
+                          <AlertCircle className="w-4 h-4" />
+                          Reserve not met
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Buy Now Price - Only for regular auctions */}
+                    {auction.buy_now_price && !isSold && !isExpired && (
+                      <div className="mb-6 p-4 bg-harvest/10 rounded-lg border border-harvest/20">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <span className="text-sm font-medium text-harvest uppercase tracking-wide flex items-center gap-1">
+                              <Zap className="w-4 h-4" />
+                              Buy Now Price
+                            </span>
+                            <span className="text-2xl font-bold text-harvest font-mono">
+                              ${auction.buy_now_price.toFixed(2)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
 
                 {/* Bid Actions */}
