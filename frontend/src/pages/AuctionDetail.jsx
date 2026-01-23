@@ -450,7 +450,7 @@ export default function AuctionDetail() {
                       <div key={idx} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg text-sm">
                         <div className="flex items-center gap-2">
                           {opt.type === 'local_pickup' && <Home className="w-4 h-4 text-muted-foreground" />}
-                          {opt.type === 'city_delivery' && <Truck className="w-4 h-4 text-muted-foreground" />}
+                          {(opt.type === 'city_delivery' || opt.type === 'city_to_city') && <Truck className="w-4 h-4 text-muted-foreground" />}
                           {opt.type === 'international' && <Globe className="w-4 h-4 text-muted-foreground" />}
                           <span>
                             {opt.type === 'local_pickup' ? 'Local Pickup' : 
