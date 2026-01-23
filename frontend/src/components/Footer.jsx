@@ -43,9 +43,9 @@ export const Footer = () => {
               <li><Link to="/auctions" className="footer-link">Browse Auctions</Link></li>
               <li><Link to="/auth?mode=register" className="footer-link">Become a Seller</Link></li>
               <li><Link to="/auth" className="footer-link">Sign In</Link></li>
+              <li><Link to="/help" className="footer-link">Help Center</Link></li>
               <li><Link to="/policies/terms" className="footer-link">Terms & Conditions</Link></li>
               <li><Link to="/policies/privacy" className="footer-link">Privacy Policy</Link></li>
-              <li><Link to="/policies/return" className="footer-link">Return Policy</Link></li>
             </ul>
           </div>
 
