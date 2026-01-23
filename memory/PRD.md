@@ -6,9 +6,9 @@ A full-stack auction platform connecting farmers directly with buyers through re
 ## Tech Stack
 - **Backend:** FastAPI (Python), MongoDB
 - **Frontend:** React, TailwindCSS, Shadcn/UI
-- **Payments:** Stripe (integrated), PayPal (integrated with fallback)
-- **Email:** SendGrid (integrated with fallback)
-- **SMS:** Twilio (integrated with fallback)
+- **Payments:** Stripe (integrated), PayPal (integrated with sandbox mode)
+- **Email:** SendGrid (configured - needs sender verification)
+- **SMS:** Twilio (configured)
 - **Real-time:** WebSockets (socket.io)
 - **Authentication:** JWT
 
@@ -25,32 +25,42 @@ A full-stack auction platform connecting farmers directly with buyers through re
 ### Customer Support
 - [x] **WhatsApp Support** - Floating button on all pages (+447449858053)
 - [x] **WhatsApp Link in Footer** - Easy access to customer service
+- [x] **Help Center / FAQ** - Comprehensive help page with searchable FAQs
+
+### Admin Dashboard
+- [x] **Admin-only access** - Restricted to admin@jarnnmarket.com, info@jarnnmarket.com
+- [x] **User management** - View all users, toggle user status
+- [x] **Auction management** - View all auctions with seller details
+- [x] **Payout management** - Approve/reject seller payouts
+- [x] **Platform statistics** - Total users, auctions, escrow, revenue
+
+### Seller Analytics
+- [x] **Analytics tab in seller dashboard** - Only visible to farmers
+- [x] **Revenue metrics** - Total revenue, average sale price
+- [x] **Performance metrics** - Conversion rate, views, bids
+- [x] **Listing stats** - Active listings, completed sales
+- [x] **Top categories** - Category breakdown of listings
+- [x] **Tips for sellers** - Guidance to improve sales
 
 ### Auction Management
 - [x] Create auctions with images
 - [x] **Image quality validation** (min 400x300px, min 20KB)
-- [x] **Buy Now Only option** - Disables bidding entirely, shows only fixed price
+- [x] **Buy Now Only option** - Disables bidding entirely
 - [x] **Accepts Offers option** - Allows buyers to make offers
 - [x] Real-time bidding via WebSockets
 - [x] Buy Now instant purchase
 - [x] Auction countdown timer
 - [x] Category filtering
-- [x] Search functionality with filters (query, category, price range, delivery, currency)
+- [x] Search functionality with filters
 
 ### Delivery Options
 - [x] **Local Pickup** - Free pickup from seller location
 - [x] **City-to-City Delivery** - Delivery within Nigeria (2-5 days)
 - [x] **International Shipping** - Worldwide delivery (7-21 days)
-- [x] Ship-from location configuration
-
-### Quantity & Weight
-- [x] Quantity field (1-10,000 units)
-- [x] Weight field with unit selection (kg, lb, g)
 
 ### Multi-Currency Support
 - [x] **USD ($)** - US Dollars
 - [x] **NGN (₦)** - Nigerian Naira
-- [x] Currency selection during listing creation
 
 ### Seller Subscription Plans
 - [x] **5-Day Plan** - $4.99 / ₦7,500
@@ -60,57 +70,47 @@ A full-stack auction platform connecting farmers directly with buyers through re
 ### Notifications System
 - [x] Real-time notification bell in navbar
 - [x] Notifications for sellers and buyers
-- [x] Notification count badge with animation
-
-### Offers System
-- [x] Buyers can make offers on listings that accept offers
-- [x] Sellers can view, accept, or reject offers
-- [x] Email notifications for offer updates
 
 ### Payment & Escrow
 - [x] Stripe payment integration
-- [x] PayPal payment integration (with fallback)
+- [x] PayPal payment integration (sandbox mode)
 - [x] Escrow system - funds held until delivery confirmation
 - [x] Payout system - Sellers request payout after escrow release
 
-### Policies & Legal
-- [x] Terms & Conditions
-- [x] Privacy Policy
-- [x] Return & Refund Policy
-- [x] Seller Guidelines
-- [x] Buyer Guidelines
+### Help Center
+- [x] **Searchable FAQ** - Find answers quickly
+- [x] **Category filters** - Buying, Selling, Payments, Delivery, Account, Security
+- [x] **Contact options** - WhatsApp, Email, Phone
+- [x] **Quick links** - Direct access to policies
 
 ## API Endpoints
 
-### Authentication (Updated)
+### Authentication
 - `POST /api/auth/register` - Register with email verification required
 - `POST /api/auth/verify-email` - Verify email with token
 - `POST /api/auth/resend-verification` - Resend verification email
 - `POST /api/auth/login` - Login (blocked for unverified users)
-- `GET /api/auth/me` - Get current user profile
 
-### Subscriptions
-- `GET /api/subscriptions/plans` - Get all subscription plans
-- `GET /api/users/me/subscription` - Get current subscription
-- `POST /api/subscriptions/subscribe` - Subscribe to a plan
+### Admin (Restricted)
+- `GET /api/admin/stats` - Platform statistics
+- `GET /api/admin/users` - All users list
+- `GET /api/admin/auctions` - All auctions with seller names
+- `GET /api/admin/payouts` - All payout requests
+- `POST /api/admin/payouts/{id}/approve` - Approve payout
+- `POST /api/admin/payouts/{id}/reject` - Reject payout
+- `POST /api/admin/users/{id}/toggle-status` - Enable/disable user
 
-### Auctions
-- `GET /api/auctions/search` - Search with filters (q, category, price, currency, delivery, sort)
-- `POST /api/auctions` - Create auction with all new fields
+### Seller Analytics
+- `GET /api/sellers/me/analytics` - Seller performance metrics
 
-## Database Collections
-- `users` - User accounts with email_verified and phone_verified status
-- `email_verifications` - Email verification tokens
-- `phone_verifications` - Phone verification OTPs
-- `auctions` - Listings with delivery options, currency, quantity, weight
-- `subscriptions` - Seller subscription records
-- `bids` - Bid history
-- `offers` - Make offer submissions
-- `escrow` - Payment escrow records
-- `payouts` - Seller payout history
-- `reviews` - Seller ratings
-- `images` - Uploaded images
-- `notifications` - User notifications
+## Integration Status
+
+| Service | Status | Notes |
+|---------|--------|-------|
+| Stripe | ✅ Active | Test mode |
+| Twilio SMS | ✅ Configured | API keys provided |
+| SendGrid Email | ⚠️ Pending | Needs sender verification for info@jarnnmarket.com |
+| PayPal | ✅ Configured | Sandbox mode |
 
 ## Contact Information
 - Email: info@jarnnmarket.com
@@ -118,59 +118,38 @@ A full-stack auction platform connecting farmers directly with buyers through re
 - WhatsApp: +447449858053
 - Location: Abia State, Nigeria
 
-## Integration Status
-
-### Active Integrations
-| Service | Status | Notes |
-|---------|--------|-------|
-| Stripe | ✅ Active | Test mode |
-| Twilio SMS | ⚠️ Configured | API key provided, ready to use |
-| SendGrid Email | ⚠️ Fallback | API key may need verification, falls back to mock |
-| PayPal | ⚠️ Configured | Credentials provided, sandbox mode |
-
-### Integration Notes
-- **SendGrid**: The provided API key returns 401 Unauthorized. This may be because:
-  - The API key format appears incomplete (SendGrid keys typically start with `SG.` and are ~69 chars)
-  - The sender domain (jarnnmarket.com) may need verification in SendGrid
-  - System gracefully falls back to mock email with verification links shown in UI
-
-- **Twilio**: Configured with provided credentials. The WhatsApp number (+447449858053) is used for customer support.
-
 ---
 
 ## Changelog
 
+### January 2026 - Admin Dashboard, Analytics & Help Center
+- Added Admin Dashboard with user/auction/payout management
+- Added Seller Analytics with revenue and performance metrics
+- Added Help Center with searchable FAQ and category filters
+- Added Help link in navbar and footer
+- Admin access restricted to specific email addresses
+
 ### January 2026 - Email Verification & Integrations
-- Added mandatory email verification for all new users (buyers & sellers)
-- Added WhatsApp customer support floating button (+447449858053)
-- Added WhatsApp Support link in footer
-- Integrated Twilio for SMS (with fallback)
-- Integrated SendGrid for email (with fallback)
-- Integrated PayPal for payments (with fallback)
-- Demo users bypass email verification for testing
-- Added verification pending screen with resend option
-- Added verify email page
+- Added mandatory email verification for all new users
+- Added WhatsApp customer support floating button
+- Integrated Twilio for SMS
+- Integrated SendGrid for email (pending sender verification)
+- Integrated PayPal for payments
 
 ### December 2025 - eBay-style Features
-- Added delivery options: Local Pickup, City-to-City, International Shipping
-- Added seller subscription plans (5-day, Weekly, Monthly) with NGN/USD pricing
-- Added Nigerian Naira (NGN) currency support
-- Changed branding from "jarnnmarket" to "Jarnnmarket" (capital J)
-- Added quantity and weight fields for listings
-- Created Subscription page for sellers
-- Added search functionality with filters
+- Added delivery options
+- Added seller subscription plans
+- Added Nigerian Naira currency support
+- Added quantity and weight fields
+- Added search functionality
 
-### Previous Updates
-- Notification bell with real-time updates
-- Buy Now Only listings without bidding
-- Make Offer feature
-- Image quality validation
-- Mandatory phone verification
-- Seller payout system
-- Comprehensive policy pages
+## Test Credentials
+- **Farmer:** john@farm.com / password123
+- **Buyer:** buyer@demo.com / password123
+- **Admin Emails:** admin@jarnnmarket.com, info@jarnnmarket.com
 
 ## Upcoming Features
+- [ ] Create admin user accounts
 - [ ] Delivery tracking integration (AfterShip)
 - [ ] Push notifications
-- [ ] Admin dashboard
-- [ ] Analytics for sellers
+- [ ] Complete SendGrid sender verification
