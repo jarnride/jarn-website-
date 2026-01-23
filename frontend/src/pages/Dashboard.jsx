@@ -272,6 +272,23 @@ export default function Dashboard() {
               </div>
             )}
 
+            {/* Pending Offers Alert */}
+            {receivedOffers.length > 0 && (
+              <div className="mb-8 p-4 bg-blue-50 rounded-xl border border-blue-200">
+                <div className="flex items-center gap-3">
+                  <MessageSquare className="w-6 h-6 text-blue-600" />
+                  <div>
+                    <p className="font-semibold text-blue-800">
+                      {receivedOffers.length} pending offer(s) to review
+                    </p>
+                    <p className="text-sm text-blue-700">
+                      Check the Offers tab to accept or reject
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Auctions Tabs */}
             <Tabs defaultValue="active">
               <TabsList>
@@ -281,8 +298,14 @@ export default function Dashboard() {
                 <TabsTrigger value="ended" data-testid="tab-ended">
                   Ended ({endedAuctions.length})
                 </TabsTrigger>
+                <TabsTrigger value="offers" data-testid="tab-offers">
+                  Offers ({receivedOffers.length})
+                </TabsTrigger>
                 <TabsTrigger value="escrow" data-testid="tab-escrow">
                   Escrow ({escrows.length})
+                </TabsTrigger>
+                <TabsTrigger value="payouts" data-testid="tab-payouts">
+                  Payouts
                 </TabsTrigger>
               </TabsList>
 
