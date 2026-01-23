@@ -97,15 +97,41 @@ def validate_email(email: str) -> bool:
     pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
     return bool(re.match(pattern, email))
 
-def validate_password(password: str) -> bool:
-    return len(password) >= 6
+def validate_password(password: str) -> tuple:
+    """Validate password strength. Returns (is_valid, error_message)"""
+    if len(password) < 8:
+        return False, "Password must be at least 8 characters"
+    if not re.search(r'[A-Z]', password):
+        return False, "Password must contain at least one uppercase letter"
+    if not re.search(r'[a-z]', password):
+        return False, "Password must contain at least one lowercase letter"
+    if not re.search(r'\d', password):
+        return False, "Password must contain at least one number"
+    return True, None
 
 def validate_phone(phone: str) -> bool:
     pattern = r'^\+?[1-9]\d{9,14}$'
     return bool(re.match(pattern, phone.replace(' ', '').replace('-', '')))
 
 def sanitize_string(value: str) -> str:
-    return re.sub(r'[<>"\']', '', value.strip())
+    """Remove potentially dangerous characters to prevent XSS"""
+    if not value:
+        return value
+    # Remove HTML tags and dangerous characters
+    value = re.sub(r'<[^>]*>', '', value)
+    value = re.sub(r'[<>"\'\;\(\)\{\}]', '', value)
+    # Remove potential script injections
+    value = re.sub(r'javascript:', '', value, flags=re.IGNORECASE)
+    value = re.sub(r'on\w+\s*=', '', value, flags=re.IGNORECASE)
+    return value.strip()
+
+def sanitize_search_query(query: str) -> str:
+    """Sanitize search query for MongoDB"""
+    if not query:
+        return ""
+    # Remove regex special characters
+    query = re.sub(r'[$.*+?^{}()|[\]\\]', '', query)
+    return sanitize_string(query)[:100]  # Limit length
 
 def generate_otp(length: int = 6) -> str:
     return ''.join(random.choices(string.digits, k=length))
