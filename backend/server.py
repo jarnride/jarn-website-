@@ -1149,6 +1149,12 @@ async def get_user_rating(user_id: str):
         "rating_count": user.get("rating_count", 0)
     }
 
+@api_router.get("/users/{user_id}/reviews")
+async def get_user_reviews(user_id: str, limit: int = 20):
+    """Get reviews for a seller"""
+    reviews = await db.reviews.find({"seller_id": user_id}, {"_id": 0}).sort("created_at", -1).limit(limit).to_list(limit)
+    return reviews
+
 # ================== IMAGE UPLOAD ==================
 
 # Minimum image quality requirements
