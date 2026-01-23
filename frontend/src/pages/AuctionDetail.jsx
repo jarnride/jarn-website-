@@ -460,7 +460,7 @@ export default function AuctionDetail() {
                           </span>
                         </div>
                         <span className="font-mono">
-                          {(opt.cost || 0) === 0 ? 'FREE' : `${auction.currency === 'NGN' ? '₦' : '$'}${(opt.cost || 0).toFixed(2)}`}
+                          {(opt.cost || 0) === 0 ? 'FREE' : `${currencySymbol}${(opt.cost || 0).toFixed(2)}`}
                         </span>
                       </div>
                     ))}
