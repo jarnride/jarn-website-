@@ -398,6 +398,17 @@ class BuyNowRequest(BaseModel):
 class DeliveryConfirmation(BaseModel):
     escrow_id: str
 
+class OfferCreate(BaseModel):
+    amount: float = Field(..., gt=0)
+    message: str = Field(default="", max_length=500)
+
+class OfferResponse(BaseModel):
+    offer_id: str
+    status: str = Field(..., pattern="^(accepted|rejected)$")
+
+class PayoutRequest(BaseModel):
+    escrow_id: str
+
 class ReviewCreate(BaseModel):
     auction_id: str
     rating: int = Field(..., ge=1, le=5)
