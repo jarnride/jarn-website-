@@ -454,7 +454,7 @@ export default function AuctionDetail() {
                           {opt.type === 'international' && <Globe className="w-4 h-4 text-muted-foreground" />}
                           <span>
                             {opt.type === 'local_pickup' ? 'Local Pickup' : 
-                             opt.type === 'city_delivery' ? 'City-to-City Delivery' : 
+                             opt.type === 'city_delivery' || opt.type === 'city_to_city' ? 'City-to-City Delivery' : 
                              opt.type === 'international' ? 'International Shipping' : opt.type}
                           </span>
                         </div>
