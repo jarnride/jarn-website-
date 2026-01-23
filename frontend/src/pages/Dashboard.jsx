@@ -9,7 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AuctionCard from '@/components/AuctionCard';
 import PhoneVerification from '@/components/PhoneVerification';
-import { Plus, Package, Gavel, Trophy, TrendingUp, Clock, Shield, Phone, CheckCircle, MessageSquare, DollarSign, Check, X } from 'lucide-react';
+import SellerAnalytics from '@/components/SellerAnalytics';
+import { Plus, Package, Gavel, Trophy, TrendingUp, Clock, Shield, Phone, CheckCircle, MessageSquare, DollarSign, Check, X, BarChart3 } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
