@@ -366,6 +366,44 @@ class PhoneVerificationVerify(BaseModel):
     phone: str = Field(..., min_length=10, max_length=20)
     code: str = Field(..., min_length=6, max_length=6)
 
+# Supported currencies
+SUPPORTED_CURRENCIES = ["USD", "NGN"]
+CURRENCY_SYMBOLS = {"USD": "$", "NGN": "₦"}
+
+# Subscription plan definitions
+SUBSCRIPTION_PLANS = {
+    "5_days": {
+        "id": "5_days",
+        "name": "5-Day Plan",
+        "duration_days": 5,
+        "price_usd": 4.99,
+        "price_ngn": 7500,
+        "features": ["Up to 10 listings", "Basic analytics", "Email support"]
+    },
+    "weekly": {
+        "id": "weekly",
+        "name": "Weekly Plan",
+        "duration_days": 7,
+        "price_usd": 6.99,
+        "price_ngn": 10500,
+        "features": ["Up to 25 listings", "Advanced analytics", "Priority support", "Featured listings"]
+    },
+    "monthly": {
+        "id": "monthly",
+        "name": "Monthly Plan",
+        "duration_days": 30,
+        "price_usd": 19.99,
+        "price_ngn": 30000,
+        "features": ["Unlimited listings", "Full analytics", "24/7 support", "Featured listings", "Promotional tools", "Verified seller badge"]
+    }
+}
+
+class DeliveryOption(BaseModel):
+    type: str = Field(..., pattern="^(local_pickup|city_to_city|international)$")
+    price: float = Field(default=0, ge=0)
+    estimated_days: Optional[int] = Field(default=None, ge=1)
+    description: str = Field(default="", max_length=200)
+
 class AuctionCreate(BaseModel):
     title: str = Field(..., min_length=5, max_length=200)
     description: str = Field(default="", max_length=2000)
@@ -376,13 +414,28 @@ class AuctionCreate(BaseModel):
     buy_now_price: Optional[float] = Field(default=None, gt=0)
     reserve_price: Optional[float] = Field(default=None, gt=0)
     duration_hours: int = Field(default=24, ge=1, le=168)
-    buy_now_only: bool = Field(default=False)  # If true, no bidding allowed
-    accepts_offers: bool = Field(default=False)  # If true, buyers can make offers
+    buy_now_only: bool = Field(default=False)
+    accepts_offers: bool = Field(default=False)
+    # New fields
+    currency: str = Field(default="USD", pattern="^(USD|NGN)$")
+    quantity: int = Field(default=1, ge=1, le=10000)
+    weight: Optional[float] = Field(default=None, ge=0)  # in kg
+    weight_unit: str = Field(default="kg", pattern="^(kg|lb|g)$")
+    # Delivery options
+    delivery_options: List[DeliveryOption] = Field(default_factory=list)
+    local_pickup: bool = Field(default=True)
+    city_to_city: bool = Field(default=False)
+    international_shipping: bool = Field(default=False)
+    shipping_from: str = Field(default="", max_length=100)
     
-    @field_validator('title', 'description', 'category', 'location')
+    @field_validator('title', 'description', 'category', 'location', 'shipping_from')
     @classmethod
     def sanitize_fields(cls, v):
         return sanitize_string(v) if v else v
+
+class SubscriptionCreate(BaseModel):
+    plan_id: str = Field(..., pattern="^(5_days|weekly|monthly)$")
+    currency: str = Field(default="USD", pattern="^(USD|NGN)$")
 
 class BidCreate(BaseModel):
     amount: float = Field(..., gt=0)
