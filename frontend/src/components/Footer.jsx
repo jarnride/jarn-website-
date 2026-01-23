@@ -38,12 +38,20 @@ export const Footer = () => {
               <li><Link to="/auctions" className="footer-link">Browse Auctions</Link></li>
               <li><Link to="/auth?mode=register" className="footer-link">Become a Seller</Link></li>
               <li><Link to="/auth" className="footer-link">Sign In</Link></li>
-              <li><a href="#" className="footer-link">How It Works</a></li>
+              <li><Link to="/policies/terms" className="footer-link">Terms & Conditions</Link></li>
+              <li><Link to="/policies/privacy" className="footer-link">Privacy Policy</Link></li>
+              <li><Link to="/policies/return" className="footer-link">Return Policy</Link></li>
             </ul>
           </div>
 
-          {/* Contact */}
+          {/* Policies & Contact */}
           <div>
+            <h3 className="text-lg font-semibold mb-4">Policies</h3>
+            <ul className="space-y-3 mb-6">
+              <li><Link to="/policies/seller" className="footer-link">Seller Guidelines</Link></li>
+              <li><Link to="/policies/buyer" className="footer-link">Buyer Guidelines</Link></li>
+            </ul>
+            
             <h3 className="text-lg font-semibold mb-4">Contact Us</h3>
             <ul className="space-y-3">
               <li className="flex items-center gap-2 text-white/70">
@@ -63,8 +71,13 @@ export const Footer = () => {
         </div>
 
         {/* Bottom */}
-        <div className="pt-8 border-t border-white/10 text-center text-white/50 text-sm">
+        <div className="pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4 text-white/50 text-sm">
           <p>© {new Date().getFullYear()} jarnnmarket. All rights reserved.</p>
+          <div className="flex gap-6">
+            <Link to="/policies/terms" className="hover:text-white transition-colors">Terms</Link>
+            <Link to="/policies/privacy" className="hover:text-white transition-colors">Privacy</Link>
+            <Link to="/policies/return" className="hover:text-white transition-colors">Returns</Link>
+          </div>
         </div>
       </div>
     </footer>
