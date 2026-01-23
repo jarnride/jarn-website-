@@ -1,12 +1,14 @@
 # Jarnnmarket - Farmers Auction Platform
 
 ## Overview
-A full-stack auction platform connecting farmers directly with buyers through real-time auctions, featuring escrow-protected payments, phone verification, and comprehensive buyer/seller policies.
+A full-stack auction platform connecting farmers directly with buyers through real-time auctions, featuring escrow-protected payments, email and phone verification, and comprehensive buyer/seller policies.
 
 ## Tech Stack
 - **Backend:** FastAPI (Python), MongoDB
 - **Frontend:** React, TailwindCSS, Shadcn/UI
-- **Payments:** Stripe (integrated), PayPal (MOCKED)
+- **Payments:** Stripe (integrated), PayPal (integrated with fallback)
+- **Email:** SendGrid (integrated with fallback)
+- **SMS:** Twilio (integrated with fallback)
 - **Real-time:** WebSockets (socket.io)
 - **Authentication:** JWT
 
@@ -15,8 +17,14 @@ A full-stack auction platform connecting farmers directly with buyers through re
 ### Authentication & Verification
 - [x] User registration (Farmer/Buyer roles)
 - [x] JWT-based authentication
+- [x] **Email verification (MANDATORY)** - Required before login for both buyers and sellers
 - [x] **Phone verification (MANDATORY)** - Required for bidding/listing
-- [x] Phone verification via SMS (MOCKED)
+- [x] Phone verification via SMS (Twilio integrated)
+- [x] Demo users bypass email verification (for testing)
+
+### Customer Support
+- [x] **WhatsApp Support** - Floating button on all pages (+447449858053)
+- [x] **WhatsApp Link in Footer** - Easy access to customer service
 
 ### Auction Management
 - [x] Create auctions with images
@@ -27,60 +35,43 @@ A full-stack auction platform connecting farmers directly with buyers through re
 - [x] Buy Now instant purchase
 - [x] Auction countdown timer
 - [x] Category filtering
-- [x] Search functionality
+- [x] Search functionality with filters (query, category, price range, delivery, currency)
 
-### NEW: Delivery Options
+### Delivery Options
 - [x] **Local Pickup** - Free pickup from seller location
 - [x] **City-to-City Delivery** - Delivery within Nigeria (2-5 days)
 - [x] **International Shipping** - Worldwide delivery (7-21 days)
 - [x] Ship-from location configuration
 
-### NEW: Quantity & Weight
+### Quantity & Weight
 - [x] Quantity field (1-10,000 units)
 - [x] Weight field with unit selection (kg, lb, g)
 
-### NEW: Multi-Currency Support
+### Multi-Currency Support
 - [x] **USD ($)** - US Dollars
 - [x] **NGN (₦)** - Nigerian Naira
 - [x] Currency selection during listing creation
 
-### NEW: Seller Subscription Plans
+### Seller Subscription Plans
 - [x] **5-Day Plan** - $4.99 / ₦7,500
-  - Up to 10 listings
-  - Basic analytics
-  - Email support
 - [x] **Weekly Plan** - $6.99 / ₦10,500
-  - Up to 25 listings
-  - Advanced analytics
-  - Priority support
-  - Featured listings
 - [x] **Monthly Plan** - $19.99 / ₦30,000
-  - Unlimited listings
-  - Full analytics
-  - 24/7 support
-  - Featured listings
-  - Promotional tools
-  - Verified seller badge
 
 ### Notifications System
-- [x] Real-time notification bell in navbar (desktop & mobile)
-- [x] Notifications for sellers: new offers, escrow held, payouts ready
-- [x] Notifications for buyers: offer responses, won auctions, delivery confirmations, outbid alerts
+- [x] Real-time notification bell in navbar
+- [x] Notifications for sellers and buyers
 - [x] Notification count badge with animation
-- [x] Auto-refresh every 30 seconds
 
 ### Offers System
 - [x] Buyers can make offers on listings that accept offers
 - [x] Sellers can view, accept, or reject offers
-- [x] Accepted offers mark auction as sold
-- [x] Email notifications for offer updates (MOCKED)
+- [x] Email notifications for offer updates
 
 ### Payment & Escrow
 - [x] Stripe payment integration
-- [x] PayPal payment option (MOCKED)
+- [x] PayPal payment integration (with fallback)
 - [x] Escrow system - funds held until delivery confirmation
-- [x] Payout system - Sellers request payout after escrow release (MOCKED)
-- [x] Delivery confirmation by buyer releases funds
+- [x] Payout system - Sellers request payout after escrow release
 
 ### Policies & Legal
 - [x] Terms & Conditions
@@ -91,41 +82,74 @@ A full-stack auction platform connecting farmers directly with buyers through re
 
 ## API Endpoints
 
-### Subscriptions (NEW)
+### Authentication (Updated)
+- `POST /api/auth/register` - Register with email verification required
+- `POST /api/auth/verify-email` - Verify email with token
+- `POST /api/auth/resend-verification` - Resend verification email
+- `POST /api/auth/login` - Login (blocked for unverified users)
+- `GET /api/auth/me` - Get current user profile
+
+### Subscriptions
 - `GET /api/subscriptions/plans` - Get all subscription plans
 - `GET /api/users/me/subscription` - Get current subscription
 - `POST /api/subscriptions/subscribe` - Subscribe to a plan
-- `POST /api/subscriptions/cancel` - Cancel subscription
 
-### Auctions (Updated)
-- `POST /api/auctions` - Now accepts: currency, quantity, weight, weight_unit, delivery_options, shipping_from
+### Auctions
+- `GET /api/auctions/search` - Search with filters (q, category, price, currency, delivery, sort)
+- `POST /api/auctions` - Create auction with all new fields
 
 ## Database Collections
-- `users` - User accounts with phone verification status
+- `users` - User accounts with email_verified and phone_verified status
+- `email_verifications` - Email verification tokens
+- `phone_verifications` - Phone verification OTPs
 - `auctions` - Listings with delivery options, currency, quantity, weight
-- `subscriptions` - Seller subscription records (NEW)
+- `subscriptions` - Seller subscription records
 - `bids` - Bid history
 - `offers` - Make offer submissions
 - `escrow` - Payment escrow records
 - `payouts` - Seller payout history
 - `reviews` - Seller ratings
 - `images` - Uploaded images
+- `notifications` - User notifications
 
 ## Contact Information
 - Email: info@jarnnmarket.com
 - Phone: +2348189275367
+- WhatsApp: +447449858053
 - Location: Abia State, Nigeria
 
-## Mocked Services
-- Phone SMS verification
-- PayPal payments
-- Email notifications
-- Payout processing
-- Subscription payments
+## Integration Status
+
+### Active Integrations
+| Service | Status | Notes |
+|---------|--------|-------|
+| Stripe | ✅ Active | Test mode |
+| Twilio SMS | ⚠️ Configured | API key provided, ready to use |
+| SendGrid Email | ⚠️ Fallback | API key may need verification, falls back to mock |
+| PayPal | ⚠️ Configured | Credentials provided, sandbox mode |
+
+### Integration Notes
+- **SendGrid**: The provided API key returns 401 Unauthorized. This may be because:
+  - The API key format appears incomplete (SendGrid keys typically start with `SG.` and are ~69 chars)
+  - The sender domain (jarnnmarket.com) may need verification in SendGrid
+  - System gracefully falls back to mock email with verification links shown in UI
+
+- **Twilio**: Configured with provided credentials. The WhatsApp number (+447449858053) is used for customer support.
 
 ---
 
 ## Changelog
+
+### January 2026 - Email Verification & Integrations
+- Added mandatory email verification for all new users (buyers & sellers)
+- Added WhatsApp customer support floating button (+447449858053)
+- Added WhatsApp Support link in footer
+- Integrated Twilio for SMS (with fallback)
+- Integrated SendGrid for email (with fallback)
+- Integrated PayPal for payments (with fallback)
+- Demo users bypass email verification for testing
+- Added verification pending screen with resend option
+- Added verify email page
 
 ### December 2025 - eBay-style Features
 - Added delivery options: Local Pickup, City-to-City, International Shipping
@@ -134,6 +158,7 @@ A full-stack auction platform connecting farmers directly with buyers through re
 - Changed branding from "jarnnmarket" to "Jarnnmarket" (capital J)
 - Added quantity and weight fields for listings
 - Created Subscription page for sellers
+- Added search functionality with filters
 
 ### Previous Updates
 - Notification bell with real-time updates
@@ -143,3 +168,9 @@ A full-stack auction platform connecting farmers directly with buyers through re
 - Mandatory phone verification
 - Seller payout system
 - Comprehensive policy pages
+
+## Upcoming Features
+- [ ] Delivery tracking integration (AfterShip)
+- [ ] Push notifications
+- [ ] Admin dashboard
+- [ ] Analytics for sellers
