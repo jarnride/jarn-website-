@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/context/AuthContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import WhatsAppButton from "@/components/WhatsAppButton";
 import Home from "@/pages/Home";
 import Auctions from "@/pages/Auctions";
 import AuctionDetail from "@/pages/AuctionDetail";
@@ -14,6 +15,7 @@ import PaymentSuccess from "@/pages/PaymentSuccess";
 import PaymentCancel from "@/pages/PaymentCancel";
 import Policies from "@/pages/Policies";
 import Subscription from "@/pages/Subscription";
+import VerifyEmail from "@/pages/VerifyEmail";
 
 function App() {
   return (
