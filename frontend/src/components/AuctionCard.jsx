@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Clock, MapPin, User, Zap } from 'lucide-react';
+import { Clock, MapPin, User, Zap, Star } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
@@ -73,9 +73,15 @@ export const AuctionCard = ({ auction }) => {
           {auction.title}
         </h3>
 
-        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
           <User className="w-4 h-4" />
           <span>{auction.seller_name}</span>
+          {auction.seller_rating > 0 && (
+            <span className="flex items-center gap-1 text-harvest">
+              <Star className="w-3 h-3 fill-harvest" />
+              {auction.seller_rating.toFixed(1)}
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
