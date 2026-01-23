@@ -1,4 +1,4 @@
-# jarnnmarket - Farmers Auction Platform
+# Jarnnmarket - Farmers Auction Platform
 
 ## Overview
 A full-stack auction platform connecting farmers directly with buyers through real-time auctions, featuring escrow-protected payments, phone verification, and comprehensive buyer/seller policies.
