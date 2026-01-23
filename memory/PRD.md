@@ -21,7 +21,7 @@ A full-stack auction platform connecting farmers directly with buyers through re
 ### Auction Management
 - [x] Create auctions with images
 - [x] **Image quality validation** (min 400x300px, min 20KB)
-- [x] **Buy Now Only option** - Disables bidding entirely
+- [x] **Buy Now Only option** - Disables bidding entirely, shows only fixed price
 - [x] **Accepts Offers option** - Allows buyers to make offers
 - [x] Real-time bidding via WebSockets
 - [x] Buy Now instant purchase
@@ -29,7 +29,14 @@ A full-stack auction platform connecting farmers directly with buyers through re
 - [x] Category filtering
 - [x] Search functionality
 
-### Offers System (NEW)
+### Notifications System (NEW)
+- [x] Real-time notification bell in navbar (desktop & mobile)
+- [x] Notifications for sellers: new offers, escrow held, payouts ready
+- [x] Notifications for buyers: offer responses, won auctions, delivery confirmations, outbid alerts
+- [x] Notification count badge with animation
+- [x] Auto-refresh every 30 seconds
+
+### Offers System
 - [x] Buyers can make offers on listings that accept offers
 - [x] Sellers can view, accept, or reject offers
 - [x] Accepted offers mark auction as sold
@@ -72,11 +79,14 @@ A full-stack auction platform connecting farmers directly with buyers through re
 - `POST /api/auctions/{id}/bids` - Place bid
 - `POST /api/auctions/{id}/buy` - Buy Now
 
-### Offers (NEW)
+### Offers
 - `POST /api/auctions/{id}/offers` - Make offer
 - `GET /api/auctions/{id}/offers` - Get auction offers (seller only)
 - `POST /api/offers/{id}/respond` - Accept/reject offer
 - `GET /api/users/me/offers` - Get my offers
+
+### Notifications (NEW)
+- `GET /api/users/me/notifications` - Get user notifications with unread count
 
 ### Payments & Escrow
 - `POST /api/payments/stripe/create-session`
@@ -85,7 +95,7 @@ A full-stack auction platform connecting farmers directly with buyers through re
 - `GET /api/users/me/escrows`
 - `POST /api/escrow/confirm-delivery`
 
-### Payouts (NEW)
+### Payouts
 - `GET /api/users/me/payouts`
 - `POST /api/payouts/request`
 
@@ -121,6 +131,13 @@ A full-stack auction platform connecting farmers directly with buyers through re
 ---
 
 ## Changelog
+
+### December 2025 - Notification Bell & Buy Now Only UI
+- Added real-time notification bell to navbar (desktop & mobile responsive)
+- Notification types: new offers, outbid alerts, won auctions, delivery confirmations, payouts ready
+- Fixed Buy Now Only auction display - no bidding UI, only fixed price shown
+- Bid history hidden for Buy Now Only listings
+- Added default values for legacy auctions (buy_now_only, accepts_offers)
 
 ### December 2025 - Phase 3 Complete
 - Added image quality validation (400x300px min, 20KB min)
