@@ -213,17 +213,27 @@ export default function AuctionDetail() {
 
     if (!checkPhoneVerification()) return;
 
+    // Show checkout modal with delivery options
+    setShowCheckoutModal(true);
+  };
+
+  const handleCheckoutConfirm = async (checkoutData) => {
     setBuyingNow(true);
     try {
       const response = await axios.post(
         `${API}/auctions/${id}/buy-now`,
-        { origin_url: window.location.origin, payment_method: paymentMethod },
+        { 
+          origin_url: window.location.origin, 
+          payment_method: checkoutData.payment_method,
+          delivery_option: checkoutData.delivery_option,
+          delivery_address: checkoutData.delivery_address
+        },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       
-      if (paymentMethod === 'stripe') {
+      if (checkoutData.payment_method === 'stripe') {
         window.location.href = response.data.url;
-      } else if (paymentMethod === 'paypal') {
+      } else if (checkoutData.payment_method === 'paypal') {
         // For PayPal mock mode, show instructions
         if (response.data.mock_mode) {
           toast.success('PayPal order created (Mock Mode). Complete payment via API.');
