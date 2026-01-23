@@ -396,6 +396,12 @@ class PhoneVerificationVerify(BaseModel):
     phone: str = Field(..., min_length=10, max_length=20)
     code: str = Field(..., min_length=6, max_length=6)
 
+class EmailVerificationToken(BaseModel):
+    token: str
+
+class ResendVerificationEmail(BaseModel):
+    email: EmailStr
+
 # Supported currencies
 SUPPORTED_CURRENCIES = ["USD", "NGN"]
 CURRENCY_SYMBOLS = {"USD": "$", "NGN": "₦"}
