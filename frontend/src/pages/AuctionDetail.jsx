@@ -577,7 +577,7 @@ export default function AuctionDetail() {
                         className="text-4xl font-bold text-harvest font-mono"
                         data-testid="buy-now-price"
                       >
-                        ${auction.buy_now_price?.toFixed(2) || auction.current_bid.toFixed(2)}
+                                                {currencySymbol}{auction.buy_now_price?.toFixed(2) || auction.current_bid.toFixed(2)}
                       </span>
                     </div>
                   </div>
