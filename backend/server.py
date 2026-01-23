@@ -1615,6 +1615,165 @@ async def get_won_auctions(user: dict = Depends(get_current_user)):
     }, {"_id": 0}).to_list(100)
     return auctions
 
+# ================== NOTIFICATIONS ROUTES ==================
+
+@api_router.get("/users/me/notifications")
+async def get_notifications(user: dict = Depends(get_current_user)):
+    """Get notifications for the current user (pending offers, outbid alerts, won auctions)"""
+    notifications = []
+    now = datetime.now(timezone.utc)
+    
+    if user["role"] == "farmer":
+        # For sellers: pending offers on their auctions
+        pending_offers = await db.offers.find({
+            "seller_id": user["id"],
+            "status": "pending"
+        }, {"_id": 0}).sort("created_at", -1).to_list(20)
+        
+        for offer in pending_offers:
+            auction = await db.auctions.find_one({"id": offer["auction_id"]}, {"_id": 0, "title": 1})
+            notifications.append({
+                "id": f"offer-{offer['id']}",
+                "type": "offer_received",
+                "title": "New Offer",
+                "message": f"{offer['buyer_name']} offered ${offer['amount']:.2f} on '{auction['title'] if auction else 'your listing'}'",
+                "amount": offer["amount"],
+                "auction_id": offer["auction_id"],
+                "created_at": offer["created_at"],
+                "read": False
+            })
+        
+        # For sellers: escrows awaiting delivery confirmation
+        held_escrows = await db.escrow.find({
+            "seller_id": user["id"],
+            "status": "held"
+        }, {"_id": 0}).to_list(10)
+        
+        for escrow in held_escrows:
+            notifications.append({
+                "id": f"escrow-{escrow['id']}",
+                "type": "escrow_held",
+                "title": "Awaiting Delivery",
+                "message": f"${escrow['amount']:.2f} held in escrow - awaiting buyer confirmation",
+                "amount": escrow["amount"],
+                "auction_id": escrow["auction_id"],
+                "created_at": escrow["created_at"],
+                "read": False
+            })
+        
+        # For sellers: released escrows ready for payout
+        released_escrows = await db.escrow.find({
+            "seller_id": user["id"],
+            "status": "released"
+        }, {"_id": 0}).to_list(10)
+        
+        for escrow in released_escrows:
+            # Check if payout already requested
+            payout = await db.payouts.find_one({"escrow_id": escrow["id"]})
+            if not payout:
+                notifications.append({
+                    "id": f"payout-{escrow['id']}",
+                    "type": "payout_ready",
+                    "title": "Payout Ready",
+                    "message": f"${escrow['amount']:.2f} ready for payout - delivery confirmed",
+                    "amount": escrow["amount"],
+                    "auction_id": escrow["auction_id"],
+                    "escrow_id": escrow["id"],
+                    "created_at": escrow.get("released_at", escrow["created_at"]),
+                    "read": False
+                })
+    else:
+        # For buyers: offer responses
+        my_offers = await db.offers.find({
+            "buyer_id": user["id"],
+            "status": {"$in": ["accepted", "rejected"]},
+            "responded_at": {"$ne": None}
+        }, {"_id": 0}).sort("responded_at", -1).to_list(10)
+        
+        for offer in my_offers:
+            auction = await db.auctions.find_one({"id": offer["auction_id"]}, {"_id": 0, "title": 1})
+            notifications.append({
+                "id": f"offer-response-{offer['id']}",
+                "type": f"offer_{offer['status']}",
+                "title": f"Offer {offer['status'].capitalize()}",
+                "message": f"Your ${offer['amount']:.2f} offer on '{auction['title'] if auction else 'listing'}' was {offer['status']}",
+                "amount": offer["amount"],
+                "auction_id": offer["auction_id"],
+                "created_at": offer["responded_at"],
+                "read": False
+            })
+        
+        # For buyers: won auctions needing payment
+        won_auctions = await db.auctions.find({
+            "winner_id": user["id"],
+            "is_paid": {"$ne": True}
+        }, {"_id": 0}).to_list(10)
+        
+        for auction in won_auctions:
+            notifications.append({
+                "id": f"won-{auction['id']}",
+                "type": "auction_won",
+                "title": "You Won!",
+                "message": f"Pay ${auction['current_bid']:.2f} for '{auction['title']}'",
+                "amount": auction["current_bid"],
+                "auction_id": auction["id"],
+                "created_at": auction.get("ends_at", auction["created_at"]),
+                "read": False
+            })
+        
+        # For buyers: pending delivery confirmations
+        buyer_escrows = await db.escrow.find({
+            "buyer_id": user["id"],
+            "status": "held"
+        }, {"_id": 0}).to_list(10)
+        
+        for escrow in buyer_escrows:
+            auction = await db.auctions.find_one({"id": escrow["auction_id"]}, {"_id": 0, "title": 1})
+            notifications.append({
+                "id": f"delivery-{escrow['id']}",
+                "type": "pending_delivery",
+                "title": "Confirm Delivery",
+                "message": f"Received '{auction['title'] if auction else 'your order'}'? Confirm to release payment",
+                "amount": escrow["amount"],
+                "auction_id": escrow["auction_id"],
+                "escrow_id": escrow["id"],
+                "created_at": escrow["created_at"],
+                "read": False
+            })
+        
+        # For buyers: outbid on auctions
+        my_bids = await db.bids.find({"bidder_id": user["id"]}, {"_id": 0}).to_list(50)
+        auction_ids = list(set([b["auction_id"] for b in my_bids]))
+        
+        for auction_id in auction_ids[:10]:
+            auction = await db.auctions.find_one({"id": auction_id}, {"_id": 0})
+            if auction and auction["is_active"] and auction.get("winner_id") != user["id"]:
+                # User is outbid
+                highest_bid = await db.bids.find_one(
+                    {"auction_id": auction_id},
+                    {"_id": 0},
+                    sort=[("amount", -1)]
+                )
+                if highest_bid and highest_bid["bidder_id"] != user["id"]:
+                    notifications.append({
+                        "id": f"outbid-{auction_id}",
+                        "type": "outbid",
+                        "title": "Outbid!",
+                        "message": f"You've been outbid on '{auction['title']}' - current: ${auction['current_bid']:.2f}",
+                        "amount": auction["current_bid"],
+                        "auction_id": auction_id,
+                        "created_at": highest_bid["created_at"],
+                        "read": False
+                    })
+    
+    # Sort by created_at descending
+    notifications.sort(key=lambda x: x["created_at"], reverse=True)
+    
+    return {
+        "notifications": notifications[:20],
+        "unread_count": len(notifications)
+    }
+
 # ================== PAYMENT ROUTES ==================
 
 @api_router.post("/payments/create-checkout")
