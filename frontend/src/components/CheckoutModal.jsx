@@ -146,7 +146,7 @@ export default function CheckoutModal({
                         </Label>
                       </div>
                       <span className="font-mono text-sm">
-                        {option.cost === 0 ? 'FREE' : `${currencySymbol}${option.cost.toFixed(2)}`}
+                        {(option.cost || 0) === 0 ? 'FREE' : `${currencySymbol}${(option.cost || 0).toFixed(2)}`}
                       </span>
                     </div>
                   );
