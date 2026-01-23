@@ -1,6 +1,10 @@
 import { Link } from 'react-router-dom';
-import { Mail, Phone, MapPin, Facebook, Twitter, Instagram } from 'lucide-react';
+import { Mail, Phone, MapPin, Facebook, Twitter, Instagram, MessageCircle } from 'lucide-react';
 import JarnnLogo from '@/components/JarnnLogo';
+
+// WhatsApp Support Number
+const WHATSAPP_NUMBER = '+447449858053';
+const WHATSAPP_LINK = `https://wa.me/${WHATSAPP_NUMBER.replace('+', '')}?text=Hello%20Jarnnmarket%20Support%2C%20I%20need%20help%20with...`;
 
 export const Footer = () => {
   return (
