@@ -894,6 +894,9 @@ async def get_auctions(
         seller = await db.users.find_one({"id": auction["seller_id"]}, {"_id": 0, "rating_avg": 1, "rating_count": 1})
         auction["seller_rating"] = seller.get("rating_avg", 0) if seller else 0
         auction["seller_rating_count"] = seller.get("rating_count", 0) if seller else 0
+        # Ensure new fields have default values for legacy auctions
+        auction.setdefault("buy_now_only", False)
+        auction.setdefault("accepts_offers", False)
     
     return auctions
 
@@ -909,6 +912,9 @@ async def get_featured_auctions(limit: int = 6):
         seller = await db.users.find_one({"id": auction["seller_id"]}, {"_id": 0, "rating_avg": 1, "rating_count": 1})
         auction["seller_rating"] = seller.get("rating_avg", 0) if seller else 0
         auction["seller_rating_count"] = seller.get("rating_count", 0) if seller else 0
+        # Ensure new fields have default values for legacy auctions
+        auction.setdefault("buy_now_only", False)
+        auction.setdefault("accepts_offers", False)
     
     return auctions
 
