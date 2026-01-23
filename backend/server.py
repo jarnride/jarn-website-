@@ -22,8 +22,6 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from emergentintegrations.payments.stripe.checkout import (
     StripeCheckout,
-    CheckoutSessionResponse,
-    CheckoutStatusResponse,
     CheckoutSessionRequest
 )
 
@@ -43,19 +41,25 @@ JWT_EXPIRATION_HOURS = 24 * 7
 # Stripe config
 STRIPE_API_KEY = os.environ.get('STRIPE_API_KEY', 'sk_test_emergent')
 
-# Twilio config (MOCK MODE - replace with real credentials)
+# Twilio config (MOCK MODE)
 TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID', 'MOCK_SID')
 TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN', 'MOCK_TOKEN')
 TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER', '+1234567890')
 TWILIO_MOCK_MODE = TWILIO_ACCOUNT_SID == 'MOCK_SID'
 
-# PayPal config (MOCK MODE - replace with real credentials)
+# PayPal config (MOCK MODE)
 PAYPAL_CLIENT_ID = os.environ.get('PAYPAL_CLIENT_ID', 'MOCK_CLIENT_ID')
 PAYPAL_CLIENT_SECRET = os.environ.get('PAYPAL_CLIENT_SECRET', 'MOCK_SECRET')
 PAYPAL_MODE = os.environ.get('PAYPAL_MODE', 'sandbox')
 PAYPAL_MOCK_MODE = PAYPAL_CLIENT_ID == 'MOCK_CLIENT_ID'
 
-# High-value bid threshold for SMS notifications
+# Email config (MOCK MODE)
+EMAIL_PROVIDER = os.environ.get('EMAIL_PROVIDER', 'MOCK')
+SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY', '')
+EMAIL_FROM = os.environ.get('EMAIL_FROM', 'noreply@jarnnmarket.com')
+EMAIL_MOCK_MODE = EMAIL_PROVIDER == 'MOCK'
+
+# High-value bid threshold for notifications
 HIGH_VALUE_BID_THRESHOLD = float(os.environ.get('HIGH_VALUE_BID_THRESHOLD', '100'))
 
 # Rate limiting
@@ -97,7 +101,6 @@ def validate_password(password: str) -> bool:
     return len(password) >= 6
 
 def validate_phone(phone: str) -> bool:
-    # Basic phone validation - starts with + and has 10-15 digits
     pattern = r'^\+?[1-9]\d{9,14}$'
     return bool(re.match(pattern, phone.replace(' ', '').replace('-', '')))
 
@@ -107,6 +110,117 @@ def sanitize_string(value: str) -> str:
 def generate_otp(length: int = 6) -> str:
     return ''.join(random.choices(string.digits, k=length))
 
+# ================== EMAIL SERVICE (MOCK) ==================
+
+class EmailService:
+    """Mock Email Service - Replace with real SendGrid/Resend implementation"""
+    
+    @staticmethod
+    async def send_email(to: str, subject: str, html_body: str, text_body: str = None) -> dict:
+        if EMAIL_MOCK_MODE:
+            logger.info(f"[MOCK EMAIL] To: {to} | Subject: {subject}")
+            logger.info(f"[MOCK EMAIL] Body: {text_body or html_body[:200]}...")
+            return {
+                "success": True,
+                "mock": True,
+                "message_id": f"MOCK_EMAIL_{uuid.uuid4().hex[:12]}",
+                "to": to,
+                "subject": subject
+            }
+        else:
+            # Real SendGrid implementation would go here
+            pass
+    
+    @staticmethod
+    async def send_new_bid_notification(seller_email: str, seller_name: str, auction_title: str, bid_amount: float, bidder_name: str):
+        subject = f"New Bid on '{auction_title}' - ${bid_amount:.2f}"
+        html_body = f"""
+        <h2>New Bid Received!</h2>
+        <p>Hi {seller_name},</p>
+        <p>Great news! <strong>{bidder_name}</strong> placed a bid of <strong>${bid_amount:.2f}</strong> on your auction:</p>
+        <p><strong>{auction_title}</strong></p>
+        <p>Log in to jarnnmarket to view your auction.</p>
+        <p>Best regards,<br>jarnnmarket Team</p>
+        """
+        text_body = f"Hi {seller_name}, {bidder_name} placed a bid of ${bid_amount:.2f} on your auction '{auction_title}'."
+        return await EmailService.send_email(seller_email, subject, html_body, text_body)
+    
+    @staticmethod
+    async def send_outbid_notification(bidder_email: str, bidder_name: str, auction_title: str, new_bid: float):
+        subject = f"You've been outbid on '{auction_title}'"
+        html_body = f"""
+        <h2>You've Been Outbid!</h2>
+        <p>Hi {bidder_name},</p>
+        <p>Someone placed a higher bid of <strong>${new_bid:.2f}</strong> on:</p>
+        <p><strong>{auction_title}</strong></p>
+        <p>Don't miss out! Place a higher bid now on jarnnmarket.</p>
+        <p>Best regards,<br>jarnnmarket Team</p>
+        """
+        text_body = f"Hi {bidder_name}, you've been outbid on '{auction_title}'. Current bid: ${new_bid:.2f}."
+        return await EmailService.send_email(bidder_email, subject, html_body, text_body)
+    
+    @staticmethod
+    async def send_auction_won_notification(winner_email: str, winner_name: str, auction_title: str, final_price: float):
+        subject = f"Congratulations! You won '{auction_title}'"
+        html_body = f"""
+        <h2>Congratulations! You Won!</h2>
+        <p>Hi {winner_name},</p>
+        <p>You won the auction for:</p>
+        <p><strong>{auction_title}</strong></p>
+        <p>Final Price: <strong>${final_price:.2f}</strong></p>
+        <p>Please complete your payment on jarnnmarket to finalize your purchase.</p>
+        <p>Best regards,<br>jarnnmarket Team</p>
+        """
+        text_body = f"Congratulations {winner_name}! You won '{auction_title}' for ${final_price:.2f}. Complete payment on jarnnmarket."
+        return await EmailService.send_email(winner_email, subject, html_body, text_body)
+    
+    @staticmethod
+    async def send_payment_received_notification(seller_email: str, seller_name: str, auction_title: str, amount: float, buyer_name: str):
+        subject = f"Payment Received for '{auction_title}'"
+        html_body = f"""
+        <h2>Payment Received!</h2>
+        <p>Hi {seller_name},</p>
+        <p><strong>{buyer_name}</strong> has completed payment for:</p>
+        <p><strong>{auction_title}</strong></p>
+        <p>Amount: <strong>${amount:.2f}</strong></p>
+        <p>The funds are held in escrow until the buyer confirms delivery.</p>
+        <p>Please ship the item and provide tracking information.</p>
+        <p>Best regards,<br>jarnnmarket Team</p>
+        """
+        text_body = f"Hi {seller_name}, payment of ${amount:.2f} received for '{auction_title}' from {buyer_name}. Funds in escrow."
+        return await EmailService.send_email(seller_email, subject, html_body, text_body)
+    
+    @staticmethod
+    async def send_delivery_confirmed_notification(seller_email: str, seller_name: str, auction_title: str, amount: float):
+        subject = f"Delivery Confirmed - Payment Released for '{auction_title}'"
+        html_body = f"""
+        <h2>Payment Released!</h2>
+        <p>Hi {seller_name},</p>
+        <p>The buyer has confirmed delivery for:</p>
+        <p><strong>{auction_title}</strong></p>
+        <p>Amount Released: <strong>${amount:.2f}</strong></p>
+        <p>The funds have been released from escrow to your account.</p>
+        <p>Thank you for using jarnnmarket!</p>
+        <p>Best regards,<br>jarnnmarket Team</p>
+        """
+        text_body = f"Hi {seller_name}, delivery confirmed for '{auction_title}'. ${amount:.2f} released from escrow."
+        return await EmailService.send_email(seller_email, subject, html_body, text_body)
+    
+    @staticmethod
+    async def send_review_received_notification(seller_email: str, seller_name: str, rating: int, reviewer_name: str):
+        subject = f"New {rating}-Star Review from {reviewer_name}"
+        stars = "⭐" * rating
+        html_body = f"""
+        <h2>New Review Received!</h2>
+        <p>Hi {seller_name},</p>
+        <p><strong>{reviewer_name}</strong> left you a review:</p>
+        <p>{stars} ({rating}/5 stars)</p>
+        <p>Log in to jarnnmarket to see the full review.</p>
+        <p>Best regards,<br>jarnnmarket Team</p>
+        """
+        text_body = f"Hi {seller_name}, {reviewer_name} left you a {rating}-star review on jarnnmarket."
+        return await EmailService.send_email(seller_email, subject, html_body, text_body)
+
 # ================== SMS SERVICE (MOCK) ==================
 
 class SMSService:
@@ -115,7 +229,6 @@ class SMSService:
     @staticmethod
     async def send_sms(to: str, message: str) -> dict:
         if TWILIO_MOCK_MODE:
-            # Mock mode - just log the message
             logger.info(f"[MOCK SMS] To: {to} | Message: {message}")
             return {
                 "success": True,
@@ -124,11 +237,6 @@ class SMSService:
                 "to": to
             }
         else:
-            # Real Twilio implementation would go here
-            # from twilio.rest import Client
-            # client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
-            # message = client.messages.create(body=message, from_=TWILIO_PHONE_NUMBER, to=to)
-            # return {"success": True, "message_id": message.sid, "to": to}
             pass
     
     @staticmethod
@@ -154,7 +262,7 @@ class SMSService:
 # ================== PAYPAL SERVICE (MOCK) ==================
 
 class PayPalService:
-    """Mock PayPal Service - Replace with real PayPal SDK implementation"""
+    """Mock PayPal Service"""
     
     @staticmethod
     async def create_order(amount: float, currency: str, auction_id: str, description: str) -> dict:
@@ -171,10 +279,6 @@ class PayPalService:
                 "approval_url": f"/api/paypal/mock-approve/{order_id}"
             }
         else:
-            # Real PayPal implementation would go here
-            # import paypalrestsdk
-            # paypalrestsdk.configure({...})
-            # payment = paypalrestsdk.Payment({...})
             pass
     
     @staticmethod
@@ -187,19 +291,6 @@ class PayPalService:
                 "order_id": order_id,
                 "status": "COMPLETED",
                 "capture_id": f"CAPTURE_{uuid.uuid4().hex[:12].upper()}"
-            }
-        else:
-            # Real PayPal capture implementation
-            pass
-    
-    @staticmethod
-    async def get_order_status(order_id: str) -> dict:
-        if PAYPAL_MOCK_MODE:
-            return {
-                "success": True,
-                "mock": True,
-                "order_id": order_id,
-                "status": "COMPLETED"
             }
         else:
             pass
@@ -221,7 +312,7 @@ class EscrowService:
             "currency": "usd",
             "payment_method": payment_method,
             "payment_id": payment_id,
-            "status": "held",  # held, released, refunded, disputed
+            "status": "held",
             "created_at": datetime.now(timezone.utc).isoformat(),
             "released_at": None,
             "refunded_at": None
@@ -249,27 +340,6 @@ class EscrowService:
         
         logger.info(f"Escrow released: {escrow_id}")
         return {"success": True, "escrow_id": escrow_id, "status": "released"}
-    
-    @staticmethod
-    async def refund_escrow(escrow_id: str, reason: str) -> dict:
-        escrow = await db.escrow.find_one({"id": escrow_id}, {"_id": 0})
-        if not escrow:
-            raise HTTPException(status_code=404, detail="Escrow not found")
-        
-        if escrow["status"] != "held":
-            raise HTTPException(status_code=400, detail=f"Cannot refund escrow in {escrow['status']} status")
-        
-        await db.escrow.update_one(
-            {"id": escrow_id},
-            {"$set": {
-                "status": "refunded",
-                "refunded_at": datetime.now(timezone.utc).isoformat(),
-                "refund_reason": reason
-            }}
-        )
-        
-        logger.info(f"Escrow refunded: {escrow_id} - Reason: {reason}")
-        return {"success": True, "escrow_id": escrow_id, "status": "refunded"}
 
 # ================== MODELS ==================
 
@@ -319,15 +389,22 @@ class PaymentCreate(BaseModel):
     auction_id: str
     origin_url: str
 
-class PayPalPaymentCreate(BaseModel):
-    auction_id: str
-
 class BuyNowRequest(BaseModel):
     origin_url: str
     payment_method: str = Field(default="stripe", pattern="^(stripe|paypal)$")
 
 class DeliveryConfirmation(BaseModel):
     escrow_id: str
+
+class ReviewCreate(BaseModel):
+    auction_id: str
+    rating: int = Field(..., ge=1, le=5)
+    comment: str = Field(default="", max_length=1000)
+    
+    @field_validator('comment')
+    @classmethod
+    def sanitize_comment(cls, v):
+        return sanitize_string(v) if v else v
 
 class ImageUploadResponse(BaseModel):
     url: str
@@ -420,7 +497,6 @@ async def register(request: Request, data: UserCreate):
     if not validate_password(data.password):
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
     
-    # Validate phone if provided
     if data.phone and not validate_phone(data.phone):
         raise HTTPException(status_code=400, detail="Invalid phone number format")
     
@@ -433,6 +509,8 @@ async def register(request: Request, data: UserCreate):
         "phone_verified": False,
         "password_hash": hash_password(data.password),
         "role": data.role,
+        "rating_avg": 0.0,
+        "rating_count": 0,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.users.insert_one(user_doc)
@@ -446,6 +524,8 @@ async def register(request: Request, data: UserCreate):
             "phone": data.phone,
             "phone_verified": False,
             "role": data.role,
+            "rating_avg": 0.0,
+            "rating_count": 0,
             "created_at": user_doc["created_at"]
         },
         "token": token
@@ -467,6 +547,8 @@ async def login(request: Request, data: UserLogin):
             "phone": user.get("phone"),
             "phone_verified": user.get("phone_verified", False),
             "role": user["role"],
+            "rating_avg": user.get("rating_avg", 0.0),
+            "rating_count": user.get("rating_count", 0),
             "created_at": user["created_at"]
         },
         "token": token
@@ -481,6 +563,8 @@ async def get_me(user: dict = Depends(get_current_user)):
         "phone": user.get("phone"),
         "phone_verified": user.get("phone_verified", False),
         "role": user["role"],
+        "rating_avg": user.get("rating_avg", 0.0),
+        "rating_count": user.get("rating_count", 0),
         "created_at": user["created_at"]
     }
 
@@ -492,16 +576,13 @@ async def send_phone_verification(request: Request, data: PhoneVerificationReque
     if not validate_phone(data.phone):
         raise HTTPException(status_code=400, detail="Invalid phone number format")
     
-    # Check if phone is already used by another user
     existing = await db.users.find_one({"phone": data.phone, "phone_verified": True, "id": {"$ne": user["id"]}})
     if existing:
         raise HTTPException(status_code=400, detail="Phone number already registered to another account")
     
-    # Generate OTP
     otp = generate_otp(6)
     expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)
     
-    # Store verification code
     await db.phone_verifications.update_one(
         {"user_id": user["id"]},
         {"$set": {
@@ -516,14 +597,13 @@ async def send_phone_verification(request: Request, data: PhoneVerificationReque
         upsert=True
     )
     
-    # Send SMS
-    result = await SMSService.send_verification_code(data.phone, otp)
+    await SMSService.send_verification_code(data.phone, otp)
     
     return {
         "success": True,
         "message": "Verification code sent",
         "mock_mode": TWILIO_MOCK_MODE,
-        "mock_code": otp if TWILIO_MOCK_MODE else None  # Only show in mock mode for testing
+        "mock_code": otp if TWILIO_MOCK_MODE else None
     }
 
 @api_router.post("/auth/phone/verify")
@@ -540,7 +620,6 @@ async def verify_phone(request: Request, data: PhoneVerificationVerify, user: di
     if datetime.fromisoformat(verification["expires_at"]) < datetime.now(timezone.utc):
         raise HTTPException(status_code=400, detail="Verification code expired. Please request a new one.")
     
-    # Increment attempts
     await db.phone_verifications.update_one(
         {"user_id": user["id"]},
         {"$inc": {"attempts": 1}}
@@ -549,19 +628,112 @@ async def verify_phone(request: Request, data: PhoneVerificationVerify, user: di
     if verification["code"] != data.code:
         raise HTTPException(status_code=400, detail="Invalid verification code")
     
-    # Mark as verified
     await db.phone_verifications.update_one(
         {"user_id": user["id"]},
         {"$set": {"verified": True}}
     )
     
-    # Update user's phone
     await db.users.update_one(
         {"id": user["id"]},
         {"$set": {"phone": data.phone, "phone_verified": True}}
     )
     
     return {"success": True, "message": "Phone number verified successfully"}
+
+# ================== REVIEW ROUTES ==================
+
+@api_router.post("/reviews")
+@limiter.limit("10/minute")
+async def create_review(request: Request, data: ReviewCreate, user: dict = Depends(get_current_user)):
+    # Check if auction exists and user won it
+    auction = await db.auctions.find_one({"id": data.auction_id}, {"_id": 0})
+    if not auction:
+        raise HTTPException(status_code=404, detail="Auction not found")
+    
+    if auction["winner_id"] != user["id"]:
+        raise HTTPException(status_code=403, detail="Only auction winners can leave reviews")
+    
+    if not auction.get("is_paid"):
+        raise HTTPException(status_code=400, detail="Please complete payment before leaving a review")
+    
+    # Check if review already exists
+    existing_review = await db.reviews.find_one({"auction_id": data.auction_id, "reviewer_id": user["id"]})
+    if existing_review:
+        raise HTTPException(status_code=400, detail="You have already reviewed this seller for this auction")
+    
+    seller = await db.users.find_one({"id": auction["seller_id"]}, {"_id": 0})
+    if not seller:
+        raise HTTPException(status_code=404, detail="Seller not found")
+    
+    review_id = str(uuid.uuid4())
+    review_doc = {
+        "id": review_id,
+        "auction_id": data.auction_id,
+        "seller_id": auction["seller_id"],
+        "reviewer_id": user["id"],
+        "reviewer_name": user["name"],
+        "rating": data.rating,
+        "comment": data.comment,
+        "auction_title": auction["title"],
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.reviews.insert_one(review_doc)
+    
+    # Update seller's average rating
+    all_reviews = await db.reviews.find({"seller_id": auction["seller_id"]}, {"_id": 0}).to_list(1000)
+    total_rating = sum(r["rating"] for r in all_reviews)
+    avg_rating = total_rating / len(all_reviews) if all_reviews else 0
+    
+    await db.users.update_one(
+        {"id": auction["seller_id"]},
+        {"$set": {
+            "rating_avg": round(avg_rating, 2),
+            "rating_count": len(all_reviews)
+        }}
+    )
+    
+    # Send email notification to seller
+    await EmailService.send_review_received_notification(
+        seller["email"],
+        seller["name"],
+        data.rating,
+        user["name"]
+    )
+    
+    return {k: v for k, v in review_doc.items() if k != "_id"}
+
+@api_router.get("/reviews/seller/{seller_id}")
+async def get_seller_reviews(seller_id: str, limit: int = 20):
+    reviews = await db.reviews.find({"seller_id": seller_id}, {"_id": 0}).sort("created_at", -1).limit(limit).to_list(limit)
+    
+    # Get seller rating info
+    seller = await db.users.find_one({"id": seller_id}, {"_id": 0, "rating_avg": 1, "rating_count": 1, "name": 1})
+    
+    return {
+        "reviews": reviews,
+        "seller_name": seller.get("name") if seller else "Unknown",
+        "rating_avg": seller.get("rating_avg", 0) if seller else 0,
+        "rating_count": seller.get("rating_count", 0) if seller else 0
+    }
+
+@api_router.get("/reviews/auction/{auction_id}")
+async def get_auction_review(auction_id: str):
+    review = await db.reviews.find_one({"auction_id": auction_id}, {"_id": 0})
+    return review
+
+@api_router.get("/users/{user_id}/rating")
+async def get_user_rating(user_id: str):
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return {
+        "user_id": user_id,
+        "name": user["name"],
+        "rating_avg": user.get("rating_avg", 0.0),
+        "rating_count": user.get("rating_count", 0)
+    }
 
 # ================== IMAGE UPLOAD ==================
 
@@ -626,6 +798,13 @@ async def get_auctions(
         query["ends_at"] = {"$gt": datetime.now(timezone.utc).isoformat()}
     
     auctions = await db.auctions.find(query, {"_id": 0}).sort("ends_at", 1).limit(limit).to_list(limit)
+    
+    # Add seller ratings to auctions
+    for auction in auctions:
+        seller = await db.users.find_one({"id": auction["seller_id"]}, {"_id": 0, "rating_avg": 1, "rating_count": 1})
+        auction["seller_rating"] = seller.get("rating_avg", 0) if seller else 0
+        auction["seller_rating_count"] = seller.get("rating_count", 0) if seller else 0
+    
     return auctions
 
 @api_router.get("/auctions/featured")
@@ -635,6 +814,12 @@ async def get_featured_auctions(limit: int = 6):
         "ends_at": {"$gt": datetime.now(timezone.utc).isoformat()}
     }
     auctions = await db.auctions.find(query, {"_id": 0}).sort("bid_count", -1).limit(limit).to_list(limit)
+    
+    for auction in auctions:
+        seller = await db.users.find_one({"id": auction["seller_id"]}, {"_id": 0, "rating_avg": 1, "rating_count": 1})
+        auction["seller_rating"] = seller.get("rating_avg", 0) if seller else 0
+        auction["seller_rating_count"] = seller.get("rating_count", 0) if seller else 0
+    
     return auctions
 
 @api_router.get("/auctions/categories")
@@ -664,7 +849,6 @@ async def create_auction(request: Request, data: AuctionCreate, user: dict = Dep
     if user["role"] != "farmer":
         raise HTTPException(status_code=403, detail="Only farmers can create auctions")
     
-    # Check phone verification for farmers
     if not user.get("phone_verified", False):
         raise HTTPException(status_code=403, detail="Please verify your phone number before creating auctions")
     
@@ -706,6 +890,16 @@ async def get_auction(auction_id: str):
     auction = await db.auctions.find_one({"id": auction_id}, {"_id": 0})
     if not auction:
         raise HTTPException(status_code=404, detail="Auction not found")
+    
+    # Add seller rating
+    seller = await db.users.find_one({"id": auction["seller_id"]}, {"_id": 0, "rating_avg": 1, "rating_count": 1})
+    auction["seller_rating"] = seller.get("rating_avg", 0) if seller else 0
+    auction["seller_rating_count"] = seller.get("rating_count", 0) if seller else 0
+    
+    # Check if there's a review for this auction
+    review = await db.reviews.find_one({"auction_id": auction_id}, {"_id": 0})
+    auction["has_review"] = review is not None
+    
     return auction
 
 @api_router.get("/auctions/{auction_id}/bids")
@@ -729,14 +923,12 @@ async def place_bid(request: Request, auction_id: str, data: BidCreate, user: di
     if auction["seller_id"] == user["id"]:
         raise HTTPException(status_code=400, detail="Cannot bid on your own auction")
     
-    # Check phone verification for buyers
     if not user.get("phone_verified", False):
         raise HTTPException(status_code=403, detail="Please verify your phone number before bidding")
     
     if data.amount <= auction["current_bid"]:
         raise HTTPException(status_code=400, detail="Bid must be higher than current bid")
     
-    # Get previous highest bidder for outbid notification
     previous_winner_id = auction.get("winner_id")
     
     bid_id = str(uuid.uuid4())
@@ -751,7 +943,6 @@ async def place_bid(request: Request, auction_id: str, data: BidCreate, user: di
     
     await db.bids.insert_one(bid_doc)
     
-    # Update auction
     await db.auctions.update_one(
         {"id": auction_id},
         {
@@ -762,12 +953,14 @@ async def place_bid(request: Request, auction_id: str, data: BidCreate, user: di
     
     updated_auction = await db.auctions.find_one({"id": auction_id}, {"_id": 0})
     
-    # Broadcast bid update via WebSocket
     await broadcast_bid_update(auction_id, {k: v for k, v in bid_doc.items() if k != "_id"}, updated_auction)
     
-    # Send SMS notifications for high-value bids
+    # Get seller for notifications
+    seller = await db.users.find_one({"id": auction["seller_id"]}, {"_id": 0})
+    
+    # Send notifications
     if data.amount >= HIGH_VALUE_BID_THRESHOLD:
-        # Notify seller
+        # SMS to seller
         if auction.get("seller_phone"):
             await SMSService.send_bid_notification(
                 auction["seller_phone"],
@@ -776,7 +969,7 @@ async def place_bid(request: Request, auction_id: str, data: BidCreate, user: di
                 user["name"]
             )
         
-        # Notify previous highest bidder they've been outbid
+        # SMS to previous bidder
         if previous_winner_id and previous_winner_id != user["id"]:
             prev_bidder = await db.users.find_one({"id": previous_winner_id}, {"_id": 0})
             if prev_bidder and prev_bidder.get("phone") and prev_bidder.get("phone_verified"):
@@ -785,6 +978,26 @@ async def place_bid(request: Request, auction_id: str, data: BidCreate, user: di
                     auction["title"],
                     data.amount
                 )
+    
+    # Email notifications (all bids)
+    if seller:
+        await EmailService.send_new_bid_notification(
+            seller["email"],
+            seller["name"],
+            auction["title"],
+            data.amount,
+            user["name"]
+        )
+    
+    if previous_winner_id and previous_winner_id != user["id"]:
+        prev_bidder = await db.users.find_one({"id": previous_winner_id}, {"_id": 0})
+        if prev_bidder:
+            await EmailService.send_outbid_notification(
+                prev_bidder["email"],
+                prev_bidder["name"],
+                auction["title"],
+                data.amount
+            )
     
     return {
         "bid": {k: v for k, v in bid_doc.items() if k != "_id"},
@@ -818,7 +1031,6 @@ async def buy_now(request: Request, auction_id: str, data: BuyNowRequest, user: 
     buy_now_price = float(auction["buy_now_price"])
     
     if data.payment_method == "stripe":
-        # Stripe checkout
         host_url = str(request.base_url).rstrip('/')
         webhook_url = f"{host_url}/api/webhook/stripe"
         
@@ -842,7 +1054,6 @@ async def buy_now(request: Request, auction_id: str, data: BuyNowRequest, user: 
         
         session = await stripe_checkout.create_checkout_session(checkout_request)
         
-        # Create payment transaction
         payment_id = str(uuid.uuid4())
         payment_doc = {
             "id": payment_id,
@@ -859,7 +1070,6 @@ async def buy_now(request: Request, auction_id: str, data: BuyNowRequest, user: 
         }
         await db.payment_transactions.insert_one(payment_doc)
         
-        # Mark auction as sold
         await db.auctions.update_one(
             {"id": auction_id},
             {"$set": {
@@ -875,7 +1085,6 @@ async def buy_now(request: Request, auction_id: str, data: BuyNowRequest, user: 
         return {"url": session.url, "session_id": session.session_id, "payment_method": "stripe"}
     
     elif data.payment_method == "paypal":
-        # PayPal checkout (MOCK)
         paypal_order = await PayPalService.create_order(
             amount=buy_now_price,
             currency="usd",
@@ -883,7 +1092,6 @@ async def buy_now(request: Request, auction_id: str, data: BuyNowRequest, user: 
             description=f"Buy Now: {auction['title']}"
         )
         
-        # Create payment transaction
         payment_id = str(uuid.uuid4())
         payment_doc = {
             "id": payment_id,
@@ -900,7 +1108,6 @@ async def buy_now(request: Request, auction_id: str, data: BuyNowRequest, user: 
         }
         await db.payment_transactions.insert_one(payment_doc)
         
-        # Mark auction as sold
         await db.auctions.update_one(
             {"id": auction_id},
             {"$set": {
@@ -930,11 +1137,9 @@ async def capture_paypal_order(order_id: str, user: dict = Depends(get_current_u
     if payment["user_id"] != user["id"]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    # Capture PayPal order (MOCK)
     result = await PayPalService.capture_order(order_id)
     
     if result["success"]:
-        # Update payment status
         await db.payment_transactions.update_one(
             {"paypal_order_id": order_id},
             {"$set": {
@@ -944,7 +1149,6 @@ async def capture_paypal_order(order_id: str, user: dict = Depends(get_current_u
             }}
         )
         
-        # Create escrow
         auction = await db.auctions.find_one({"id": payment["auction_id"]}, {"_id": 0})
         escrow = await EscrowService.create_escrow(
             auction_id=payment["auction_id"],
@@ -955,18 +1159,26 @@ async def capture_paypal_order(order_id: str, user: dict = Depends(get_current_u
             payment_id=order_id
         )
         
-        # Update auction with escrow
         await db.auctions.update_one(
             {"id": payment["auction_id"]},
             {"$set": {"escrow_id": escrow["id"], "is_paid": True}}
         )
         
-        # Send SMS notification to seller
-        if auction.get("seller_phone"):
-            await SMSService.send_sms(
-                auction["seller_phone"],
-                f"Payment received for '{auction['title']}'! Amount: ${payment['amount']:.2f}. Funds in escrow until delivery confirmed."
+        # Send notifications
+        seller = await db.users.find_one({"id": auction["seller_id"]}, {"_id": 0})
+        if seller:
+            await EmailService.send_payment_received_notification(
+                seller["email"],
+                seller["name"],
+                auction["title"],
+                payment["amount"],
+                user["name"]
             )
+            if seller.get("phone") and seller.get("phone_verified"):
+                await SMSService.send_sms(
+                    seller["phone"],
+                    f"Payment received for '{auction['title']}'! Amount: ${payment['amount']:.2f}. Funds in escrow."
+                )
         
         return {"success": True, "escrow_id": escrow["id"], "mock_mode": PAYPAL_MOCK_MODE}
     
@@ -974,7 +1186,6 @@ async def capture_paypal_order(order_id: str, user: dict = Depends(get_current_u
 
 @api_router.get("/paypal/mock-approve/{order_id}")
 async def mock_approve_paypal(order_id: str):
-    """Mock PayPal approval page - for testing only"""
     if not PAYPAL_MOCK_MODE:
         raise HTTPException(status_code=404, detail="Not available")
     
@@ -988,7 +1199,6 @@ async def mock_approve_paypal(order_id: str):
 
 @api_router.post("/escrow/confirm-delivery")
 async def confirm_delivery(data: DeliveryConfirmation, user: dict = Depends(get_current_user)):
-    """Buyer confirms delivery - releases escrow to seller"""
     escrow = await db.escrow.find_one({"id": data.escrow_id}, {"_id": 0})
     if not escrow:
         raise HTTPException(status_code=404, detail="Escrow not found")
@@ -998,13 +1208,22 @@ async def confirm_delivery(data: DeliveryConfirmation, user: dict = Depends(get_
     
     result = await EscrowService.release_escrow(data.escrow_id)
     
-    # Notify seller
+    # Get auction and seller for notifications
+    auction = await db.auctions.find_one({"id": escrow["auction_id"]}, {"_id": 0})
     seller = await db.users.find_one({"id": escrow["seller_id"]}, {"_id": 0})
-    if seller and seller.get("phone") and seller.get("phone_verified"):
-        await SMSService.send_sms(
-            seller["phone"],
-            f"Payment released! ${escrow['amount']:.2f} from escrow is now available. Thank you for using jarnnmarket!"
+    
+    if seller and auction:
+        await EmailService.send_delivery_confirmed_notification(
+            seller["email"],
+            seller["name"],
+            auction["title"],
+            escrow["amount"]
         )
+        if seller.get("phone") and seller.get("phone_verified"):
+            await SMSService.send_sms(
+                seller["phone"],
+                f"Payment released! ${escrow['amount']:.2f} from escrow is now available. Thank you for using jarnnmarket!"
+            )
     
     return result
 
@@ -1014,7 +1233,6 @@ async def get_escrow(escrow_id: str, user: dict = Depends(get_current_user)):
     if not escrow:
         raise HTTPException(status_code=404, detail="Escrow not found")
     
-    # Only buyer or seller can view
     if escrow["buyer_id"] != user["id"] and escrow["seller_id"] != user["id"]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
@@ -1147,7 +1365,6 @@ async def get_payment_status(session_id: str, request: Request, user: dict = Dep
             if status.payment_status == "paid":
                 auction = await db.auctions.find_one({"id": payment["auction_id"]}, {"_id": 0})
                 
-                # Create escrow
                 escrow = await EscrowService.create_escrow(
                     auction_id=payment["auction_id"],
                     buyer_id=user["id"],
@@ -1162,12 +1379,29 @@ async def get_payment_status(session_id: str, request: Request, user: dict = Dep
                     {"$set": {"is_paid": True, "escrow_id": escrow["id"]}}
                 )
                 
-                # Notify seller
-                if auction.get("seller_phone"):
-                    await SMSService.send_sms(
-                        auction["seller_phone"],
-                        f"Payment received for '{auction['title']}'! Amount: ${payment['amount']:.2f}. Funds in escrow until delivery confirmed."
+                # Send notifications
+                seller = await db.users.find_one({"id": auction["seller_id"]}, {"_id": 0})
+                if seller:
+                    await EmailService.send_payment_received_notification(
+                        seller["email"],
+                        seller["name"],
+                        auction["title"],
+                        payment["amount"],
+                        user["name"]
                     )
+                    if seller.get("phone") and seller.get("phone_verified"):
+                        await SMSService.send_sms(
+                            seller["phone"],
+                            f"Payment received for '{auction['title']}'! Amount: ${payment['amount']:.2f}. Funds in escrow."
+                        )
+                
+                # Notify winner
+                await EmailService.send_auction_won_notification(
+                    user["email"],
+                    user["name"],
+                    auction["title"],
+                    payment["amount"]
+                )
         
         return {
             "status": status.status,
@@ -1240,12 +1474,14 @@ async def get_stats():
     })
     total_users = await db.users.count_documents({})
     total_bids = await db.bids.count_documents({})
+    total_reviews = await db.reviews.count_documents({})
     
     return {
         "total_auctions": total_auctions,
         "active_auctions": active_auctions,
         "total_users": total_users,
-        "total_bids": total_bids
+        "total_bids": total_bids,
+        "total_reviews": total_reviews
     }
 
 # ================== SEED DATA ==================
@@ -1257,13 +1493,13 @@ async def seed_data():
         return {"message": "Data already seeded"}
     
     farmers = [
-        {"id": str(uuid.uuid4()), "name": "John Mwangi", "email": "john@farm.com", "phone": "+2348189275367", "phone_verified": True, "password_hash": hash_password("password123"), "role": "farmer", "created_at": datetime.now(timezone.utc).isoformat()},
-        {"id": str(uuid.uuid4()), "name": "Sarah Ochieng", "email": "sarah@farm.com", "phone": "+2348189275368", "phone_verified": True, "password_hash": hash_password("password123"), "role": "farmer", "created_at": datetime.now(timezone.utc).isoformat()},
-        {"id": str(uuid.uuid4()), "name": "Peter Kamau", "email": "peter@farm.com", "phone": "+2348189275369", "phone_verified": True, "password_hash": hash_password("password123"), "role": "farmer", "created_at": datetime.now(timezone.utc).isoformat()},
+        {"id": str(uuid.uuid4()), "name": "John Mwangi", "email": "john@farm.com", "phone": "+2348189275367", "phone_verified": True, "password_hash": hash_password("password123"), "role": "farmer", "rating_avg": 4.5, "rating_count": 12, "created_at": datetime.now(timezone.utc).isoformat()},
+        {"id": str(uuid.uuid4()), "name": "Sarah Ochieng", "email": "sarah@farm.com", "phone": "+2348189275368", "phone_verified": True, "password_hash": hash_password("password123"), "role": "farmer", "rating_avg": 4.8, "rating_count": 8, "created_at": datetime.now(timezone.utc).isoformat()},
+        {"id": str(uuid.uuid4()), "name": "Peter Kamau", "email": "peter@farm.com", "phone": "+2348189275369", "phone_verified": True, "password_hash": hash_password("password123"), "role": "farmer", "rating_avg": 4.2, "rating_count": 5, "created_at": datetime.now(timezone.utc).isoformat()},
     ]
     await db.users.insert_many(farmers)
     
-    buyer = {"id": str(uuid.uuid4()), "name": "Demo Buyer", "email": "buyer@demo.com", "phone": "+2348189275370", "phone_verified": True, "password_hash": hash_password("password123"), "role": "buyer", "created_at": datetime.now(timezone.utc).isoformat()}
+    buyer = {"id": str(uuid.uuid4()), "name": "Demo Buyer", "email": "buyer@demo.com", "phone": "+2348189275370", "phone_verified": True, "password_hash": hash_password("password123"), "role": "buyer", "rating_avg": 0, "rating_count": 0, "created_at": datetime.now(timezone.utc).isoformat()}
     await db.users.insert_one(buyer)
     
     now = datetime.now(timezone.utc)
@@ -1410,11 +1646,13 @@ async def seed_data():
 async def root():
     return {
         "message": "jarnnmarket API",
-        "version": "2.0.0",
+        "version": "3.0.0",
         "features": {
             "sms_verification": "mock" if TWILIO_MOCK_MODE else "live",
             "paypal": "mock" if PAYPAL_MOCK_MODE else "live",
-            "escrow": "enabled"
+            "email": "mock" if EMAIL_MOCK_MODE else "live",
+            "escrow": "enabled",
+            "reviews": "enabled"
         }
     }
 
