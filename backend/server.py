@@ -140,6 +140,10 @@ def sanitize_search_query(query: str) -> str:
 def generate_otp(length: int = 6) -> str:
     return ''.join(random.choices(string.digits, k=length))
 
+def generate_verification_token() -> str:
+    """Generate a secure verification token"""
+    return str(uuid.uuid4()) + '-' + ''.join(random.choices(string.ascii_letters + string.digits, k=32))
+
 # ================== EMAIL SERVICE (MOCK) ==================
 
 class EmailService:
@@ -158,8 +162,68 @@ class EmailService:
                 "subject": subject
             }
         else:
-            # Real SendGrid implementation would go here
-            pass
+            # Real SendGrid/Resend implementation would go here
+            # For now, still mock but can be easily replaced
+            try:
+                if RESEND_API_KEY:
+                    import resend
+                    resend.api_key = RESEND_API_KEY
+                    params = {
+                        "from": EMAIL_FROM,
+                        "to": [to],
+                        "subject": subject,
+                        "html": html_body
+                    }
+                    email_response = resend.Emails.send(params)
+                    return {
+                        "success": True,
+                        "mock": False,
+                        "message_id": email_response.get("id"),
+                        "to": to,
+                        "subject": subject
+                    }
+                # Fallback to mock
+                logger.info(f"[FALLBACK MOCK EMAIL] To: {to} | Subject: {subject}")
+                return {
+                    "success": True,
+                    "mock": True,
+                    "message_id": f"MOCK_EMAIL_{uuid.uuid4().hex[:12]}",
+                    "to": to,
+                    "subject": subject
+                }
+            except Exception as e:
+                logger.error(f"Email sending failed: {e}")
+                return {"success": False, "error": str(e)}
+    
+    @staticmethod
+    async def send_verification_email(email: str, name: str, token: str) -> dict:
+        """Send email verification link to new user"""
+        verification_link = f"{FRONTEND_URL}/verify-email?token={token}"
+        subject = "Verify Your Email - Jarnnmarket"
+        html_body = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #16a34a;">Welcome to Jarnnmarket!</h2>
+            <p>Hi {name},</p>
+            <p>Thank you for registering at Jarnnmarket. Please verify your email address to complete your registration.</p>
+            <div style="margin: 30px 0;">
+                <a href="{verification_link}" 
+                   style="background-color: #16a34a; color: white; padding: 12px 30px; text-decoration: none; border-radius: 25px; display: inline-block;">
+                    Verify My Email
+                </a>
+            </div>
+            <p style="color: #666; font-size: 14px;">
+                Or copy and paste this link into your browser:<br>
+                <a href="{verification_link}" style="color: #16a34a;">{verification_link}</a>
+            </p>
+            <p style="color: #666; font-size: 14px;">This link will expire in 24 hours.</p>
+            <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+            <p style="color: #999; font-size: 12px;">
+                If you didn't create an account at Jarnnmarket, please ignore this email.
+            </p>
+        </div>
+        """
+        text_body = f"Hi {name}, please verify your email by clicking this link: {verification_link}"
+        return await EmailService.send_email(email, subject, html_body, text_body)
     
     @staticmethod
     async def send_new_bid_notification(seller_email: str, seller_name: str, auction_title: str, bid_amount: float, bidder_name: str):
