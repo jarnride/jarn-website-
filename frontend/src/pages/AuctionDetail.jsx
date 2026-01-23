@@ -355,6 +355,7 @@ export default function AuctionDetail() {
 
   if (!auction) return null;
 
+  const currencySymbol = auction.currency === 'NGN' ? '₦' : '$';
   const isWinner = user && auction.winner_id === user.id && (isExpired || isSold);
   const isSeller = user && auction.seller_id === user.id;
   const isBuyNowOnly = auction.buy_now_only;
