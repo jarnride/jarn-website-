@@ -273,16 +273,31 @@ export default function AuctionDetail() {
   const handleConfirmDelivery = async () => {
     if (!escrow) return;
     
+    // Show review modal instead of directly confirming
+    setShowReviewModal(true);
+  };
+
+  const handleReviewSubmit = async (reviewData) => {
     setConfirmingDelivery(true);
     try {
       await axios.post(
         `${API}/escrow/confirm-delivery`,
-        { escrow_id: escrow.id },
+        reviewData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       
+      setShowReviewModal(false);
       toast.success('Delivery confirmed! Payment released to seller.');
+      if (reviewData.rating) {
+        toast.success('Thank you for leaving a review!');
+      }
       setEscrow(prev => ({ ...prev, status: 'released' }));
+      
+      // Refresh reviews
+      try {
+        const reviewsRes = await axios.get(`${API}/users/${auction.seller_id}/reviews`);
+        setSellerReviews(reviewsRes.data || []);
+      } catch (e) {}
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to confirm delivery');
     } finally {
