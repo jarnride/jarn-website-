@@ -36,9 +36,11 @@ function App() {
               <Route path="/policies" element={<Policies />} />
               <Route path="/policies/:type" element={<Policies />} />
               <Route path="/subscription" element={<Subscription />} />
+              <Route path="/verify-email" element={<VerifyEmail />} />
             </Routes>
           </main>
           <Footer />
+          <WhatsAppButton />
         </div>
         <Toaster position="top-right" richColors />
       </BrowserRouter>
