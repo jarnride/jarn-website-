@@ -105,6 +105,11 @@ export const AuctionCard = ({ auction }) => {
         <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
           <MapPin className="w-4 h-4" />
           <span>{auction.location}</span>
+          {auction.quantity > 1 && (
+            <span className="text-xs bg-muted px-2 py-0.5 rounded-full">
+              Qty: {auction.quantity}
+            </span>
+          )}
         </div>
 
         <div className="flex items-center justify-between mb-4">
@@ -112,7 +117,9 @@ export const AuctionCard = ({ auction }) => {
             <p className="text-xs text-muted-foreground uppercase tracking-wide">
               {isBuyNowOnly ? 'Price' : 'Current Bid'}
             </p>
-            <p className="text-2xl font-bold text-primary font-mono">${auction.current_bid.toFixed(2)}</p>
+            <p className="text-2xl font-bold text-primary font-mono">
+              {auction.currency === 'NGN' ? '₦' : '$'}{auction.current_bid.toLocaleString()}
+            </p>
           </div>
           <div className="text-right">
             <p className="text-xs text-muted-foreground uppercase tracking-wide">
