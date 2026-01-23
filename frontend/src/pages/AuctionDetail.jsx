@@ -43,6 +43,10 @@ export default function AuctionDetail() {
   const [paymentMethod, setPaymentMethod] = useState('stripe');
   const [showPhoneVerification, setShowPhoneVerification] = useState(false);
   const [confirmingDelivery, setConfirmingDelivery] = useState(false);
+  const [showOfferModal, setShowOfferModal] = useState(false);
+  const [offerAmount, setOfferAmount] = useState('');
+  const [offerMessage, setOfferMessage] = useState('');
+  const [submittingOffer, setSubmittingOffer] = useState(false);
   const socketRef = useRef(null);
 
   const fetchAuction = useCallback(async () => {
