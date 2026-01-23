@@ -266,6 +266,46 @@ export default function AuctionDetail() {
     }
   };
 
+  const handleMakeOffer = async () => {
+    if (!user) {
+      toast.error('Please login to make an offer');
+      navigate('/auth');
+      return;
+    }
+
+    if (!checkPhoneVerification()) return;
+
+    if (!offerAmount || parseFloat(offerAmount) <= 0) {
+      toast.error('Please enter a valid offer amount');
+      return;
+    }
+
+    setSubmittingOffer(true);
+    try {
+      await axios.post(
+        `${API}/auctions/${id}/offers`,
+        { 
+          amount: parseFloat(offerAmount),
+          message: offerMessage
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      toast.success('Offer submitted! The seller will review it.');
+      setShowOfferModal(false);
+      setOfferAmount('');
+      setOfferMessage('');
+    } catch (error) {
+      const detail = error.response?.data?.detail || 'Failed to submit offer';
+      if (detail.includes('phone')) {
+        setShowPhoneVerification(true);
+      }
+      toast.error(detail);
+    } finally {
+      setSubmittingOffer(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -278,6 +318,8 @@ export default function AuctionDetail() {
 
   const isWinner = user && auction.winner_id === user.id && (isExpired || isSold);
   const isSeller = user && auction.seller_id === user.id;
+  const isBuyNowOnly = auction.buy_now_only;
+  const acceptsOffers = auction.accepts_offers;
   const canBid = user && !isSeller && !isExpired && !isSold && auction.is_active;
   const canBuyNow = canBid && auction.buy_now_price;
   const canConfirmDelivery = isWinner && escrow && escrow.status === 'held' && escrow.buyer_id === user?.id;
