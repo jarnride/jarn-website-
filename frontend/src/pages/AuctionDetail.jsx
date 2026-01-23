@@ -843,7 +843,7 @@ export default function AuctionDetail() {
               Make an Offer
             </DialogTitle>
             <DialogDescription>
-              Submit your best offer for "{auction?.title}". The seller will review and respond.
+              Submit your best offer for &quot;{auction?.title}&quot;. The seller will review and respond.
             </DialogDescription>
           </DialogHeader>
 
