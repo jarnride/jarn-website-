@@ -1,80 +1,151 @@
-# jarnnmarket - Farmers Auction Platform PRD
+# jarnnmarket - Farmers Auction Platform
 
-## Original Problem Statement
-Build a Farmers Auction Platform with comprehensive features including real-time bidding, multiple payment options, SMS verification, and escrow system.
+## Overview
+A full-stack auction platform connecting farmers directly with buyers through real-time auctions, featuring escrow-protected payments, phone verification, and comprehensive buyer/seller policies.
 
-## User Personas
-1. **Farmers (Sellers)**: List agricultural products for auction
-2. **Buyers**: Browse and bid on produce auctions
+## Tech Stack
+- **Backend:** FastAPI (Python), MongoDB
+- **Frontend:** React, TailwindCSS, Shadcn/UI
+- **Payments:** Stripe (integrated), PayPal (MOCKED)
+- **Real-time:** WebSockets (socket.io)
+- **Authentication:** JWT
 
-## What's Been Implemented
+## Core Features
 
-### Phase 1 (Complete)
-- [x] WebSocket real-time bid updates (socket.io)
-- [x] Buy It Now option with instant purchase
-- [x] Image upload for auctions (base64 in MongoDB)
-- [x] Duplicate email prevention
-- [x] Security improvements (rate limiting, input validation, bcrypt)
+### Authentication & Verification
+- [x] User registration (Farmer/Buyer roles)
+- [x] JWT-based authentication
+- [x] **Phone verification (MANDATORY)** - Required for bidding/listing
+- [x] Phone verification via SMS (MOCKED)
 
-### Phase 2 (Complete - MOCK MODE)
-- [x] SMS Verification via Twilio (MOCK - shows OTP in response for testing)
-- [x] PayPal payment option (MOCK - creates order without redirect)
-- [x] SMS notifications for high-value bids ($100+ threshold)
-- [x] Escrow system for secure payments
-  - Funds held until buyer confirms delivery
-  - Seller notified when payment received
-  - Buyer can release funds after delivery
+### Auction Management
+- [x] Create auctions with images
+- [x] **Image quality validation** (min 400x300px, min 20KB)
+- [x] **Buy Now Only option** - Disables bidding entirely
+- [x] **Accepts Offers option** - Allows buyers to make offers
+- [x] Real-time bidding via WebSockets
+- [x] Buy Now instant purchase
+- [x] Auction countdown timer
+- [x] Category filtering
+- [x] Search functionality
 
-### Backend Features
-- User authentication with phone verification requirement
-- Auction CRUD with buy_now_price support
-- Bidding system with WebSocket broadcast
-- Multiple payment methods (Stripe + PayPal)
-- Escrow table with status tracking (held, released, refunded)
-- SMS service for verification and notifications
-- Rate limiting on all sensitive endpoints
+### Offers System (NEW)
+- [x] Buyers can make offers on listings that accept offers
+- [x] Sellers can view, accept, or reject offers
+- [x] Accepted offers mark auction as sold
+- [x] Email notifications for offer updates (MOCKED)
 
-### Frontend Features
-- jarnnmarket branding
-- Phone verification modal
-- Dashboard with escrow information
-- Payment method selection (Stripe/PayPal)
-- Delivery confirmation button for buyers
-- Phone verification status indicators
+### Payment & Escrow
+- [x] Stripe payment integration
+- [x] PayPal payment option (MOCKED)
+- [x] Escrow system - funds held until delivery confirmation
+- [x] **Payout system** - Sellers request payout after escrow release (MOCKED)
+- [x] Delivery confirmation by buyer releases funds
 
-## Mock Services (Replace with Real Credentials)
+### Policies & Legal
+- [x] **Terms & Conditions**
+- [x] **Privacy Policy**
+- [x] **Return & Refund Policy**
+- [x] **Seller Guidelines**
+- [x] **Buyer Guidelines**
 
-### Twilio SMS
-```
-TWILIO_ACCOUNT_SID=your_account_sid
-TWILIO_AUTH_TOKEN=your_auth_token
-TWILIO_PHONE_NUMBER=your_phone_number
-```
+### Dashboard Features
+- [x] Farmer dashboard: Active auctions, ended auctions, escrows, offers, payouts
+- [x] Buyer dashboard: Bids, won auctions, offers, delivery confirmations
+- [x] Phone verification status
+- [x] Escrow balance tracking
 
-### PayPal
-```
-PAYPAL_CLIENT_ID=your_client_id
-PAYPAL_CLIENT_SECRET=your_client_secret
-PAYPAL_MODE=sandbox|live
-```
+## API Endpoints
 
-## Demo Credentials
-- Farmer: john@farm.com / password123 (phone_verified=true)
-- Buyer: buyer@demo.com / password123 (phone_verified=true)
+### Authentication
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `POST /api/auth/phone/send-code`
+- `POST /api/auth/phone/verify`
 
-## Prioritized Backlog
+### Auctions
+- `GET /api/auctions` - List all auctions
+- `GET /api/auctions/featured` - Featured auctions
+- `GET /api/auctions/categories` - Categories
+- `POST /api/auctions` - Create auction
+- `GET /api/auctions/{id}` - Get auction details
+- `POST /api/auctions/{id}/bids` - Place bid
+- `POST /api/auctions/{id}/buy` - Buy Now
 
-### P0 - Phase 1 & 2 Done ✓
+### Offers (NEW)
+- `POST /api/auctions/{id}/offers` - Make offer
+- `GET /api/auctions/{id}/offers` - Get auction offers (seller only)
+- `POST /api/offers/{id}/respond` - Accept/reject offer
+- `GET /api/users/me/offers` - Get my offers
 
-### P1 - Phase 3 (Next)
-- Email notifications (bid events, auction won)
-- Seller ratings/reviews system
+### Payments & Escrow
+- `POST /api/payments/stripe/create-session`
+- `GET /api/payments/stripe/verify-session`
+- `POST /api/payments/paypal/create-order` (MOCKED)
+- `GET /api/users/me/escrows`
+- `POST /api/escrow/confirm-delivery`
 
-### P2 - Phase 4 (DevOps)
-- Unit & integration tests
-- Docker deployment
+### Payouts (NEW)
+- `GET /api/users/me/payouts`
+- `POST /api/payouts/request`
 
-## Contact Info
+### Images
+- `POST /api/upload/image` - Upload with quality validation
+- `GET /api/images/{id}` - Retrieve image
+
+## Database Collections
+- `users` - User accounts with phone verification status
+- `auctions` - Listings with buy_now_only and accepts_offers flags
+- `bids` - Bid history
+- `offers` - Make offer submissions
+- `escrow` - Payment escrow records
+- `payouts` - Seller payout history
+- `reviews` - Seller ratings
+- `images` - Uploaded images
+
+## Contact Information
 - Email: info@jarnnmarket.com
 - Phone: +2348189275367
 - Location: Abia State, Nigeria
+
+## Test Credentials
+- Farmer: john@farm.com / password123
+- Buyer: buyer@demo.com / password123
+
+## Mocked Services
+- Phone SMS verification
+- PayPal payments
+- Email notifications
+- Payout processing
+
+---
+
+## Changelog
+
+### December 2025 - Phase 3 Complete
+- Added image quality validation (400x300px min, 20KB min)
+- Added Buy Now Only listing option
+- Added Make Offer feature
+- Made phone verification mandatory (cannot skip)
+- Added seller payout system
+- Added comprehensive policy pages (Terms, Privacy, Returns, Seller, Buyer)
+- Updated Dashboard with Offers and Payouts tabs
+- Added footer links to policy pages
+
+### Previous Updates
+- Phase 1: WebSocket real-time bidding, Buy Now feature, image uploads
+- Phase 2: Phone verification (mock), PayPal (mock), Escrow system (mock)
+- MVP: Core auction platform with Stripe payments
+
+## Future Tasks
+- Replace mock services with real integrations:
+  - Twilio SMS for phone verification
+  - PayPal SDK for payments
+  - SendGrid/Resend for email notifications
+  - Real bank transfer for payouts
+- Security hardening:
+  - bcrypt password hashing
+  - Input validation
+  - Rate limiting (partially implemented)
+- Unit and integration tests
+- Seller ratings/reviews UI completion
