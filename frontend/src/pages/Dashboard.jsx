@@ -636,6 +636,53 @@ export default function Dashboard() {
               </div>
             )}
 
+            {/* My Offers */}
+            {myOffers.length > 0 && (
+              <div className="mb-8">
+                <h2 className="text-2xl font-bold mb-4" style={{ fontFamily: 'Playfair Display, serif' }}>
+                  My Offers
+                </h2>
+                <div className="bg-card rounded-xl border divide-y">
+                  {myOffers.map(offer => (
+                    <Link 
+                      key={offer.id} 
+                      to={`/auctions/${offer.auction_id}`}
+                      className="flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors"
+                    >
+                      {offer.auction && (
+                        <img 
+                          src={offer.auction.image_url} 
+                          alt={offer.auction.title}
+                          className="w-16 h-16 rounded-lg object-cover"
+                        />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold truncate">
+                          {offer.auction?.title || 'Offer'}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(offer.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold font-mono">${offer.amount.toFixed(2)}</p>
+                        <Badge 
+                          variant={
+                            offer.status === 'accepted' ? 'success' : 
+                            offer.status === 'rejected' ? 'destructive' : 
+                            'secondary'
+                          }
+                          className="mt-1"
+                        >
+                          {offer.status}
+                        </Badge>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Recent Bids */}
             <div>
               <h2 className="text-2xl font-bold mb-4" style={{ fontFamily: 'Playfair Display, serif' }}>
