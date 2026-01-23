@@ -320,8 +320,9 @@ export default function AuctionDetail() {
   const isSeller = user && auction.seller_id === user.id;
   const isBuyNowOnly = auction.buy_now_only;
   const acceptsOffers = auction.accepts_offers;
-  const canBid = user && !isSeller && !isExpired && !isSold && auction.is_active;
-  const canBuyNow = canBid && auction.buy_now_price;
+  const canBid = user && !isSeller && !isExpired && !isSold && auction.is_active && !isBuyNowOnly;
+  const canBuyNow = user && !isSeller && !isExpired && !isSold && auction.is_active && auction.buy_now_price;
+  const canMakeOffer = user && !isSeller && !isExpired && !isSold && auction.is_active && acceptsOffers;
   const canConfirmDelivery = isWinner && escrow && escrow.status === 'held' && escrow.buyer_id === user?.id;
 
   return (
