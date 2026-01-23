@@ -315,10 +315,10 @@ class EmailService:
         text_body = f"Hi {seller_name}, {reviewer_name} left you a {rating}-star review on jarnnmarket."
         return await EmailService.send_email(seller_email, subject, html_body, text_body)
 
-# ================== SMS SERVICE (MOCK) ==================
+# ================== SMS SERVICE (TWILIO) ==================
 
 class SMSService:
-    """Mock SMS Service - Replace with real Twilio implementation"""
+    """SMS Service using Twilio"""
     
     @staticmethod
     async def send_sms(to: str, message: str) -> dict:
@@ -331,7 +331,30 @@ class SMSService:
                 "to": to
             }
         else:
-            pass
+            try:
+                from twilio.rest import Client
+                client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+                msg = client.messages.create(
+                    body=message,
+                    from_=TWILIO_PHONE_NUMBER,
+                    to=to
+                )
+                logger.info(f"[TWILIO SMS] Sent to: {to} | SID: {msg.sid}")
+                return {
+                    "success": True,
+                    "mock": False,
+                    "message_id": msg.sid,
+                    "to": to,
+                    "status": msg.status
+                }
+            except Exception as e:
+                logger.error(f"[TWILIO SMS ERROR] {str(e)}")
+                return {
+                    "success": False,
+                    "mock": False,
+                    "error": str(e),
+                    "to": to
+                }
     
     @staticmethod
     async def send_verification_code(to: str, code: str) -> dict:
