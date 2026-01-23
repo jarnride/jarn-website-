@@ -12,6 +12,7 @@ import CreateAuction from "@/pages/CreateAuction";
 import Dashboard from "@/pages/Dashboard";
 import PaymentSuccess from "@/pages/PaymentSuccess";
 import PaymentCancel from "@/pages/PaymentCancel";
+import Policies from "@/pages/Policies";
 
 function App() {
   return (
@@ -29,6 +30,8 @@ function App() {
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/payment/success" element={<PaymentSuccess />} />
               <Route path="/payment/cancel" element={<PaymentCancel />} />
+              <Route path="/policies" element={<Policies />} />
+              <Route path="/policies/:type" element={<Policies />} />
             </Routes>
           </main>
           <Footer />
