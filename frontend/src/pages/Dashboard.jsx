@@ -255,6 +255,28 @@ export default function Dashboard() {
               </Card>
             </div>
 
+            {/* Subscription Banner */}
+            <div className="mb-8 p-4 bg-gradient-to-r from-primary/10 to-harvest/10 rounded-xl border border-primary/20">
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-primary/20 rounded-full">
+                    <TrendingUp className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-semibold">Grow Your Business</p>
+                    <p className="text-sm text-muted-foreground">
+                      Unlock premium features with a seller subscription
+                    </p>
+                  </div>
+                </div>
+                <Link to="/subscription">
+                  <Button className="rounded-full" data-testid="subscription-cta">
+                    View Plans
+                  </Button>
+                </Link>
+              </div>
+            </div>
+
             {/* Escrow Alert */}
             {heldEscrows.length > 0 && (
               <div className="mb-8 p-4 bg-amber-50 rounded-xl border border-amber-200">
