@@ -2839,11 +2839,16 @@ async def admin_bulk_process_payouts(
 
 @api_router.post("/admin/bulk/users")
 async def admin_bulk_update_users(
-    action: str,  # 'activate', 'deactivate', 'verify', 'unverify'
-    user_ids: List[str],
+    action: str = Query(..., description="Action: 'activate', 'deactivate', 'verify', 'unverify'"),
+    user_ids: str = Query(..., description="Comma-separated user IDs"),
     admin: dict = Depends(verify_admin)
 ):
     """Bulk update users"""
+    # Parse comma-separated IDs
+    ids_list = [id.strip() for id in user_ids.split(',') if id.strip()]
+    if not ids_list:
+        raise HTTPException(status_code=400, detail="No user IDs provided")
+    
     if action == 'activate':
         update = {"$set": {"is_active": True}}
     elif action == 'deactivate':
