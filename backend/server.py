@@ -1259,6 +1259,234 @@ async def get_my_escrows(user: dict = Depends(get_current_user)):
     ).sort("created_at", -1).to_list(100)
     return escrows
 
+# ================== OFFER ROUTES ==================
+
+@api_router.post("/auctions/{auction_id}/offers")
+@limiter.limit("10/minute")
+async def create_offer(request: Request, auction_id: str, data: OfferCreate, user: dict = Depends(get_current_user)):
+    """Create an offer on an auction that accepts offers"""
+    auction = await db.auctions.find_one({"id": auction_id}, {"_id": 0})
+    if not auction:
+        raise HTTPException(status_code=404, detail="Auction not found")
+    
+    if not auction.get("accepts_offers"):
+        raise HTTPException(status_code=400, detail="This auction does not accept offers")
+    
+    if not auction["is_active"]:
+        raise HTTPException(status_code=400, detail="Auction is not active")
+    
+    if auction["seller_id"] == user["id"]:
+        raise HTTPException(status_code=400, detail="Cannot make an offer on your own auction")
+    
+    if not user.get("phone_verified", False):
+        raise HTTPException(status_code=403, detail="Please verify your phone number before making offers")
+    
+    # Check if user already has a pending offer
+    existing_offer = await db.offers.find_one({
+        "auction_id": auction_id,
+        "buyer_id": user["id"],
+        "status": "pending"
+    })
+    if existing_offer:
+        raise HTTPException(status_code=400, detail="You already have a pending offer on this auction")
+    
+    offer_id = str(uuid.uuid4())
+    offer_doc = {
+        "id": offer_id,
+        "auction_id": auction_id,
+        "buyer_id": user["id"],
+        "buyer_name": user["name"],
+        "seller_id": auction["seller_id"],
+        "amount": float(data.amount),
+        "message": data.message,
+        "status": "pending",  # pending, accepted, rejected, expired
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "responded_at": None
+    }
+    
+    await db.offers.insert_one(offer_doc)
+    
+    # Notify seller
+    seller = await db.users.find_one({"id": auction["seller_id"]}, {"_id": 0})
+    if seller:
+        await EmailService.send_email(
+            seller["email"],
+            f"New Offer on '{auction['title']}'",
+            f"<p>{user['name']} made an offer of ${data.amount:.2f} on your auction '{auction['title']}'.</p>",
+            f"{user['name']} made an offer of ${data.amount:.2f} on '{auction['title']}'."
+        )
+    
+    return {k: v for k, v in offer_doc.items() if k != "_id"}
+
+@api_router.get("/auctions/{auction_id}/offers")
+async def get_auction_offers(auction_id: str, user: dict = Depends(get_current_user)):
+    """Get offers for an auction (seller only)"""
+    auction = await db.auctions.find_one({"id": auction_id}, {"_id": 0})
+    if not auction:
+        raise HTTPException(status_code=404, detail="Auction not found")
+    
+    if auction["seller_id"] != user["id"]:
+        raise HTTPException(status_code=403, detail="Only the seller can view all offers")
+    
+    offers = await db.offers.find({"auction_id": auction_id}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return offers
+
+@api_router.post("/offers/{offer_id}/respond")
+async def respond_to_offer(offer_id: str, data: OfferResponse, user: dict = Depends(get_current_user)):
+    """Accept or reject an offer"""
+    offer = await db.offers.find_one({"id": offer_id}, {"_id": 0})
+    if not offer:
+        raise HTTPException(status_code=404, detail="Offer not found")
+    
+    if offer["seller_id"] != user["id"]:
+        raise HTTPException(status_code=403, detail="Only the seller can respond to offers")
+    
+    if offer["status"] != "pending":
+        raise HTTPException(status_code=400, detail="Offer is no longer pending")
+    
+    auction = await db.auctions.find_one({"id": offer["auction_id"]}, {"_id": 0})
+    if not auction or not auction["is_active"]:
+        raise HTTPException(status_code=400, detail="Auction is no longer active")
+    
+    await db.offers.update_one(
+        {"id": offer_id},
+        {"$set": {
+            "status": data.status,
+            "responded_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # If accepted, mark auction as sold
+    if data.status == "accepted":
+        await db.auctions.update_one(
+            {"id": offer["auction_id"]},
+            {"$set": {
+                "is_active": False,
+                "winner_id": offer["buyer_id"],
+                "current_bid": offer["amount"],
+                "sold_via": "offer"
+            }}
+        )
+        
+        # Reject all other pending offers
+        await db.offers.update_many(
+            {"auction_id": offer["auction_id"], "id": {"$ne": offer_id}, "status": "pending"},
+            {"$set": {"status": "rejected", "responded_at": datetime.now(timezone.utc).isoformat()}}
+        )
+        
+        # Notify buyer
+        buyer = await db.users.find_one({"id": offer["buyer_id"]}, {"_id": 0})
+        if buyer:
+            await EmailService.send_email(
+                buyer["email"],
+                f"Your Offer on '{auction['title']}' Was Accepted!",
+                f"<p>Congratulations! Your offer of ${offer['amount']:.2f} on '{auction['title']}' was accepted. Please complete the payment.</p>",
+                f"Your offer of ${offer['amount']:.2f} on '{auction['title']}' was accepted!"
+            )
+    else:
+        # Notify buyer of rejection
+        buyer = await db.users.find_one({"id": offer["buyer_id"]}, {"_id": 0})
+        if buyer:
+            await EmailService.send_email(
+                buyer["email"],
+                f"Your Offer on '{auction['title']}' Was Declined",
+                f"<p>Unfortunately, your offer of ${offer['amount']:.2f} on '{auction['title']}' was declined by the seller.</p>",
+                f"Your offer of ${offer['amount']:.2f} on '{auction['title']}' was declined."
+            )
+    
+    return {"success": True, "status": data.status}
+
+@api_router.get("/users/me/offers")
+async def get_my_offers(user: dict = Depends(get_current_user)):
+    """Get offers made by the current user"""
+    offers = await db.offers.find({"buyer_id": user["id"]}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    
+    # Add auction details
+    auction_ids = list(set([o["auction_id"] for o in offers]))
+    auctions = await db.auctions.find({"id": {"$in": auction_ids}}, {"_id": 0}).to_list(100)
+    auctions_map = {a["id"]: a for a in auctions}
+    
+    for offer in offers:
+        offer["auction"] = auctions_map.get(offer["auction_id"])
+    
+    return offers
+
+# ================== PAYOUT ROUTES ==================
+
+@api_router.get("/users/me/payouts")
+async def get_my_payouts(user: dict = Depends(get_current_user)):
+    """Get payout history for seller"""
+    if user["role"] != "farmer":
+        raise HTTPException(status_code=403, detail="Only farmers can view payouts")
+    
+    payouts = await db.payouts.find({"seller_id": user["id"]}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    
+    # Calculate totals
+    total_released = sum(p["amount"] for p in payouts if p["status"] == "completed")
+    total_pending = sum(p["amount"] for p in payouts if p["status"] == "pending")
+    
+    return {
+        "payouts": payouts,
+        "total_released": total_released,
+        "total_pending": total_pending
+    }
+
+@api_router.post("/payouts/request")
+async def request_payout(data: PayoutRequest, user: dict = Depends(get_current_user)):
+    """Request payout for released escrow funds"""
+    if user["role"] != "farmer":
+        raise HTTPException(status_code=403, detail="Only farmers can request payouts")
+    
+    escrow = await db.escrow.find_one({"id": data.escrow_id}, {"_id": 0})
+    if not escrow:
+        raise HTTPException(status_code=404, detail="Escrow not found")
+    
+    if escrow["seller_id"] != user["id"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    if escrow["status"] != "released":
+        raise HTTPException(status_code=400, detail="Escrow funds have not been released yet")
+    
+    # Check if payout already exists
+    existing_payout = await db.payouts.find_one({"escrow_id": data.escrow_id})
+    if existing_payout:
+        raise HTTPException(status_code=400, detail="Payout already requested for this escrow")
+    
+    payout_id = str(uuid.uuid4())
+    payout_doc = {
+        "id": payout_id,
+        "escrow_id": data.escrow_id,
+        "auction_id": escrow["auction_id"],
+        "seller_id": user["id"],
+        "amount": escrow["amount"],
+        "currency": escrow.get("currency", "usd"),
+        "status": "pending",  # pending, processing, completed, failed
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "processed_at": None
+    }
+    
+    await db.payouts.insert_one(payout_doc)
+    
+    # In a real system, this would trigger actual bank transfer
+    # For now, we'll auto-complete the payout (mock)
+    await db.payouts.update_one(
+        {"id": payout_id},
+        {"$set": {
+            "status": "completed",
+            "processed_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    logger.info(f"[MOCK PAYOUT] Processed payout {payout_id} for ${escrow['amount']:.2f} to seller {user['id']}")
+    
+    return {
+        "success": True,
+        "payout_id": payout_id,
+        "amount": escrow["amount"],
+        "status": "completed",
+        "mock": True
+    }
+
 # ================== USER ROUTES ==================
 
 @api_router.get("/users/{user_id}/auctions")
