@@ -25,7 +25,7 @@ export default function Policies() {
             Policies & Guidelines
           </h1>
           <p className="text-white/70">
-            Important information about using jarnnmarket
+            Important information about using Jarnnmarket
           </p>
         </div>
       </div>
@@ -100,7 +100,7 @@ export default function Policies() {
                   <section className="mb-8">
                     <h3 className="text-lg font-semibold mb-3">1. Acceptance of Terms</h3>
                     <p className="text-muted-foreground mb-4">
-                      By accessing and using jarnnmarket (&quot;the Platform&quot;), you accept and agree to be bound by these Terms and Conditions. If you do not agree to these terms, please do not use our services.
+                      By accessing and using Jarnnmarket (&quot;the Platform&quot;), you accept and agree to be bound by these Terms and Conditions. If you do not agree to these terms, please do not use our services.
                     </p>
                   </section>
 
@@ -120,7 +120,7 @@ export default function Policies() {
                       <li>All bids are legally binding commitments to purchase</li>
                       <li>Sellers must accurately describe products and provide high-quality images</li>
                       <li>Bid sniping and bid manipulation are prohibited</li>
-                      <li>jarnnmarket reserves the right to cancel suspicious auctions</li>
+                      <li>Jarnnmarket reserves the right to cancel suspicious auctions</li>
                     </ul>
                   </section>
 
@@ -136,7 +136,7 @@ export default function Policies() {
 
                   <section className="mb-8">
                     <h3 className="text-lg font-semibold mb-3">5. Prohibited Items</h3>
-                    <p className="text-muted-foreground mb-2">The following items are prohibited from being sold on jarnnmarket:</p>
+                    <p className="text-muted-foreground mb-2">The following items are prohibited from being sold on Jarnnmarket:</p>
                     <ul className="list-disc pl-6 text-muted-foreground space-y-2">
                       <li>Illegal substances or controlled items</li>
                       <li>Counterfeit or stolen goods</li>
@@ -148,14 +148,14 @@ export default function Policies() {
                   <section className="mb-8">
                     <h3 className="text-lg font-semibold mb-3">6. Dispute Resolution</h3>
                     <p className="text-muted-foreground">
-                      Disputes between buyers and sellers should first be resolved directly. If resolution is not possible, jarnnmarket will mediate based on provided evidence. Our decision is final in all dispute matters.
+                      Disputes between buyers and sellers should first be resolved directly. If resolution is not possible, Jarnnmarket will mediate based on provided evidence. Our decision is final in all dispute matters.
                     </p>
                   </section>
 
                   <section className="mb-8">
                     <h3 className="text-lg font-semibold mb-3">7. Limitation of Liability</h3>
                     <p className="text-muted-foreground">
-                      jarnnmarket provides a platform for transactions but is not responsible for the quality, safety, or legality of items sold. We are not liable for any indirect, incidental, or consequential damages arising from platform use.
+                      Jarnnmarket provides a platform for transactions but is not responsible for the quality, safety, or legality of items sold. We are not liable for any indirect, incidental, or consequential damages arising from platform use.
                     </p>
                   </section>
 
@@ -163,7 +163,7 @@ export default function Policies() {
                     <h3 className="text-lg font-semibold mb-3">8. Contact Information</h3>
                     <p className="text-muted-foreground">
                       For questions about these terms, contact us at:<br />
-                      Email: info@jarnnmarket.com<br />
+                      Email: info@Jarnnmarket.com<br />
                       Phone: +2348189275367
                     </p>
                   </section>
@@ -249,7 +249,7 @@ export default function Policies() {
                   <section className="mb-8">
                     <h3 className="text-lg font-semibold mb-3">6. Cookies</h3>
                     <p className="text-muted-foreground">
-                      We use essential cookies for authentication and platform functionality. By using jarnnmarket, you consent to our use of cookies.
+                      We use essential cookies for authentication and platform functionality. By using Jarnnmarket, you consent to our use of cookies.
                     </p>
                   </section>
 
@@ -291,7 +291,7 @@ export default function Policies() {
                   <section className="mb-8">
                     <h3 className="text-lg font-semibold mb-3">1. Escrow Protection</h3>
                     <p className="text-muted-foreground mb-4">
-                      All payments on jarnnmarket are held in escrow until the buyer confirms delivery. This protects both parties:
+                      All payments on Jarnnmarket are held in escrow until the buyer confirms delivery. This protects both parties:
                     </p>
                     <div className="grid md:grid-cols-2 gap-4">
                       <div className="p-4 bg-green-50 rounded-lg border border-green-200">
@@ -339,7 +339,7 @@ export default function Policies() {
                         <Badge className="bg-primary text-white">3</Badge>
                         <div>
                           <p className="font-medium">Resolution</p>
-                          <p className="text-sm text-muted-foreground">Seller responds within 48 hours, or jarnnmarket mediates</p>
+                          <p className="text-sm text-muted-foreground">Seller responds within 48 hours, or Jarnnmarket mediates</p>
                         </div>
                       </div>
                       <div className="flex items-start gap-4">
@@ -484,7 +484,7 @@ export default function Policies() {
                   <section className="mb-8">
                     <h3 className="text-lg font-semibold mb-3">7. Account Suspension</h3>
                     <p className="text-muted-foreground">
-                      Seller accounts may be suspended for repeated policy violations, fraudulent activity, consistently low ratings, or failure to fulfill orders. Appeals can be made to info@jarnnmarket.com.
+                      Seller accounts may be suspended for repeated policy violations, fraudulent activity, consistently low ratings, or failure to fulfill orders. Appeals can be made to info@Jarnnmarket.com.
                     </p>
                   </section>
                 </ScrollArea>
