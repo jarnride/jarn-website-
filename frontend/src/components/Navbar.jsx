@@ -10,7 +10,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import NotificationBell from '@/components/NotificationBell';
-import { Menu, X, User, LogOut, LayoutDashboard, Plus, Gavel } from 'lucide-react';
+import JarnnLogo from '@/components/JarnnLogo';
+import { Menu, X, User, LogOut, LayoutDashboard, Plus } from 'lucide-react';
 
 export const Navbar = () => {
   const { user, logout } = useAuth();
@@ -28,7 +29,7 @@ export const Navbar = () => {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2" data-testid="logo">
-            <Gavel className="w-8 h-8 text-primary" />
+            <JarnnLogo className="w-9 h-9 text-primary" />
             <span className="text-xl font-bold text-primary" style={{ fontFamily: 'Playfair Display, serif' }}>
               jarnnmarket
             </span>
