@@ -71,6 +71,15 @@ export default function AuctionDetail() {
         setBidAmount((auctionRes.data.current_bid + 1).toFixed(2));
       }
 
+      // Fetch seller reviews
+      try {
+        const reviewsRes = await axios.get(`${API}/users/${auctionRes.data.seller_id}/reviews`);
+        setSellerReviews(reviewsRes.data || []);
+      } catch (e) {
+        // Reviews might not exist
+        setSellerReviews([]);
+      }
+
       // Fetch escrow if paid
       if (auctionRes.data.escrow_id && token) {
         try {
