@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Clock, MapPin, User, Zap, Star } from 'lucide-react';
+import { Clock, MapPin, User, Zap, Star, MessageSquare } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
@@ -40,7 +40,9 @@ export const AuctionCard = ({ auction }) => {
     return () => clearInterval(interval);
   }, [auction.ends_at, auction.is_active]);
 
-  const isSold = auction.sold_via === 'buy_now' || !auction.is_active;
+  const isSold = auction.sold_via === 'buy_now' || auction.sold_via === 'offer' || (!auction.is_active && auction.winner_id);
+  const isBuyNowOnly = auction.buy_now_only;
+  const acceptsOffers = auction.accepts_offers;
 
   return (
     <div className="auction-card card-hover" data-testid={`auction-card-${auction.id}`}>
@@ -52,12 +54,28 @@ export const AuctionCard = ({ auction }) => {
           loading="lazy"
         />
         <Badge className="auction-card-badge">{auction.category}</Badge>
-        {auction.buy_now_price && !isSold && (
-          <Badge className="absolute top-3 right-3 bg-harvest text-black">
-            <Zap className="w-3 h-3 mr-1" />
-            Buy Now
-          </Badge>
-        )}
+        
+        {/* Badges for listing types */}
+        <div className="absolute top-3 right-3 flex flex-col gap-1">
+          {isBuyNowOnly && !isSold ? (
+            <Badge className="bg-harvest text-black">
+              <Zap className="w-3 h-3 mr-1" />
+              Buy Now Only
+            </Badge>
+          ) : auction.buy_now_price && !isSold && (
+            <Badge className="bg-harvest text-black">
+              <Zap className="w-3 h-3 mr-1" />
+              Buy Now
+            </Badge>
+          )}
+          {acceptsOffers && !isSold && (
+            <Badge className="bg-blue-500 text-white">
+              <MessageSquare className="w-3 h-3 mr-1" />
+              Offers
+            </Badge>
+          )}
+        </div>
+        
         {isSold && (
           <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
             <Badge className="bg-accent text-white text-lg px-4 py-2">SOLD</Badge>
@@ -91,7 +109,9 @@ export const AuctionCard = ({ auction }) => {
 
         <div className="flex items-center justify-between mb-4">
           <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Current Bid</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">
+              {isBuyNowOnly ? 'Price' : 'Current Bid'}
+            </p>
             <p className="text-2xl font-bold text-primary font-mono">${auction.current_bid.toFixed(2)}</p>
           </div>
           <div className="text-right">
@@ -111,7 +131,7 @@ export const AuctionCard = ({ auction }) => {
           </div>
         </div>
 
-        {auction.buy_now_price && !isSold && (
+        {auction.buy_now_price && !isSold && !isBuyNowOnly && (
           <div className="mb-4 text-sm text-harvest font-medium">
             <Zap className="w-4 h-4 inline mr-1" />
             Buy Now: ${auction.buy_now_price.toFixed(2)}
@@ -119,14 +139,16 @@ export const AuctionCard = ({ auction }) => {
         )}
 
         <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">{auction.bid_count} bids</span>
+          <span className="text-sm text-muted-foreground">
+            {isBuyNowOnly ? 'Fixed Price' : `${auction.bid_count} bids`}
+          </span>
           <Link to={`/auctions/${auction.id}`}>
             <Button 
               className="rounded-full bg-primary hover:bg-primary/90 btn-hover-lift" 
               data-testid={`bid-now-${auction.id}`}
               disabled={isSold}
             >
-              {isSold ? 'View' : 'Bid Now'}
+              {isSold ? 'View' : isBuyNowOnly ? 'Buy Now' : 'Bid Now'}
             </Button>
           </Link>
         </div>
