@@ -1565,7 +1565,6 @@ async def get_auctions(
     
     # Add seller ratings to auctions
     for auction in auctions:
-    for auction in auctions:
         seller = await db.users.find_one({"id": auction["seller_id"]}, {"_id": 0, "rating_avg": 1, "rating_count": 1, "is_verified": 1})
         auction["seller_rating"] = seller.get("rating_avg", 0) if seller else 0
         auction["seller_rating_count"] = seller.get("rating_count", 0) if seller else 0
