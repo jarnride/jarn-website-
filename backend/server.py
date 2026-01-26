@@ -1126,7 +1126,7 @@ async def login(request: Request, data: UserLogin):
 
 @api_router.get("/auth/me")
 async def get_me(user: dict = Depends(get_current_user)):
-    return {
+    response = {
         "id": user["id"],
         "name": user["name"],
         "email": user["email"],
@@ -1138,6 +1138,15 @@ async def get_me(user: dict = Depends(get_current_user)):
         "rating_count": user.get("rating_count", 0),
         "created_at": user["created_at"]
     }
+    
+    # Include payout details for farmers
+    if user["role"] == "farmer":
+        response["bank_name"] = user.get("bank_name")
+        response["bank_account_number"] = user.get("bank_account_number")
+        response["national_id"] = user.get("national_id")
+        response["payout_details_complete"] = user.get("payout_details_complete", False)
+    
+    return response
 
 # ================== PHONE VERIFICATION ROUTES ==================
 
