@@ -300,7 +300,9 @@ export default function AuctionDetail() {
       try {
         const reviewsRes = await axios.get(`${API}/users/${auction.seller_id}/reviews`);
         setSellerReviews(reviewsRes.data || []);
-      } catch (e) {}
+      } catch (e) {
+        // Reviews refresh is non-critical
+      }
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to confirm delivery');
     } finally {
