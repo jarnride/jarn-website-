@@ -294,13 +294,6 @@ export default function Auth() {
                 >
                   {loading ? 'Signing in...' : 'Sign In'}
                 </Button>
-
-                {/* Demo credentials */}
-                <div className="mt-4 p-4 bg-muted rounded-lg text-sm">
-                  <p className="font-medium mb-2">Demo Credentials:</p>
-                  <p className="text-muted-foreground">Farmer: john@farm.com / password123</p>
-                  <p className="text-muted-foreground">Buyer: buyer@demo.com / password123</p>
-                </div>
               </form>
             </TabsContent>
 
