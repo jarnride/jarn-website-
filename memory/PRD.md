@@ -30,6 +30,15 @@
 - [x] Password hashing with bcrypt
 - [x] Rate limiting on auth endpoints
 
+### Seller Payout Details (NEW - Completed)
+- [x] **Bank Name** - Required for farmer registration
+- [x] **Bank Account Number** - 10-digit Nigerian bank account
+- [x] **National ID (NIN)** - 11-digit National Identification Number
+- [x] Form shown only when Farmer role is selected
+- [x] Validation enforced (digits only, correct length)
+- [x] API endpoint to update payout details: `PUT /api/sellers/me/payout-details`
+- [x] Payout details returned in `/api/auth/me` for farmers
+
 ### Seller Verification System
 - [x] **Verified Seller Badge** - Blue shield icon for trusted sellers
 - [x] Admin can verify/unverify sellers
