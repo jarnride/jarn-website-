@@ -1534,7 +1534,8 @@ async def search_auctions(
     currency: str = "",
     location: str = "",
     delivery: str = "",  # local_pickup, city_to_city, international
-    sort_by: str = "newest",  # newest, ending_soon, price_low, price_high, most_bids
+    sort_by: str = "nearest",  # nearest, newest, ending_soon, price_low, price_high, most_bids
+    buyer_location: str = "",  # Buyer's location for proximity sorting
     page: int = 1,
     limit: int = 20
 ):
@@ -1546,7 +1547,8 @@ async def search_auctions(
     - currency: Filter by currency (USD, NGN)
     - location: Filter by location
     - delivery: Filter by delivery option
-    - sort_by: Sort results
+    - sort_by: Sort results (nearest = proximity-based)
+    - buyer_location: Buyer's location for proximity sorting
     - page, limit: Pagination
     """
     # Sanitize inputs
