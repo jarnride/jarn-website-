@@ -1148,6 +1148,38 @@ async def get_me(user: dict = Depends(get_current_user)):
     
     return response
 
+# Payout details update model
+class PayoutDetailsUpdate(BaseModel):
+    bank_name: str = Field(..., min_length=2, max_length=100)
+    bank_account_number: str = Field(..., min_length=10, max_length=10)
+    national_id: str = Field(..., min_length=11, max_length=11)
+
+@api_router.put("/sellers/me/payout-details")
+async def update_payout_details(data: PayoutDetailsUpdate, user: dict = Depends(get_current_user)):
+    if user["role"] != "farmer":
+        raise HTTPException(status_code=403, detail="Only sellers can update payout details")
+    
+    # Validate account number is numeric
+    if not data.bank_account_number.isdigit():
+        raise HTTPException(status_code=400, detail="Account number must be numeric")
+    
+    # Validate NIN is numeric
+    if not data.national_id.isdigit():
+        raise HTTPException(status_code=400, detail="NIN must be numeric")
+    
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {
+            "bank_name": sanitize_string(data.bank_name),
+            "bank_account_number": data.bank_account_number,
+            "national_id": data.national_id,
+            "payout_details_complete": True,
+            "payout_details_updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"success": True, "message": "Payout details updated successfully"}
+
 # ================== PHONE VERIFICATION ROUTES ==================
 
 @api_router.post("/auth/phone/send-code")
