@@ -991,6 +991,14 @@ async def register(request: Request, data: UserCreate):
         "rating_count": 0,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
+    
+    # Add seller payout details for farmers
+    if data.role == "farmer":
+        user_doc["bank_name"] = data.bank_name
+        user_doc["bank_account_number"] = data.bank_account_number
+        user_doc["national_id"] = data.national_id
+        user_doc["payout_details_complete"] = bool(data.bank_name and data.bank_account_number and data.national_id)
+    
     await db.users.insert_one(user_doc)
     
     # Store email verification token
