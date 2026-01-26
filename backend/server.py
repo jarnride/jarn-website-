@@ -722,7 +722,13 @@ def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
 def verify_password(password: str, hashed: str) -> bool:
-    return bcrypt.checkpw(password.encode(), hashed.encode())
+    try:
+        result = bcrypt.checkpw(password.encode(), hashed.encode())
+        logger.info(f"[DEBUG] Password verify: result={result}, hash_prefix={hashed[:20]}")
+        return result
+    except Exception as e:
+        logger.error(f"[DEBUG] Password verify error: {e}")
+        return False
 
 def create_token(user_id: str) -> str:
     payload = {
