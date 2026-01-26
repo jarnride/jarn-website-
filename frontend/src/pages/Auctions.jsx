@@ -142,20 +142,40 @@ export default function Auctions() {
             )}
           </div>
           
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-muted-foreground">Sort by:</span>
-            <Select value={filters.sort_by} onValueChange={handleSortChange}>
-              <SelectTrigger className="w-[180px]" data-testid="sort-select">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="newest">Newest First</SelectItem>
-                <SelectItem value="ending_soon">Ending Soon</SelectItem>
-                <SelectItem value="price_low">Price: Low to High</SelectItem>
-                <SelectItem value="price_high">Price: High to Low</SelectItem>
-                <SelectItem value="most_bids">Most Bids</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="flex items-center gap-4 flex-wrap">
+            {/* Location Selector */}
+            <div className="flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-muted-foreground" />
+              <Select value={buyerLocation} onValueChange={handleLocationChange}>
+                <SelectTrigger className="w-[160px]" data-testid="location-select">
+                  <SelectValue placeholder="Your Location" />
+                </SelectTrigger>
+                <SelectContent className="max-h-[300px]">
+                  <SelectItem value="">All Nigeria</SelectItem>
+                  {NIGERIAN_STATES.map(state => (
+                    <SelectItem key={state} value={state}>{state}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Sort Selector */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Sort:</span>
+              <Select value={filters.sort_by} onValueChange={handleSortChange}>
+                <SelectTrigger className="w-[160px]" data-testid="sort-select">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="nearest">Nearest to Me</SelectItem>
+                  <SelectItem value="newest">Newest First</SelectItem>
+                  <SelectItem value="ending_soon">Ending Soon</SelectItem>
+                  <SelectItem value="price_low">Price: Low to High</SelectItem>
+                  <SelectItem value="price_high">Price: High to Low</SelectItem>
+                  <SelectItem value="most_bids">Most Bids</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
 
