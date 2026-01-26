@@ -64,23 +64,25 @@ export default function AdminDashboard() {
   const [bulkProcessing, setBulkProcessing] = useState(false);
 
   useEffect(() => {
-    console.log('[AdminDashboard] user:', user);
+    // Wait for auth to finish loading
+    if (authLoading) {
+      return;
+    }
+    
     if (!user) {
-      console.log('[AdminDashboard] No user, redirecting to /auth');
       navigate('/auth');
       return;
     }
     const isAdmin = user.email === 'admin@jarnnmarket.com' || 
                     user.email === 'info@jarnnmarket.com' ||
                     user.role === 'admin';
-    console.log('[AdminDashboard] isAdmin:', isAdmin, 'email:', user.email, 'role:', user.role);
     if (!isAdmin) {
       toast.error('Access denied. Admin only.');
       navigate('/dashboard');
       return;
     }
     fetchAdminData();
-  }, [user, navigate]);
+  }, [user, navigate, authLoading]);
 
   const fetchAdminData = async () => {
     try {
