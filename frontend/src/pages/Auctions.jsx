@@ -146,12 +146,12 @@ export default function Auctions() {
             {/* Location Selector */}
             <div className="flex items-center gap-2">
               <MapPin className="w-4 h-4 text-muted-foreground" />
-              <Select value={buyerLocation} onValueChange={handleLocationChange}>
+              <Select value={buyerLocation || "all"} onValueChange={(v) => handleLocationChange(v === "all" ? "" : v)}>
                 <SelectTrigger className="w-[160px]" data-testid="location-select">
                   <SelectValue placeholder="Your Location" />
                 </SelectTrigger>
                 <SelectContent className="max-h-[300px]">
-                  <SelectItem value="">All Nigeria</SelectItem>
+                  <SelectItem value="all">All Nigeria</SelectItem>
                   {NIGERIAN_STATES.map(state => (
                     <SelectItem key={state} value={state}>{state}</SelectItem>
                   ))}
