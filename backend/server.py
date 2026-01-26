@@ -1480,6 +1480,7 @@ async def get_image(image_id: str):
 async def get_auctions(
     category: Optional[str] = None,
     location: Optional[str] = None,
+    buyer_location: Optional[str] = None,  # For proximity sorting
     active_only: bool = True,
     limit: int = 50
 ):
@@ -1494,7 +1495,76 @@ async def get_auctions(
     
     auctions = await db.auctions.find(query, {"_id": 0}).sort("ends_at", 1).limit(limit).to_list(limit)
     
+    # Nigerian states for proximity sorting
+    NIGERIAN_REGIONS = {
+        "Lagos": ["Lagos", "Ogun", "Oyo", "Osun", "Ondo", "Ekiti"],
+        "Ogun": ["Ogun", "Lagos", "Oyo", "Ondo"],
+        "Oyo": ["Oyo", "Ogun", "Osun", "Kwara", "Lagos"],
+        "Osun": ["Osun", "Oyo", "Ondo", "Ekiti", "Kwara"],
+        "Ondo": ["Ondo", "Ekiti", "Osun", "Ogun", "Edo"],
+        "Ekiti": ["Ekiti", "Osun", "Ondo", "Kogi", "Kwara"],
+        "Edo": ["Edo", "Delta", "Ondo", "Kogi", "Anambra"],
+        "Delta": ["Delta", "Edo", "Anambra", "Bayelsa", "Rivers"],
+        "Rivers": ["Rivers", "Bayelsa", "Delta", "Abia", "Akwa Ibom"],
+        "Bayelsa": ["Bayelsa", "Rivers", "Delta"],
+        "Akwa Ibom": ["Akwa Ibom", "Rivers", "Cross River", "Abia"],
+        "Cross River": ["Cross River", "Akwa Ibom", "Ebonyi", "Benue"],
+        "Abia": ["Abia", "Imo", "Rivers", "Akwa Ibom", "Ebonyi", "Enugu"],
+        "Imo": ["Imo", "Abia", "Anambra", "Rivers", "Enugu"],
+        "Anambra": ["Anambra", "Imo", "Enugu", "Delta", "Kogi"],
+        "Enugu": ["Enugu", "Anambra", "Ebonyi", "Abia", "Kogi", "Benue"],
+        "Ebonyi": ["Ebonyi", "Enugu", "Cross River", "Abia", "Benue"],
+        "Kwara": ["Kwara", "Oyo", "Niger", "Kogi", "Osun", "Ekiti"],
+        "Kogi": ["Kogi", "Kwara", "Enugu", "Anambra", "Edo", "Benue", "Nassarawa"],
+        "Benue": ["Benue", "Nassarawa", "Taraba", "Cross River", "Enugu", "Kogi"],
+        "Plateau": ["Plateau", "Nassarawa", "Bauchi", "Kaduna", "Taraba"],
+        "Nassarawa": ["Nassarawa", "Plateau", "Kogi", "Benue", "Kaduna", "FCT"],
+        "Niger": ["Niger", "Kwara", "Kaduna", "FCT", "Kebbi"],
+        "FCT": ["FCT", "Nassarawa", "Niger", "Kogi", "Kaduna"],
+        "Kaduna": ["Kaduna", "Niger", "Plateau", "Bauchi", "Katsina", "Zamfara", "Kano"],
+        "Kano": ["Kano", "Kaduna", "Katsina", "Jigawa", "Bauchi"],
+        "Katsina": ["Katsina", "Kano", "Kaduna", "Zamfara", "Jigawa"],
+        "Jigawa": ["Jigawa", "Kano", "Katsina", "Bauchi", "Yobe"],
+        "Zamfara": ["Zamfara", "Katsina", "Kaduna", "Kebbi", "Sokoto"],
+        "Sokoto": ["Sokoto", "Zamfara", "Kebbi"],
+        "Kebbi": ["Kebbi", "Sokoto", "Zamfara", "Niger"],
+        "Bauchi": ["Bauchi", "Kano", "Jigawa", "Plateau", "Gombe", "Yobe"],
+        "Gombe": ["Gombe", "Bauchi", "Yobe", "Adamawa", "Borno", "Taraba"],
+        "Yobe": ["Yobe", "Borno", "Gombe", "Jigawa", "Bauchi"],
+        "Borno": ["Borno", "Yobe", "Gombe", "Adamawa"],
+        "Adamawa": ["Adamawa", "Gombe", "Borno", "Taraba"],
+        "Taraba": ["Taraba", "Adamawa", "Gombe", "Plateau", "Benue"],
+    }
+    
+    def get_proximity_score(auction_location: str, buyer_loc: str) -> int:
+        if not buyer_loc:
+            return 999
+        buyer_state = None
+        auction_state = None
+        for state in NIGERIAN_REGIONS.keys():
+            if state.lower() in buyer_loc.lower():
+                buyer_state = state
+            if state.lower() in auction_location.lower():
+                auction_state = state
+        if not buyer_state or not auction_state:
+            return 999
+        if buyer_state == auction_state:
+            return 0
+        nearby_states = NIGERIAN_REGIONS.get(buyer_state, [])
+        if auction_state in nearby_states:
+            return nearby_states.index(auction_state) + 1
+        return 50
+    
+    # Sort by proximity if buyer_location provided
+    if buyer_location:
+        for auction in auctions:
+            auction["_proximity"] = get_proximity_score(auction.get("location", ""), buyer_location)
+        auctions.sort(key=lambda x: (x.get("_proximity", 999), x.get("ends_at", "")))
+        for auction in auctions:
+            auction.pop("_proximity", None)
+    
     # Add seller ratings to auctions
+    for auction in auctions:
     for auction in auctions:
         seller = await db.users.find_one({"id": auction["seller_id"]}, {"_id": 0, "rating_avg": 1, "rating_count": 1, "is_verified": 1})
         auction["seller_rating"] = seller.get("rating_avg", 0) if seller else 0
