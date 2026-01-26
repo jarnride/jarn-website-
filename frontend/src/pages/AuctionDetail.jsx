@@ -348,6 +348,35 @@ export default function AuctionDetail() {
     }
   };
 
+  const handleCancelWin = async () => {
+    setCancelling(true);
+    try {
+      const response = await axios.post(
+        `${API}/auctions/${id}/cancel-win`,
+        { reason: cancelReason },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      setShowCancelModal(false);
+      setCancelReason('');
+      
+      if (response.data.suspended) {
+        toast.error(response.data.warning);
+        navigate('/dashboard');
+      } else if (response.data.warning) {
+        toast.warning(response.data.warning);
+        fetchAuction();
+      } else {
+        toast.success('Purchase cancelled. The listing has been reactivated.');
+        fetchAuction();
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to cancel');
+    } finally {
+      setCancelling(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
