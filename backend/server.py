@@ -1454,7 +1454,13 @@ async def get_categories():
         {"name": "Grains", "image": "https://images.pexels.com/photos/7843989/pexels-photo-7843989.jpeg", "count": 0},
         {"name": "Dairy", "image": "https://images.unsplash.com/photo-1628088062854-d1870b4553da?w=800", "count": 0},
         {"name": "Organic", "image": "https://images.unsplash.com/photo-1542838132-92c53300491e?w=800", "count": 0},
-        {"name": "Livestock", "image": "https://images.unsplash.com/photo-1500595046743-cd271d694d30?w=800", "count": 0}
+        {"name": "Livestock", "image": "https://images.unsplash.com/photo-1500595046743-cd271d694d30?w=800", "count": 0},
+        {"name": "Poultry", "image": "https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?w=800", "count": 0},
+        {"name": "Fishery", "image": "https://images.unsplash.com/photo-1544943910-4c1dc44aab44?w=800", "count": 0},
+        {"name": "Pest Control", "image": "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=800", "count": 0},
+        {"name": "Piggery", "image": "https://images.unsplash.com/photo-1516467508483-a7212febe31a?w=800", "count": 0},
+        {"name": "Farm Books", "image": "https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=800", "count": 0},
+        {"name": "Machinery", "image": "https://images.unsplash.com/photo-1530267981375-f0de937f5f13?w=800", "count": 0}
     ]
     
     for cat in categories:
