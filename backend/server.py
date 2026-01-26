@@ -731,6 +731,132 @@ def create_token(user_id: str) -> str:
     }
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
+async def check_buyer_suspended(user_id: str) -> tuple[bool, Optional[str]]:
+    """Check if a buyer is suspended due to cancellations"""
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        return False, None
+    
+    # Check if currently suspended
+    if user.get("is_suspended"):
+        suspension_until = user.get("suspended_until")
+        if suspension_until:
+            if datetime.fromisoformat(suspension_until) > datetime.now(timezone.utc):
+                return True, suspension_until
+            else:
+                # Suspension expired, clear it
+                await db.users.update_one(
+                    {"id": user_id},
+                    {"$set": {"is_suspended": False}, "$unset": {"suspended_until": ""}}
+                )
+    return False, None
+
+async def record_buyer_cancellation(user_id: str, auction_id: str, reason: str = None) -> dict:
+    """Record a buyer cancellation and suspend if threshold reached"""
+    # Record the cancellation
+    cancellation_doc = {
+        "id": str(uuid.uuid4()),
+        "user_id": user_id,
+        "auction_id": auction_id,
+        "reason": reason,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.buyer_cancellations.insert_one(cancellation_doc)
+    
+    # Count cancellations in last 90 days
+    ninety_days_ago = (datetime.now(timezone.utc) - timedelta(days=90)).isoformat()
+    cancellation_count = await db.buyer_cancellations.count_documents({
+        "user_id": user_id,
+        "created_at": {"$gte": ninety_days_ago}
+    })
+    
+    result = {
+        "cancellation_recorded": True,
+        "total_cancellations": cancellation_count,
+        "suspended": False
+    }
+    
+    # Suspend if threshold reached
+    if cancellation_count >= MAX_CANCELLATIONS_BEFORE_SUSPENSION:
+        suspension_until = datetime.now(timezone.utc) + timedelta(days=SUSPENSION_DURATION_DAYS)
+        await db.users.update_one(
+            {"id": user_id},
+            {"$set": {
+                "is_suspended": True,
+                "suspended_until": suspension_until.isoformat(),
+                "suspension_reason": f"Cancelled {cancellation_count} auction wins without payment"
+            }}
+        )
+        result["suspended"] = True
+        result["suspended_until"] = suspension_until.isoformat()
+        logger.warning(f"Buyer {user_id} suspended until {suspension_until} for {cancellation_count} cancellations")
+    
+    return result
+
+async def get_seller_listing_allowance(user_id: str) -> dict:
+    """Get seller's current listing allowance based on free trial or subscription"""
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user or user.get("role") != "farmer":
+        return {"can_list": False, "reason": "Not a seller account"}
+    
+    now = datetime.now(timezone.utc)
+    
+    # Check if on free trial
+    free_trial_start = user.get("free_trial_start")
+    free_trial_used = user.get("free_trial_listings_used", 0)
+    
+    if free_trial_start:
+        trial_end = datetime.fromisoformat(free_trial_start) + timedelta(days=FREE_TRIAL_DAYS)
+        if now < trial_end:
+            # Still in free trial period
+            remaining_free_listings = FREE_TRIAL_LISTINGS - free_trial_used
+            if remaining_free_listings > 0:
+                return {
+                    "can_list": True,
+                    "listing_type": "free_trial",
+                    "remaining_listings": remaining_free_listings,
+                    "trial_ends": trial_end.isoformat(),
+                    "days_remaining": (trial_end - now).days
+                }
+            else:
+                return {
+                    "can_list": False,
+                    "reason": "Free trial listings exhausted",
+                    "trial_ends": trial_end.isoformat(),
+                    "upgrade_required": True
+                }
+    
+    # Check for active subscription
+    subscription = await db.subscriptions.find_one({
+        "user_id": user_id,
+        "status": "active",
+        "ends_at": {"$gt": now.isoformat()}
+    }, {"_id": 0})
+    
+    if subscription:
+        return {
+            "can_list": True,
+            "listing_type": "subscription",
+            "plan": subscription.get("plan_id"),
+            "ends_at": subscription.get("ends_at")
+        }
+    
+    # Check if free trial has expired or not started
+    if not free_trial_start:
+        # New seller - start free trial
+        return {
+            "can_list": True,
+            "listing_type": "free_trial_eligible",
+            "message": "You're eligible for a free 3-day trial with 5 listings!"
+        }
+    
+    # Trial expired, no subscription
+    return {
+        "can_list": False,
+        "reason": "Free trial expired. Please subscribe to continue listing.",
+        "upgrade_required": True
+    }
+
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     if not credentials:
         raise HTTPException(status_code=401, detail="Not authenticated")
