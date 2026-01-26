@@ -21,7 +21,10 @@ import { ImagePlus, Upload, X, Loader2, AlertCircle, Phone, Info, Package, Truck
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-const CATEGORIES = ['Vegetables', 'Fruits', 'Grains', 'Dairy', 'Organic', 'Livestock'];
+const CATEGORIES = [
+  'Vegetables', 'Fruits', 'Grains', 'Dairy', 'Organic', 'Livestock',
+  'Poultry', 'Fishery', 'Pest Control', 'Piggery', 'Farm Books', 'Machinery'
+];
 const DURATIONS = [
   { value: 6, label: '6 hours' },
   { value: 12, label: '12 hours' },
