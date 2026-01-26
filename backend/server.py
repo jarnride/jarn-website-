@@ -1618,6 +1618,27 @@ async def create_auction(request: Request, data: AuctionCreate, user: dict = Dep
         raise HTTPException(status_code=403, detail="Only farmers can create auctions")
     
     if not user.get("phone_verified", False):
+        raise HTTPException(status_code=403, detail="Please verify your phone number before creating auctions")
+    
+    # Check listing allowance (free trial or subscription)
+    allowance = await get_seller_listing_allowance(user["id"])
+    
+    if not allowance["can_list"]:
+        raise HTTPException(
+            status_code=403, 
+            detail=allowance.get("reason", "You need an active subscription to create listings")
+        )
+    
+    # Auto-activate free trial for eligible new sellers
+    if allowance.get("listing_type") == "free_trial_eligible":
+        await db.users.update_one(
+            {"id": user["id"]},
+            {"$set": {
+                "free_trial_start": datetime.now(timezone.utc).isoformat(),
+                "free_trial_listings_used": 0
+            }}
+        )
+        logger.info(f"Auto-activated free trial for new seller {user['id']}")
         raise HTTPException(status_code=403, detail="Phone verification is mandatory. Please verify your phone number before creating auctions.")
     
     # Check subscription status (if required in future)
