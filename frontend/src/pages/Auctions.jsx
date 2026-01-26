@@ -12,9 +12,19 @@ import {
 } from '@/components/ui/select';
 import AuctionCard from '@/components/AuctionCard';
 import SearchBar from '@/components/SearchBar';
-import { Search, ChevronLeft, ChevronRight, Package } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Package, MapPin } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+// Nigerian states for location picker
+const NIGERIAN_STATES = [
+  "Lagos", "Ogun", "Oyo", "Osun", "Ondo", "Ekiti",
+  "Edo", "Delta", "Rivers", "Bayelsa", "Akwa Ibom", "Cross River",
+  "Abia", "Imo", "Anambra", "Enugu", "Ebonyi",
+  "Kwara", "Kogi", "Benue", "Plateau", "Nassarawa", "Niger", "FCT",
+  "Kaduna", "Kano", "Katsina", "Jigawa", "Zamfara", "Sokoto", "Kebbi",
+  "Bauchi", "Gombe", "Yobe", "Borno", "Adamawa", "Taraba"
+];
 
 export default function Auctions() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -23,6 +33,7 @@ export default function Auctions() {
   const [totalResults, setTotalResults] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [buyerLocation, setBuyerLocation] = useState(localStorage.getItem('buyer_location') || '');
 
   // Get filters from URL
   const filters = {
@@ -32,7 +43,7 @@ export default function Auctions() {
     delivery: searchParams.get('delivery') || '',
     min_price: searchParams.get('min_price') || '',
     max_price: searchParams.get('max_price') || '',
-    sort_by: searchParams.get('sort_by') || 'newest',
+    sort_by: searchParams.get('sort_by') || 'nearest',
     page: parseInt(searchParams.get('page')) || 1,
   };
 
