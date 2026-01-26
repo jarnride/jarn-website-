@@ -412,6 +412,72 @@ export default function Auth() {
                   </RadioGroup>
                 </div>
 
+                {/* Seller Payout Details - Only show for farmers */}
+                {registerForm.role === 'farmer' && (
+                  <div className="space-y-4 p-4 bg-muted/50 rounded-lg border">
+                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                      <Building2 className="w-4 h-4" />
+                      <span>Payout Details (for receiving payments)</span>
+                    </div>
+                    
+                    <div className="form-group">
+                      <Label htmlFor="register-bank-name">Bank Name *</Label>
+                      <div className="relative mt-1">
+                        <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          id="register-bank-name"
+                          type="text"
+                          placeholder="e.g., First Bank, GTBank, Access Bank"
+                          value={registerForm.bank_name}
+                          onChange={(e) => setRegisterForm({ ...registerForm, bank_name: e.target.value })}
+                          className="pl-10"
+                          required
+                          data-testid="register-bank-name"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <Label htmlFor="register-account-number">Bank Account Number *</Label>
+                      <div className="relative mt-1">
+                        <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          id="register-account-number"
+                          type="text"
+                          placeholder="10-digit account number"
+                          value={registerForm.bank_account_number}
+                          onChange={(e) => setRegisterForm({ ...registerForm, bank_account_number: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                          className="pl-10"
+                          required
+                          maxLength={10}
+                          data-testid="register-account-number"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <Label htmlFor="register-nin">National ID Number (NIN) *</Label>
+                      <div className="relative mt-1">
+                        <IdCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          id="register-nin"
+                          type="text"
+                          placeholder="11-digit NIN"
+                          value={registerForm.national_id}
+                          onChange={(e) => setRegisterForm({ ...registerForm, national_id: e.target.value.replace(/\D/g, '').slice(0, 11) })}
+                          className="pl-10"
+                          required
+                          maxLength={11}
+                          data-testid="register-nin"
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Required for identity verification and payout processing.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 <Button 
                   type="submit" 
                   className="w-full rounded-full bg-primary hover:bg-primary/90 py-6"
