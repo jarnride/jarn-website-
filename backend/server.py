@@ -1682,7 +1682,15 @@ async def search_auctions(
         "price_high": [("current_bid", -1)],
         "most_bids": [("bid_count", -1)]
     }
-    sort = sort_options.get(sort_by, [("created_at", -1)])
+    
+    # Handle proximity sorting specially
+    use_proximity_sort = sort_by == "nearest" and buyer_location
+    
+    if use_proximity_sort:
+        # For proximity, we fetch more results and sort in memory
+        sort = [("created_at", -1)]  # Default sort for initial fetch
+    else:
+        sort = sort_options.get(sort_by, [("created_at", -1)])
     
     # Pagination
     skip = (page - 1) * limit
@@ -1690,7 +1698,25 @@ async def search_auctions(
     
     # Execute query
     total = await db.auctions.count_documents(query)
-    auctions = await db.auctions.find(query, {"_id": 0}).sort(sort).skip(skip).limit(limit).to_list(limit)
+    
+    if use_proximity_sort:
+        # Fetch all matching auctions for proximity sorting
+        all_auctions = await db.auctions.find(query, {"_id": 0}).to_list(500)
+        
+        # Sort by proximity
+        for auction in all_auctions:
+            auction["_proximity_score"] = get_proximity_score(auction.get("location", ""), buyer_location)
+        
+        all_auctions.sort(key=lambda x: (x.get("_proximity_score", 999), x.get("created_at", "")))
+        
+        # Apply pagination
+        auctions = all_auctions[skip:skip + limit]
+        
+        # Remove proximity score from response
+        for auction in auctions:
+            auction.pop("_proximity_score", None)
+    else:
+        auctions = await db.auctions.find(query, {"_id": 0}).sort(sort).skip(skip).limit(limit).to_list(limit)
     
     # Add seller ratings and verification status
     for auction in auctions:
