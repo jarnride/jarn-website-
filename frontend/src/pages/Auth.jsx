@@ -85,6 +85,22 @@ export default function Auth() {
       return;
     }
     
+    // Validate farmer payout details
+    if (registerForm.role === 'farmer') {
+      if (!registerForm.bank_name || registerForm.bank_name.trim().length < 2) {
+        toast.error('Please enter your bank name');
+        return;
+      }
+      if (!registerForm.bank_account_number || registerForm.bank_account_number.length !== 10) {
+        toast.error('Please enter a valid 10-digit account number');
+        return;
+      }
+      if (!registerForm.national_id || registerForm.national_id.length !== 11) {
+        toast.error('Please enter a valid 11-digit NIN');
+        return;
+      }
+    }
+    
     setLoading(true);
     try {
       const payload = {
