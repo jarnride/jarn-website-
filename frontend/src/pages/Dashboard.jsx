@@ -10,7 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AuctionCard from '@/components/AuctionCard';
 import PhoneVerification from '@/components/PhoneVerification';
 import SellerAnalytics from '@/components/SellerAnalytics';
-import { Plus, Package, Gavel, Trophy, TrendingUp, Clock, Shield, Phone, CheckCircle, MessageSquare, DollarSign, Check, X, BarChart3 } from 'lucide-react';
+import SellerTrialBanner from '@/components/SellerTrialBanner';
+import { Plus, Package, Gavel, Trophy, TrendingUp, Clock, Shield, Phone, CheckCircle, MessageSquare, DollarSign, Check, X, BarChart3, AlertTriangle } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
