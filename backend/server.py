@@ -690,6 +690,10 @@ class OfferResponse(BaseModel):
 class PayoutRequest(BaseModel):
     escrow_id: str
 
+class CancelAuctionWin(BaseModel):
+    auction_id: str
+    reason: Optional[str] = Field(default=None, max_length=500)
+
 class ReviewCreate(BaseModel):
     auction_id: str
     rating: int = Field(..., ge=1, le=5)
@@ -703,6 +707,14 @@ class ReviewCreate(BaseModel):
 class ImageUploadResponse(BaseModel):
     url: str
     filename: str
+
+# ================== BUYER SUSPENSION CONSTANTS ==================
+MAX_CANCELLATIONS_BEFORE_SUSPENSION = 2
+SUSPENSION_DURATION_DAYS = 30
+
+# ================== FREE SELLER TRIAL CONSTANTS ==================
+FREE_TRIAL_DAYS = 3
+FREE_TRIAL_LISTINGS = 5
 
 # ================== AUTH HELPERS ==================
 
