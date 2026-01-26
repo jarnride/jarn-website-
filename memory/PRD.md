@@ -1,130 +1,258 @@
-# Jarnnmarket - Farmers Auction Platform
+# Jarnnmarket - Complete Platform Summary
 
 ## Overview
-A full-stack auction platform connecting farmers directly with buyers through real-time auctions, featuring escrow-protected payments, multi-currency support, and comprehensive buyer/seller policies.
-
-## Tech Stack
-- **Backend:** FastAPI (Python), MongoDB
-- **Frontend:** React, TailwindCSS, Shadcn/UI
-- **Payments:** Stripe (integrated), PayPal (sandbox mode)
-- **Email:** SendGrid (configured)
-- **SMS:** Twilio (configured)
-- **Real-time:** WebSockets (socket.io)
-- **Authentication:** JWT
-- **Mobile:** PWA (Progressive Web App)
-
-## Core Features
-
-### Checkout & Delivery Options ✨ NEW
-- [x] **Delivery selection at checkout** - Buyers choose from seller's delivery options
-- [x] **Delivery address input** - Required for non-local pickup options
-- [x] **Delivery cost calculation** - Added to total at checkout
-- [x] **Multiple delivery types**:
-  - Local Pickup (FREE)
-  - City-to-City Delivery
-  - International Shipping
-
-### Multi-Currency Support ✨ ENHANCED
-- [x] **USD ($)** - US Dollars
-- [x] **NGN (₦)** - Nigerian Naira
-- [x] **Currency display at checkout** - Shows correct symbol and currency code
-- [x] **Currency in payment processing** - Stripe/PayPal use auction currency
-
-### Seller Reviews ✨ NEW
-- [x] **Review on delivery confirmation** - Buyers can rate sellers (1-5 stars)
-- [x] **Review comments** - Optional feedback text (up to 1000 chars)
-- [x] **Seller rating aggregation** - Average rating calculated automatically
-- [x] **Reviews display on auction page** - Shows seller's review history
-- [x] **Review notification** - Seller notified of new reviews
-
-### Authentication & Verification
-- [x] Email verification (MANDATORY)
-- [x] Phone verification (MANDATORY)
-- [x] Admin user support
-
-### Seller Verification Badge
-- [x] Verified badge for trusted sellers
-- [x] Admin can verify/unverify sellers
-
-### Admin Dashboard
-- [x] User management with bulk operations
-- [x] Auction management
-- [x] Payout management with bulk approve/reject
-- [x] Data export (JSON/CSV)
-
-### Seller Analytics
-- [x] Revenue and performance metrics
-- [x] Conversion rate tracking
-- [x] Rating display
-
-### Customer Support
-- [x] WhatsApp Support (+447449858053)
-- [x] Help Center / FAQ
-- [x] Email and phone contact
-
-### Payment & Escrow
-- [x] Stripe and PayPal integration
-- [x] Escrow protection
-- [x] Seller payouts
-
-## API Endpoints
-
-### Checkout & Delivery
-- `POST /api/auctions/{id}/buy-now` - Buy now with delivery option selection
-  - Body: `{ origin_url, payment_method, delivery_option, delivery_address }`
-  - Returns: Stripe/PayPal checkout URL with delivery cost included
-
-### Reviews
-- `GET /api/users/{user_id}/reviews` - Get seller's reviews
-- `POST /api/escrow/confirm-delivery` - Confirm delivery with optional review
-  - Body: `{ escrow_id, rating (1-5), review_comment }`
-
-### Currency Support
-- All prices displayed in auction's currency (USD or NGN)
-- Payment processors handle currency conversion
-
-## Database Schema Updates
-
-### auctions collection
-- `currency`: "USD" | "NGN"
-- `delivery_options`: Array of { type, cost, estimated_days }
-- `order_details`: { delivery_option, delivery_address, delivery_cost, item_price, total_amount, currency }
-
-### reviews collection
-- `id`, `auction_id`, `seller_id`
-- `reviewer_id`, `reviewer_name`
-- `rating` (1-5), `comment`
-- `created_at`
-
-## Test Credentials
-- **Farmer:** john@farm.com / password123
-- **Buyer:** buyer@demo.com / password123
-- **Admin:** admin@jarnnmarket.com, info@jarnnmarket.com
+**Jarnnmarket** is a full-stack farmers' auction platform connecting farmers directly with buyers through real-time auctions, escrow-protected payments, and comprehensive verification systems.
 
 ---
 
-## Changelog
+## Tech Stack
+| Component | Technology |
+|-----------|------------|
+| Backend | FastAPI (Python) |
+| Frontend | React + TailwindCSS + Shadcn/UI |
+| Database | MongoDB |
+| Payments | Stripe, PayPal (sandbox) |
+| Email | SendGrid |
+| SMS | Twilio |
+| Real-time | WebSockets (Socket.IO) |
+| Auth | JWT |
+| Mobile | PWA (Progressive Web App) |
 
-### January 2026 - Delivery Options, Currency & Reviews
-- Added delivery option selection at checkout
-- Added delivery address input for shipping options
-- Added delivery cost calculation in checkout totals
-- Enhanced currency support with proper symbols (₦ for NGN, $ for USD)
-- Added seller review system integrated with delivery confirmation
-- Added star rating (1-5) on delivery confirmation
-- Added optional review comments
-- Added reviews display on auction detail page
-- Updated payment processing to use auction currency
+---
 
-### Previous Updates
-- Seller Verification Badge
-- Admin Dashboard with bulk operations
-- Data exports (JSON/CSV)
-- Mobile PWA support
-- Help Center / FAQ
-- Email/Phone verification
-- Search & filters
-- Multi-currency listing
+## All Implemented Features
 
-## All Features Complete ✅
-All requested features have been implemented and tested.
+### 🔐 Authentication & Verification
+- [x] User registration (Farmer/Buyer roles)
+- [x] **Email verification (MANDATORY)** - Must verify before login
+- [x] **Phone verification (MANDATORY)** - Must verify before bidding/selling
+- [x] JWT-based authentication
+- [x] Password hashing with bcrypt
+- [x] Rate limiting on auth endpoints
+
+### 🛡️ Seller Verification System
+- [x] **Verified Seller Badge** - Blue shield icon for trusted sellers
+- [x] Admin can verify/unverify sellers
+- [x] Badge displays on auction cards and profiles
+- [x] Builds buyer trust and confidence
+
+### 🆓 Free Seller Trial (NEW)
+- [x] **3-day free trial** for new sellers
+- [x] **5 free listings** during trial period
+- [x] Auto-activation on first listing attempt
+- [x] Trial status banner on dashboard
+- [x] Upgrade prompts when trial expires
+
+### ⚠️ Buyer Suspension System (NEW)
+- [x] **Auto-suspension** after 2 cancelled wins without payment
+- [x] 30-day suspension period
+- [x] Cancellation tracking (90-day rolling window)
+- [x] Warning before final cancellation
+- [x] Suspended buyers blocked from bidding/buying
+- [x] Seller notification on cancellation
+
+### 🛒 Auction Management
+- [x] Create auctions with multiple images
+- [x] Image quality validation (min 400x300px)
+- [x] **Buy Now Only** option (disables bidding)
+- [x] **Accept Offers** option
+- [x] Real-time bidding via WebSockets
+- [x] Auction countdown timer
+- [x] Category filtering
+- [x] **Search with filters** (query, category, price, delivery, currency)
+
+### 📦 Categories (EXPANDED)
+1. Vegetables
+2. Fruits
+3. Grains
+4. Dairy
+5. Organic
+6. Livestock
+7. **Poultry** (NEW)
+8. **Fishery** (NEW)
+9. **Pest Control** (NEW)
+10. **Piggery** (NEW)
+11. **Farm Books** (NEW)
+12. **Machinery** (NEW)
+
+### 🚚 Delivery Options
+- [x] **Local Pickup** - Free collection from seller
+- [x] **City-to-City Delivery** - Within Nigeria (2-5 days)
+- [x] **International Shipping** - Worldwide (7-21 days)
+- [x] **Delivery selection at checkout** - Buyer chooses option
+- [x] **Delivery address input** - Required for shipping
+- [x] Delivery cost added to total
+
+### 💰 Multi-Currency Support
+- [x] **USD ($)** - US Dollars
+- [x] **NGN (₦)** - Nigerian Naira
+- [x] Currency display throughout app
+- [x] Payment processing in auction currency
+
+### 💳 Payment & Escrow
+- [x] Stripe integration (cards)
+- [x] PayPal integration (sandbox)
+- [x] **Escrow protection** - Funds held until delivery confirmed
+- [x] Seller payout system
+- [x] Payment notifications (email + SMS)
+
+### ⭐ Seller Reviews
+- [x] **Star rating (1-5)** on delivery confirmation
+- [x] Optional review comments (up to 1000 chars)
+- [x] Seller rating auto-calculation
+- [x] Reviews displayed on auction pages
+- [x] Review notifications to sellers
+
+### 📊 Seller Analytics
+- [x] Total revenue tracking
+- [x] Average sale price
+- [x] Conversion rate
+- [x] Views and bids count
+- [x] Active vs completed listings
+- [x] Top categories breakdown
+- [x] Tips for improvement
+
+### 👨‍💼 Admin Dashboard
+- [x] **User management** - View, activate/deactivate users
+- [x] **Seller verification** - Verify/unverify sellers
+- [x] **Auction management** - View all auctions
+- [x] **Payout management** - Approve/reject payouts
+- [x] **Bulk operations** - Multi-select actions
+- [x] **Data exports** - JSON and CSV formats
+- [x] Platform statistics
+
+### 📱 Mobile App (PWA)
+- [x] Progressive Web App manifest
+- [x] Installable on mobile/desktop
+- [x] Standalone display mode
+- [x] App shortcuts (Auctions, Dashboard, Help)
+- [x] Theme color branding
+
+### 💬 Customer Support
+- [x] **WhatsApp floating button** (+447449858053)
+- [x] WhatsApp link in footer
+- [x] **Help Center / FAQ** page
+- [x] Searchable FAQ with categories
+- [x] Contact options (WhatsApp, Email, Phone)
+
+### 📋 Subscription Plans
+- [x] **5-Day Plan** - $4.99 / ₦7,500
+- [x] **Weekly Plan** - $6.99 / ₦10,500
+- [x] **Monthly Plan** - $19.99 / ₦30,000
+- [x] Subscription management page
+
+### 🔔 Notifications
+- [x] Real-time notification bell
+- [x] Email notifications (SendGrid)
+- [x] SMS notifications (Twilio)
+- [x] Offer notifications
+- [x] Bid notifications
+- [x] Payment notifications
+
+### 📜 Policies & Legal
+- [x] Terms & Conditions
+- [x] Privacy Policy
+- [x] Return & Refund Policy
+- [x] Seller Guidelines
+- [x] Buyer Guidelines
+
+---
+
+## API Endpoints Summary
+
+### Authentication
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/auth/register` | Register with email verification |
+| POST | `/api/auth/verify-email` | Verify email token |
+| POST | `/api/auth/login` | Login (blocked if unverified) |
+| GET | `/api/auth/me` | Get current user |
+
+### Auctions
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/auctions` | List all auctions |
+| GET | `/api/auctions/search` | Search with filters |
+| GET | `/api/auctions/categories` | Get all categories |
+| POST | `/api/auctions` | Create auction |
+| GET | `/api/auctions/{id}` | Get auction details |
+| POST | `/api/auctions/{id}/bid` | Place bid |
+| POST | `/api/auctions/{id}/buy-now` | Buy now with delivery |
+| POST | `/api/auctions/{id}/cancel-win` | Cancel winning bid |
+
+### Seller
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/sellers/me/analytics` | Get seller analytics |
+| GET | `/api/sellers/me/listing-allowance` | Check listing allowance |
+| POST | `/api/sellers/activate-free-trial` | Activate free trial |
+
+### Admin
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/admin/stats` | Platform statistics |
+| GET | `/api/admin/users` | List all users |
+| POST | `/api/admin/users/{id}/verify` | Verify seller |
+| POST | `/api/admin/bulk/users` | Bulk user actions |
+| POST | `/api/admin/bulk/payouts` | Bulk payout actions |
+| GET | `/api/admin/export/{type}` | Export data |
+
+### Reviews
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/users/{id}/reviews` | Get seller reviews |
+| POST | `/api/escrow/confirm-delivery` | Confirm + review |
+
+---
+
+## Database Collections
+- `users` - User accounts with verification status
+- `auctions` - Listings with delivery options
+- `bids` - Bid history
+- `offers` - Make offer submissions
+- `escrow` - Payment escrow records
+- `payouts` - Seller payout history
+- `reviews` - Seller ratings and comments
+- `subscriptions` - Seller subscription records
+- `notifications` - User notifications
+- `email_verifications` - Email tokens
+- `phone_verifications` - Phone OTPs
+- `buyer_cancellations` - Cancellation tracking
+- `images` - Uploaded images
+
+---
+
+## Test Credentials
+| Role | Email | Password |
+|------|-------|----------|
+| Farmer | john@farm.com | password123 |
+| Buyer | buyer@demo.com | password123 |
+| Admin | admin@jarnnmarket.com | (create account) |
+| Admin | info@jarnnmarket.com | (create account) |
+
+---
+
+## Integration Status
+| Service | Status | Notes |
+|---------|--------|-------|
+| Stripe | ✅ Active | Test mode |
+| PayPal | ✅ Configured | Sandbox mode |
+| Twilio SMS | ✅ Configured | API keys set |
+| SendGrid | ⚠️ Pending | Needs sender verification |
+
+---
+
+## Contact Information
+- **Email:** info@jarnnmarket.com
+- **Phone:** +2348189275367
+- **WhatsApp:** +447449858053
+- **Location:** Abia State, Nigeria
+
+---
+
+## Deployment Status
+✅ **READY FOR DEPLOYMENT**
+- All health checks passed
+- Environment variables configured
+- Production build successful
+- No hardcoded credentials
