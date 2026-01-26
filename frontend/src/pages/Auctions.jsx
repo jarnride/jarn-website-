@@ -49,7 +49,7 @@ export default function Auctions() {
 
   useEffect(() => {
     fetchAuctions();
-  }, [searchParams]);
+  }, [searchParams, buyerLocation]);
 
   const fetchAuctions = async () => {
     setLoading(true);
@@ -62,6 +62,7 @@ export default function Auctions() {
       if (filters.min_price) params.set('min_price', filters.min_price);
       if (filters.max_price) params.set('max_price', filters.max_price);
       if (filters.sort_by) params.set('sort_by', filters.sort_by);
+      if (buyerLocation) params.set('buyer_location', buyerLocation);
       params.set('page', filters.page.toString());
       params.set('limit', '12');
 
