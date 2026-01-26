@@ -567,11 +567,22 @@ class UserCreate(BaseModel):
     password: str = Field(..., min_length=6, max_length=100)
     phone: Optional[str] = Field(default=None, max_length=20)
     role: str = Field(default="buyer", pattern="^(buyer|farmer)$")
+    # Seller payout details (required for farmers)
+    bank_name: Optional[str] = Field(default=None, max_length=100)
+    bank_account_number: Optional[str] = Field(default=None, max_length=20)
+    national_id: Optional[str] = Field(default=None, max_length=30)
     
     @field_validator('name')
     @classmethod
     def sanitize_name(cls, v):
         return sanitize_string(v)
+    
+    @field_validator('bank_name', 'bank_account_number', 'national_id')
+    @classmethod
+    def sanitize_bank_fields(cls, v):
+        if v:
+            return sanitize_string(v)
+        return v
 
 class UserLogin(BaseModel):
     email: EmailStr
