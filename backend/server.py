@@ -1600,6 +1600,80 @@ async def search_auctions(
         elif delivery == "international":
             query["delivery_options.type"] = "international"
     
+    # Nigerian states grouped by region for proximity sorting
+    NIGERIAN_REGIONS = {
+        # South West
+        "Lagos": ["Lagos", "Ogun", "Oyo", "Osun", "Ondo", "Ekiti"],
+        "Ogun": ["Ogun", "Lagos", "Oyo", "Ondo"],
+        "Oyo": ["Oyo", "Ogun", "Osun", "Kwara", "Lagos"],
+        "Osun": ["Osun", "Oyo", "Ondo", "Ekiti", "Kwara"],
+        "Ondo": ["Ondo", "Ekiti", "Osun", "Ogun", "Edo"],
+        "Ekiti": ["Ekiti", "Osun", "Ondo", "Kogi", "Kwara"],
+        # South South
+        "Edo": ["Edo", "Delta", "Ondo", "Kogi", "Anambra"],
+        "Delta": ["Delta", "Edo", "Anambra", "Bayelsa", "Rivers"],
+        "Rivers": ["Rivers", "Bayelsa", "Delta", "Abia", "Akwa Ibom"],
+        "Bayelsa": ["Bayelsa", "Rivers", "Delta"],
+        "Akwa Ibom": ["Akwa Ibom", "Rivers", "Cross River", "Abia"],
+        "Cross River": ["Cross River", "Akwa Ibom", "Ebonyi", "Benue"],
+        # South East
+        "Abia": ["Abia", "Imo", "Rivers", "Akwa Ibom", "Ebonyi", "Enugu"],
+        "Imo": ["Imo", "Abia", "Anambra", "Rivers", "Enugu"],
+        "Anambra": ["Anambra", "Imo", "Enugu", "Delta", "Kogi"],
+        "Enugu": ["Enugu", "Anambra", "Ebonyi", "Abia", "Kogi", "Benue"],
+        "Ebonyi": ["Ebonyi", "Enugu", "Cross River", "Abia", "Benue"],
+        # North Central
+        "Kwara": ["Kwara", "Oyo", "Niger", "Kogi", "Osun", "Ekiti"],
+        "Kogi": ["Kogi", "Kwara", "Enugu", "Anambra", "Edo", "Benue", "Nassarawa"],
+        "Benue": ["Benue", "Nassarawa", "Taraba", "Cross River", "Enugu", "Kogi"],
+        "Plateau": ["Plateau", "Nassarawa", "Bauchi", "Kaduna", "Taraba"],
+        "Nassarawa": ["Nassarawa", "Plateau", "Kogi", "Benue", "Kaduna", "FCT"],
+        "Niger": ["Niger", "Kwara", "Kaduna", "FCT", "Kebbi"],
+        "FCT": ["FCT", "Nassarawa", "Niger", "Kogi", "Kaduna"],
+        # North West
+        "Kaduna": ["Kaduna", "Niger", "Plateau", "Bauchi", "Katsina", "Zamfara", "Kano"],
+        "Kano": ["Kano", "Kaduna", "Katsina", "Jigawa", "Bauchi"],
+        "Katsina": ["Katsina", "Kano", "Kaduna", "Zamfara", "Jigawa"],
+        "Jigawa": ["Jigawa", "Kano", "Katsina", "Bauchi", "Yobe"],
+        "Zamfara": ["Zamfara", "Katsina", "Kaduna", "Kebbi", "Sokoto"],
+        "Sokoto": ["Sokoto", "Zamfara", "Kebbi"],
+        "Kebbi": ["Kebbi", "Sokoto", "Zamfara", "Niger"],
+        # North East
+        "Bauchi": ["Bauchi", "Kano", "Jigawa", "Plateau", "Gombe", "Yobe"],
+        "Gombe": ["Gombe", "Bauchi", "Yobe", "Adamawa", "Borno", "Taraba"],
+        "Yobe": ["Yobe", "Borno", "Gombe", "Jigawa", "Bauchi"],
+        "Borno": ["Borno", "Yobe", "Gombe", "Adamawa"],
+        "Adamawa": ["Adamawa", "Gombe", "Borno", "Taraba"],
+        "Taraba": ["Taraba", "Adamawa", "Gombe", "Plateau", "Benue"],
+    }
+    
+    def get_proximity_score(auction_location: str, buyer_loc: str) -> int:
+        """Calculate proximity score (lower = closer)"""
+        if not buyer_loc:
+            return 999
+        
+        buyer_state = None
+        auction_state = None
+        
+        # Extract state from location string
+        for state in NIGERIAN_REGIONS.keys():
+            if state.lower() in buyer_loc.lower():
+                buyer_state = state
+            if state.lower() in auction_location.lower():
+                auction_state = state
+        
+        if not buyer_state or not auction_state:
+            return 999
+        
+        if buyer_state == auction_state:
+            return 0  # Same state
+        
+        nearby_states = NIGERIAN_REGIONS.get(buyer_state, [])
+        if auction_state in nearby_states:
+            return nearby_states.index(auction_state) + 1  # Nearby states
+        
+        return 50  # Far away
+    
     # Sort options
     sort_options = {
         "newest": [("created_at", -1)],
