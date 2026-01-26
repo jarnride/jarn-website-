@@ -87,13 +87,22 @@ export default function Auth() {
     
     setLoading(true);
     try {
-      const response = await axios.post(`${API}/auth/register`, {
+      const payload = {
         name: registerForm.name,
         email: registerForm.email,
         password: registerForm.password,
         role: registerForm.role,
         phone: registerForm.phone || null
-      });
+      };
+      
+      // Add seller payout details for farmers
+      if (registerForm.role === 'farmer') {
+        payload.bank_name = registerForm.bank_name || null;
+        payload.bank_account_number = registerForm.bank_account_number || null;
+        payload.national_id = registerForm.national_id || null;
+      }
+      
+      const response = await axios.post(`${API}/auth/register`, payload);
       
       if (response.data.email_verification_required) {
         setRegisteredEmail(registerForm.email);
