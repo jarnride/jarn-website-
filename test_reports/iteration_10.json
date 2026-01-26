@@ -1,0 +1,103 @@
+{
+  "summary": "Tested Bank Details feature for Farmer Registration. Backend: 11/12 tests passed (1 skipped due to SendGrid not in mock mode). Frontend: All UI tests passed - bank details form shows only for Farmer role, validation works correctly.",
+  
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  
+  "passed_tests": [
+    "Backend: Farmer registration with valid bank details (bank_name, bank_account_number, national_id)",
+    "Backend: Farmer registration without bank details (optional at registration)",
+    "Backend: Buyer registration without bank details (not required)",
+    "Backend: Invalid account number length validation (must be 10 digits)",
+    "Backend: Invalid NIN length validation (must be 11 digits)",
+    "Backend: Non-numeric account number validation",
+    "Backend: GET /api/auth/me returns bank details for farmers (bank_name, bank_account_number, national_id, payout_details_complete)",
+    "Backend: GET /api/auth/me does NOT return bank details for buyers",
+    "Backend: PUT /api/sellers/me/payout-details - farmer can update payout details",
+    "Backend: PUT /api/sellers/me/payout-details - buyer cannot update (403)",
+    "Backend: PUT /api/sellers/me/payout-details - unauthenticated cannot update (401)",
+    "Frontend: Bank details form is hidden when Buyer role is selected",
+    "Frontend: Bank details form is visible when Farmer role is selected",
+    "Frontend: All bank detail fields present (Bank Name, Account Number, NIN)",
+    "Frontend: Bank details form hides when switching from Farmer to Buyer",
+    "Frontend: Farmer registration with valid bank details succeeds",
+    "Frontend: Buyer registration without bank details succeeds",
+    "Frontend: NIN validation error shown for invalid NIN (less than 11 digits)"
+  ],
+  
+  "skipped_tests": [
+    "Backend: Full farmer registration flow with email verification (skipped - SendGrid not in mock mode)"
+  ],
+  
+  "test_report_links": [
+    "/app/backend/tests/test_bank_details.py",
+    "/app/test_reports/pytest/pytest_bank_details.xml"
+  ],
+  
+  "action_items": [],
+  
+  "critical_code_review_comments": [],
+  
+  "updated_files": [
+    "/app/backend/tests/test_bank_details.py"
+  ],
+  
+  "success_rate": {
+    "backend": "92% (11/12 tests passed, 1 skipped)",
+    "frontend": "100% (all UI tests passed)"
+  },
+  
+  "test_credentials": {
+    "farmer": "john@farm.com / password123",
+    "buyer": "buyer@demo.com / password123"
+  },
+  
+  "seed_data_creation": "Created test farmers and buyers during backend tests (TEST_Farmer_*, TEST_Buyer_*)",
+  
+  "retest_needed": false,
+  
+  "should_main_agent_self_test": false,
+  
+  "context_for_next_testing_agent": "Bank details feature fully tested and working: 1) Farmer registration form shows bank details fields (Bank Name, Account Number, NIN) only when Farmer role is selected. 2) Bank details are optional at registration but required for payout processing. 3) Account number must be 10 digits, NIN must be 11 digits. 4) GET /api/auth/me returns bank details for farmers. 5) PUT /api/sellers/me/payout-details allows farmers to update their payout details. 6) Buyers cannot access payout details endpoints.",
+  
+  "mocked_apis": {
+    "email_service": "MOCKED - SendGrid (403 error - sender not verified, falls back to mock)",
+    "sms_verification": "MOCKED - Twilio returns mock OTP",
+    "paypal": "MOCKED - PayPal sandbox mode"
+  },
+  
+  "features_verified": {
+    "farmer_registration_with_bank_details": {
+      "status": "WORKING",
+      "details": "Farmers can register with bank_name, bank_account_number, national_id. Fields are optional at registration but stored in database."
+    },
+    "bank_details_validation": {
+      "status": "WORKING",
+      "details": "Account number must be 10 digits (numeric), NIN must be 11 digits (numeric). Validation enforced on PUT /api/sellers/me/payout-details."
+    },
+    "get_auth_me_bank_details": {
+      "status": "WORKING",
+      "details": "GET /api/auth/me returns bank_name, bank_account_number, national_id, payout_details_complete for farmers. Buyers do not see these fields."
+    },
+    "update_payout_details": {
+      "status": "WORKING",
+      "details": "PUT /api/sellers/me/payout-details allows farmers to update their payout details. Returns 403 for buyers, 401 for unauthenticated."
+    },
+    "frontend_conditional_bank_form": {
+      "status": "WORKING",
+      "details": "Bank details form (Bank Name, Account Number, NIN) only shows when Farmer role is selected. Hidden for Buyer role."
+    },
+    "frontend_validation": {
+      "status": "WORKING",
+      "details": "Frontend validates account number (10 digits) and NIN (11 digits) before submission. Shows toast error for invalid values."
+    }
+  }
+}
