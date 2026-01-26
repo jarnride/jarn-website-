@@ -674,6 +674,18 @@ export default function AuctionDetail() {
                       <CreditCard className="w-5 h-5 mr-2" />
                       Pay {currencySymbol}{auction.current_bid.toFixed(2)}
                     </Button>
+                    <Button
+                      variant="outline"
+                      className="w-full rounded-full border-red-300 text-red-600 hover:bg-red-50"
+                      onClick={() => setShowCancelModal(true)}
+                      data-testid="cancel-purchase-btn"
+                    >
+                      <XCircle className="w-5 h-5 mr-2" />
+                      Cancel Purchase
+                    </Button>
+                    <p className="text-xs text-muted-foreground text-center">
+                      Note: Cancelling twice will result in account suspension.
+                    </p>
                   </div>
                 ) : isBuyNowOnly && canBuyNow ? (
                   /* Buy Now Only - No Bidding */
