@@ -1721,6 +1721,14 @@ async def create_auction(request: Request, data: AuctionCreate, user: dict = Dep
     }
     
     await db.auctions.insert_one(auction_doc)
+    
+    # Increment free trial usage if applicable
+    if allowance.get("listing_type") in ["free_trial", "free_trial_eligible"]:
+        await db.users.update_one(
+            {"id": user["id"]},
+            {"$inc": {"free_trial_listings_used": 1}}
+        )
+    
     return {k: v for k, v in auction_doc.items() if k != "_id"}
 
 @api_router.get("/auctions/{auction_id}")
