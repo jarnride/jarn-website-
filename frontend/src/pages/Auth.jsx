@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Gavel, Mail, Lock, User, Tractor, ShoppingCart, Phone, CheckCircle, Send } from 'lucide-react';
+import { Gavel, Mail, Lock, User, Tractor, ShoppingCart, Phone, CheckCircle, Send, Building2, CreditCard, IdCard } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
