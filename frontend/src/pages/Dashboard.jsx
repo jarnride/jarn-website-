@@ -199,6 +199,9 @@ export default function Dashboard() {
         ) : user.role === 'farmer' ? (
           // Farmer Dashboard
           <>
+            {/* Free Trial Banner */}
+            <SellerTrialBanner />
+
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
               <Card>
