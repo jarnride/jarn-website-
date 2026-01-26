@@ -1760,6 +1760,14 @@ async def get_auction_bids(auction_id: str, limit: int = 20):
 @api_router.post("/auctions/{auction_id}/bids")
 @limiter.limit("30/minute")
 async def place_bid(request: Request, auction_id: str, data: BidCreate, user: dict = Depends(get_current_user)):
+    # Check if buyer is suspended
+    is_suspended, suspended_until = await check_buyer_suspended(user["id"])
+    if is_suspended:
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Your account is suspended until {suspended_until} due to multiple auction cancellations."
+        )
+    
     auction = await db.auctions.find_one({"id": auction_id}, {"_id": 0})
     if not auction:
         raise HTTPException(status_code=404, detail="Auction not found")
