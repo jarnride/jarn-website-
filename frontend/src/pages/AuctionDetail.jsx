@@ -1081,6 +1081,68 @@ export default function AuctionDetail() {
         onSubmit={handleReviewSubmit}
         loading={confirmingDelivery}
       />
+
+      {/* Cancel Purchase Modal */}
+      <Dialog open={showCancelModal} onOpenChange={setShowCancelModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-red-600 flex items-center gap-2">
+              <XCircle className="w-5 h-5" />
+              Cancel Purchase
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to cancel this purchase? The listing will be reactivated for other buyers.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
+              <p className="text-sm text-amber-800">
+                <AlertCircle className="w-4 h-4 inline mr-1" />
+                <strong>Warning:</strong> Cancelling a winning bid twice within 90 days will result in a 30-day account suspension.
+              </p>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="cancel-reason">Reason for cancellation (optional)</Label>
+              <Textarea
+                id="cancel-reason"
+                placeholder="Please let us know why you're cancelling..."
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                className="resize-none"
+                rows={3}
+              />
+            </div>
+          </div>
+          
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => setShowCancelModal(false)}
+            >
+              Keep Purchase
+            </Button>
+            <Button
+              variant="destructive"
+              className="flex-1"
+              onClick={handleCancelWin}
+              disabled={cancelling}
+              data-testid="confirm-cancel-btn"
+            >
+              {cancelling ? (
+                <span className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Cancelling...
+                </span>
+              ) : (
+                'Confirm Cancel'
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
