@@ -61,7 +61,7 @@ EMAIL_FROM = os.environ.get('EMAIL_FROM', 'noreply@jarnnmarket.com')
 EMAIL_MOCK_MODE = EMAIL_PROVIDER == 'MOCK'
 
 # Frontend URL for verification links
-FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://jarnnmarket.preview.emergentagent.com')
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://agroauction-hub.preview.emergentagent.com')
 
 # High-value bid threshold for notifications
 HIGH_VALUE_BID_THRESHOLD = float(os.environ.get('HIGH_VALUE_BID_THRESHOLD', '100'))
