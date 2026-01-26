@@ -2156,6 +2156,128 @@ async def get_my_escrows(user: dict = Depends(get_current_user)):
     ).sort("created_at", -1).to_list(100)
     return escrows
 
+# ================== BUYER CANCELLATION ROUTES ==================
+
+@api_router.post("/auctions/{auction_id}/cancel-win")
+async def cancel_auction_win(auction_id: str, data: CancelAuctionWin, user: dict = Depends(get_current_user)):
+    """Cancel a winning bid - counts towards suspension threshold"""
+    auction = await db.auctions.find_one({"id": auction_id}, {"_id": 0})
+    if not auction:
+        raise HTTPException(status_code=404, detail="Auction not found")
+    
+    if auction.get("winner_id") != user["id"]:
+        raise HTTPException(status_code=403, detail="You are not the winner of this auction")
+    
+    # Check if already paid
+    if auction.get("is_paid"):
+        raise HTTPException(status_code=400, detail="Cannot cancel - auction already paid")
+    
+    # Record the cancellation
+    result = await record_buyer_cancellation(user["id"], auction_id, data.reason)
+    
+    # Reset auction to allow rebidding or relist
+    await db.auctions.update_one(
+        {"id": auction_id},
+        {"$set": {
+            "winner_id": None,
+            "is_active": True,
+            "cancelled_by_winner": True,
+            "cancelled_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Notify seller
+    seller = await db.users.find_one({"id": auction["seller_id"]}, {"_id": 0})
+    if seller:
+        await EmailService.send_email(
+            seller["email"],
+            f"Buyer Cancelled - {auction['title']}",
+            f"""<div style="font-family: Arial, sans-serif;">
+                <h2>Buyer Cancelled Their Win</h2>
+                <p>Hi {seller['name']},</p>
+                <p>Unfortunately, the winning buyer has cancelled their purchase of "{auction['title']}".</p>
+                <p>Your listing has been automatically reactivated for new bids.</p>
+                <p>Reason given: {data.reason or 'No reason provided'}</p>
+            </div>""",
+            f"Hi {seller['name']}, the buyer cancelled their win for '{auction['title']}'. Your listing has been reactivated."
+        )
+    
+    response = {
+        "success": True,
+        "message": "Auction win cancelled",
+        "cancellation_count": result["total_cancellations"],
+        "max_before_suspension": MAX_CANCELLATIONS_BEFORE_SUSPENSION
+    }
+    
+    if result["suspended"]:
+        response["warning"] = f"Your account has been suspended until {result['suspended_until']} due to multiple cancellations."
+        response["suspended"] = True
+        response["suspended_until"] = result["suspended_until"]
+    elif result["total_cancellations"] == MAX_CANCELLATIONS_BEFORE_SUSPENSION - 1:
+        response["warning"] = "Warning: One more cancellation will result in account suspension."
+    
+    return response
+
+@api_router.get("/users/me/cancellations")
+async def get_my_cancellations(user: dict = Depends(get_current_user)):
+    """Get buyer's cancellation history"""
+    ninety_days_ago = (datetime.now(timezone.utc) - timedelta(days=90)).isoformat()
+    cancellations = await db.buyer_cancellations.find(
+        {"user_id": user["id"], "created_at": {"$gte": ninety_days_ago}},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    
+    is_suspended, suspended_until = await check_buyer_suspended(user["id"])
+    
+    return {
+        "cancellations": cancellations,
+        "count": len(cancellations),
+        "max_before_suspension": MAX_CANCELLATIONS_BEFORE_SUSPENSION,
+        "is_suspended": is_suspended,
+        "suspended_until": suspended_until
+    }
+
+# ================== SELLER FREE TRIAL ROUTES ==================
+
+@api_router.get("/sellers/me/listing-allowance")
+async def get_my_listing_allowance(user: dict = Depends(get_current_user)):
+    """Get seller's current listing allowance"""
+    if user.get("role") != "farmer":
+        raise HTTPException(status_code=403, detail="Only sellers can access this")
+    
+    return await get_seller_listing_allowance(user["id"])
+
+@api_router.post("/sellers/activate-free-trial")
+async def activate_free_trial(user: dict = Depends(get_current_user)):
+    """Activate free trial for new sellers"""
+    if user.get("role") != "farmer":
+        raise HTTPException(status_code=403, detail="Only sellers can activate free trial")
+    
+    # Check if already used free trial
+    if user.get("free_trial_start"):
+        raise HTTPException(status_code=400, detail="Free trial already used")
+    
+    now = datetime.now(timezone.utc)
+    trial_end = now + timedelta(days=FREE_TRIAL_DAYS)
+    
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {
+            "free_trial_start": now.isoformat(),
+            "free_trial_listings_used": 0
+        }}
+    )
+    
+    logger.info(f"Free trial activated for seller {user['id']}")
+    
+    return {
+        "success": True,
+        "message": f"Free trial activated! You can create up to {FREE_TRIAL_LISTINGS} listings in the next {FREE_TRIAL_DAYS} days.",
+        "trial_start": now.isoformat(),
+        "trial_end": trial_end.isoformat(),
+        "free_listings": FREE_TRIAL_LISTINGS
+    }
+
 # ================== OFFER ROUTES ==================
 
 @api_router.post("/auctions/{auction_id}/offers")
