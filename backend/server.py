@@ -1870,6 +1870,14 @@ async def place_bid(request: Request, auction_id: str, data: BidCreate, user: di
 @api_router.post("/auctions/{auction_id}/buy-now")
 @limiter.limit("10/minute")
 async def buy_now(request: Request, auction_id: str, data: BuyNowRequest, user: dict = Depends(get_current_user)):
+    # Check if buyer is suspended
+    is_suspended, suspended_until = await check_buyer_suspended(user["id"])
+    if is_suspended:
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Your account is suspended until {suspended_until} due to multiple auction cancellations."
+        )
+    
     auction = await db.auctions.find_one({"id": auction_id}, {"_id": 0})
     if not auction:
         raise HTTPException(status_code=404, detail="Auction not found")
