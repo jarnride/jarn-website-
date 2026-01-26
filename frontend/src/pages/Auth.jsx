@@ -31,7 +31,11 @@ export default function Auth() {
     password: '', 
     confirmPassword: '',
     phone: '',
-    role: searchParams.get('role') || 'buyer'
+    role: searchParams.get('role') || 'buyer',
+    // Seller payout details
+    bank_name: '',
+    bank_account_number: '',
+    national_id: ''
   });
 
   useEffect(() => {
