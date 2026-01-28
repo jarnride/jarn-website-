@@ -43,8 +43,23 @@ import {
   FileSpreadsheet,
   CheckSquare,
   ShieldCheck,
-  ShieldOff
+  ShieldOff,
+  KeyRound,
+  RotateCcw,
+  AlertTriangle,
+  Receipt,
+  Undo2
 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
