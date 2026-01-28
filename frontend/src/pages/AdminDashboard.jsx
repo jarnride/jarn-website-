@@ -120,14 +120,21 @@ export default function AdminDashboard() {
     try {
       const headers = { Authorization: `Bearer ${token}` };
       
-      const [statsRes, usersRes, auctionsRes, payoutsRes] = await Promise.all([
+      const [statsRes, usersRes, auctionsRes, payoutsRes, ordersRes, escrowsRes] = await Promise.all([
         axios.get(`${API}/admin/stats`, { headers }),
         axios.get(`${API}/admin/users`, { headers }),
         axios.get(`${API}/admin/auctions`, { headers }),
-        axios.get(`${API}/admin/payouts`, { headers })
+        axios.get(`${API}/admin/payouts`, { headers }),
+        axios.get(`${API}/admin/orders`, { headers }).catch(() => ({ data: [] })),
+        axios.get(`${API}/admin/escrows`, { headers }).catch(() => ({ data: [] }))
       ]);
       
       setStats(statsRes.data);
+      setUsers(usersRes.data);
+      setAuctions(auctionsRes.data);
+      setPayouts(payoutsRes.data);
+      setOrders(ordersRes.data);
+      setEscrows(escrowsRes.data);
       setUsers(usersRes.data);
       setAuctions(auctionsRes.data);
       setPayouts(payoutsRes.data);
