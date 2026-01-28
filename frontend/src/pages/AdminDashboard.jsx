@@ -625,7 +625,7 @@ export default function AdminDashboard() {
 
             {/* Tabs */}
             <Tabs defaultValue="users">
-              <TabsList>
+              <TabsList className="flex-wrap">
                 <TabsTrigger value="users">
                   <Users className="w-4 h-4 mr-2" />
                   Users ({filteredUsers.length})
@@ -633,6 +633,14 @@ export default function AdminDashboard() {
                 <TabsTrigger value="auctions">
                   <Gavel className="w-4 h-4 mr-2" />
                   Auctions ({filteredAuctions.length})
+                </TabsTrigger>
+                <TabsTrigger value="orders">
+                  <Receipt className="w-4 h-4 mr-2" />
+                  Orders ({filteredOrders.length})
+                </TabsTrigger>
+                <TabsTrigger value="escrows">
+                  <Shield className="w-4 h-4 mr-2" />
+                  Escrows ({filteredEscrows.length})
                 </TabsTrigger>
                 <TabsTrigger value="payouts">
                   <DollarSign className="w-4 h-4 mr-2" />
