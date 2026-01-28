@@ -3614,6 +3614,232 @@ async def admin_export_transactions(format: str = "json", admin: dict = Depends(
     
     return {"format": "json", "data": transactions, "count": len(transactions)}
 
+# ================== ADDITIONAL ADMIN ACTIONS ==================
+
+class PasswordResetRequest(BaseModel):
+    new_password: str = Field(..., min_length=8, max_length=100)
+
+@api_router.post("/admin/users/{user_id}/reset-password")
+async def admin_reset_password(user_id: str, data: PasswordResetRequest, admin: dict = Depends(verify_admin)):
+    """Admin reset password for any user (buyer or seller)"""
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    hashed_password = hash_password(data.new_password)
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {
+            "password_hash": hashed_password,
+            "password_reset_at": datetime.now(timezone.utc).isoformat(),
+            "password_reset_by": admin['email']
+        }}
+    )
+    
+    logger.info(f"Admin {admin['email']} reset password for user {user_id} ({user['email']})")
+    return {"success": True, "message": f"Password reset successfully for {user['email']}"}
+
+@api_router.post("/admin/users/{user_id}/suspend")
+async def admin_suspend_user(user_id: str, days: int = 30, reason: str = "", admin: dict = Depends(verify_admin)):
+    """Suspend a user (buyer or seller) for specified days"""
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if user['role'] == 'admin':
+        raise HTTPException(status_code=400, detail="Cannot suspend admin users")
+    
+    suspension_until = datetime.now(timezone.utc) + timedelta(days=days)
+    
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {
+            "is_suspended": True,
+            "suspended_until": suspension_until.isoformat(),
+            "suspension_reason": reason or "Suspended by admin",
+            "suspended_by": admin['email'],
+            "suspended_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    logger.info(f"Admin {admin['email']} suspended user {user_id} ({user['email']}) for {days} days. Reason: {reason}")
+    return {"success": True, "message": f"User suspended until {suspension_until.strftime('%Y-%m-%d')}", "suspended_until": suspension_until.isoformat()}
+
+@api_router.post("/admin/users/{user_id}/unsuspend")
+async def admin_unsuspend_user(user_id: str, admin: dict = Depends(verify_admin)):
+    """Remove suspension from a user"""
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"is_suspended": False}, "$unset": {"suspended_until": "", "suspension_reason": "", "suspended_by": "", "suspended_at": ""}}
+    )
+    
+    logger.info(f"Admin {admin['email']} unsuspended user {user_id} ({user['email']})")
+    return {"success": True, "message": "User suspension removed"}
+
+@api_router.post("/admin/orders/{auction_id}/cancel")
+async def admin_cancel_order(auction_id: str, reason: str = "", admin: dict = Depends(verify_admin)):
+    """Admin cancel an order/auction"""
+    auction = await db.auctions.find_one({"id": auction_id})
+    if not auction:
+        raise HTTPException(status_code=404, detail="Auction not found")
+    
+    # Update auction status
+    await db.auctions.update_one(
+        {"id": auction_id},
+        {"$set": {
+            "is_active": False,
+            "cancelled": True,
+            "cancelled_by": admin['email'],
+            "cancelled_at": datetime.now(timezone.utc).isoformat(),
+            "cancellation_reason": reason or "Cancelled by admin"
+        }}
+    )
+    
+    # If there's an escrow, mark it for refund
+    escrow = await db.escrow.find_one({"auction_id": auction_id})
+    if escrow and escrow.get('status') == 'pending':
+        await db.escrow.update_one(
+            {"id": escrow['id']},
+            {"$set": {
+                "status": "refunded",
+                "refunded_at": datetime.now(timezone.utc).isoformat(),
+                "refund_reason": "Order cancelled by admin"
+            }}
+        )
+    
+    logger.info(f"Admin {admin['email']} cancelled order {auction_id}. Reason: {reason}")
+    return {"success": True, "message": "Order cancelled successfully"}
+
+@api_router.post("/admin/orders/{auction_id}/relist")
+async def admin_relist_order(auction_id: str, days: int = 7, admin: dict = Depends(verify_admin)):
+    """Relist an unpaid order for a seller"""
+    auction = await db.auctions.find_one({"id": auction_id})
+    if not auction:
+        raise HTTPException(status_code=404, detail="Auction not found")
+    
+    if auction.get('is_paid'):
+        raise HTTPException(status_code=400, detail="Cannot relist a paid auction")
+    
+    # Reset auction for relisting
+    new_end_time = datetime.now(timezone.utc) + timedelta(days=days)
+    
+    await db.auctions.update_one(
+        {"id": auction_id},
+        {"$set": {
+            "is_active": True,
+            "ends_at": new_end_time.isoformat(),
+            "winner_id": None,
+            "current_bid": auction.get('starting_bid', auction.get('current_bid', 0)),
+            "bid_count": 0,
+            "relisted": True,
+            "relisted_at": datetime.now(timezone.utc).isoformat(),
+            "relisted_by": admin['email']
+        },
+        "$unset": {"sold_via": "", "cancelled": ""}}
+    )
+    
+    # Delete any related escrow that's still pending
+    await db.escrow.delete_many({"auction_id": auction_id, "status": "pending"})
+    
+    logger.info(f"Admin {admin['email']} relisted auction {auction_id} for {days} days")
+    return {"success": True, "message": f"Auction relisted for {days} days", "new_end_time": new_end_time.isoformat()}
+
+@api_router.post("/admin/escrow/{escrow_id}/refund")
+async def admin_refund_escrow(escrow_id: str, reason: str = "", admin: dict = Depends(verify_admin)):
+    """Admin refund an escrow payment to buyer"""
+    escrow = await db.escrow.find_one({"id": escrow_id})
+    if not escrow:
+        raise HTTPException(status_code=404, detail="Escrow not found")
+    
+    if escrow.get('status') == 'refunded':
+        raise HTTPException(status_code=400, detail="Escrow already refunded")
+    
+    if escrow.get('status') == 'released':
+        raise HTTPException(status_code=400, detail="Cannot refund released escrow - funds already sent to seller")
+    
+    # Update escrow status
+    await db.escrow.update_one(
+        {"id": escrow_id},
+        {"$set": {
+            "status": "refunded",
+            "refunded_at": datetime.now(timezone.utc).isoformat(),
+            "refunded_by": admin['email'],
+            "refund_reason": reason or "Refunded by admin"
+        }}
+    )
+    
+    # Update auction if exists
+    if escrow.get('auction_id'):
+        await db.auctions.update_one(
+            {"id": escrow['auction_id']},
+            {"$set": {"is_paid": False, "refunded": True}}
+        )
+    
+    # Create notification for buyer
+    await db.notifications.insert_one({
+        "id": str(uuid.uuid4()),
+        "user_id": escrow['buyer_id'],
+        "type": "refund",
+        "title": "Payment Refunded",
+        "message": f"Your payment of {escrow.get('currency', 'NGN')} {escrow['amount']:,.2f} has been refunded. Reason: {reason or 'Admin refund'}",
+        "read": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    logger.info(f"Admin {admin['email']} refunded escrow {escrow_id} ({escrow.get('currency', 'NGN')} {escrow['amount']}). Reason: {reason}")
+    return {"success": True, "message": f"Refund processed for {escrow.get('currency', 'NGN')} {escrow['amount']:,.2f}"}
+
+@api_router.get("/admin/orders")
+async def admin_get_orders(status: str = "", admin: dict = Depends(verify_admin)):
+    """Get all orders (auctions with winners) for admin management"""
+    query = {"winner_id": {"$ne": None}}
+    
+    if status == "paid":
+        query["is_paid"] = True
+    elif status == "unpaid":
+        query["is_paid"] = False
+    elif status == "cancelled":
+        query["cancelled"] = True
+    
+    orders = await db.auctions.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
+    
+    # Enrich with buyer and seller info
+    for order in orders:
+        buyer = await db.users.find_one({"id": order.get('winner_id')}, {"_id": 0, "name": 1, "email": 1})
+        seller = await db.users.find_one({"id": order.get('seller_id')}, {"_id": 0, "name": 1, "email": 1})
+        order['buyer'] = buyer
+        order['seller'] = seller
+        
+        # Get escrow info
+        escrow = await db.escrow.find_one({"auction_id": order['id']}, {"_id": 0})
+        order['escrow'] = escrow
+    
+    return orders
+
+@api_router.get("/admin/escrows")
+async def admin_get_escrows(status: str = "", admin: dict = Depends(verify_admin)):
+    """Get all escrows for admin management"""
+    query = {}
+    if status:
+        query["status"] = status
+    
+    escrows = await db.escrow.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
+    
+    # Enrich with buyer, seller, and auction info
+    for escrow in escrows:
+        buyer = await db.users.find_one({"id": escrow.get('buyer_id')}, {"_id": 0, "name": 1, "email": 1})
+        seller = await db.users.find_one({"id": escrow.get('seller_id')}, {"_id": 0, "name": 1, "email": 1})
+        auction = await db.auctions.find_one({"id": escrow.get('auction_id')}, {"_id": 0, "title": 1})
+        escrow['buyer'] = buyer
+        escrow['seller'] = seller
+        escrow['auction'] = auction
+    
+    return escrows
+
 # ================== SELLER ANALYTICS ROUTES ==================
 
 @api_router.get("/sellers/me/analytics")
