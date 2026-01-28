@@ -293,6 +293,135 @@ export default function AdminDashboard() {
     }
   };
 
+  // New admin action handlers
+  const handleResetPassword = async () => {
+    if (!newPassword || newPassword.length < 8) {
+      toast.error('Password must be at least 8 characters');
+      return;
+    }
+    setProcessingId(resetPasswordDialog.user?.id);
+    try {
+      await axios.post(
+        `${API}/admin/users/${resetPasswordDialog.user.id}/reset-password`,
+        { new_password: newPassword },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success(`Password reset for ${resetPasswordDialog.user.email}`);
+      setResetPasswordDialog({ open: false, user: null });
+      setNewPassword('');
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to reset password');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleSuspendUser = async () => {
+    setProcessingId(suspendDialog.user?.id);
+    try {
+      await axios.post(
+        `${API}/admin/users/${suspendDialog.user.id}/suspend`,
+        null,
+        { 
+          headers: { Authorization: `Bearer ${token}` },
+          params: { days: suspendDays, reason: suspendReason }
+        }
+      );
+      toast.success(`User suspended for ${suspendDays} days`);
+      setSuspendDialog({ open: false, user: null });
+      setSuspendDays(30);
+      setSuspendReason('');
+      fetchAdminData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to suspend user');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleUnsuspendUser = async (userId) => {
+    setProcessingId(userId);
+    try {
+      await axios.post(
+        `${API}/admin/users/${userId}/unsuspend`,
+        null,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success('User suspension removed');
+      fetchAdminData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to unsuspend user');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleCancelOrder = async () => {
+    setProcessingId(cancelOrderDialog.order?.id);
+    try {
+      await axios.post(
+        `${API}/admin/orders/${cancelOrderDialog.order.id}/cancel`,
+        null,
+        { 
+          headers: { Authorization: `Bearer ${token}` },
+          params: { reason: cancelReason }
+        }
+      );
+      toast.success('Order cancelled');
+      setCancelOrderDialog({ open: false, order: null });
+      setCancelReason('');
+      fetchAdminData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to cancel order');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleRelistOrder = async () => {
+    setProcessingId(relistDialog.order?.id);
+    try {
+      await axios.post(
+        `${API}/admin/orders/${relistDialog.order.id}/relist`,
+        null,
+        { 
+          headers: { Authorization: `Bearer ${token}` },
+          params: { days: relistDays }
+        }
+      );
+      toast.success(`Auction relisted for ${relistDays} days`);
+      setRelistDialog({ open: false, order: null });
+      setRelistDays(7);
+      fetchAdminData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to relist order');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleRefund = async () => {
+    setProcessingId(refundDialog.escrow?.id);
+    try {
+      await axios.post(
+        `${API}/admin/escrow/${refundDialog.escrow.id}/refund`,
+        null,
+        { 
+          headers: { Authorization: `Bearer ${token}` },
+          params: { reason: refundReason }
+        }
+      );
+      toast.success('Refund processed');
+      setRefundDialog({ open: false, escrow: null });
+      setRefundReason('');
+      fetchAdminData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to process refund');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
   const toggleUserSelection = (userId) => {
     setSelectedUsers(prev => 
       prev.includes(userId) 
