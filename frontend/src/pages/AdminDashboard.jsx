@@ -71,12 +71,29 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState([]);
   const [auctions, setAuctions] = useState([]);
   const [payouts, setPayouts] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [escrows, setEscrows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [processingId, setProcessingId] = useState(null);
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [selectedPayouts, setSelectedPayouts] = useState([]);
   const [bulkProcessing, setBulkProcessing] = useState(false);
+  
+  // Dialog states
+  const [resetPasswordDialog, setResetPasswordDialog] = useState({ open: false, user: null });
+  const [suspendDialog, setSuspendDialog] = useState({ open: false, user: null });
+  const [cancelOrderDialog, setCancelOrderDialog] = useState({ open: false, order: null });
+  const [relistDialog, setRelistDialog] = useState({ open: false, order: null });
+  const [refundDialog, setRefundDialog] = useState({ open: false, escrow: null });
+  
+  // Form states
+  const [newPassword, setNewPassword] = useState('');
+  const [suspendDays, setSuspendDays] = useState(30);
+  const [suspendReason, setSuspendReason] = useState('');
+  const [cancelReason, setCancelReason] = useState('');
+  const [relistDays, setRelistDays] = useState(7);
+  const [refundReason, setRefundReason] = useState('');
 
   useEffect(() => {
     // Wait for auth to finish loading
