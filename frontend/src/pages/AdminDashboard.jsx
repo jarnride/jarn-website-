@@ -465,6 +465,18 @@ export default function AdminDashboard() {
     a.seller_name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const filteredOrders = orders.filter(o => 
+    o.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    o.buyer?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    o.seller?.email?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredEscrows = escrows.filter(e => 
+    e.buyer?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    e.seller?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    e.auction?.title?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   if (!user) return null;
 
   return (
