@@ -733,6 +733,9 @@ export default function AdminDashboard() {
                                 {u.is_active === false && (
                                   <Badge variant="destructive" className="text-xs">Disabled</Badge>
                                 )}
+                                {u.is_suspended && (
+                                  <Badge variant="outline" className="text-xs text-amber-600 border-amber-300">Suspended</Badge>
+                                )}
                               </div>
                             </TableCell>
                             <TableCell>
@@ -753,6 +756,26 @@ export default function AdminDashboard() {
                                       <><Ban className="w-4 h-4 mr-2 text-red-500" /> Deactivate</>
                                     )}
                                   </DropdownMenuItem>
+                                  
+                                  <DropdownMenuSeparator />
+                                  
+                                  <DropdownMenuItem onClick={() => setResetPasswordDialog({ open: true, user: u })}>
+                                    <KeyRound className="w-4 h-4 mr-2" />
+                                    Reset Password
+                                  </DropdownMenuItem>
+                                  
+                                  {u.is_suspended ? (
+                                    <DropdownMenuItem onClick={() => handleUnsuspendUser(u.id)}>
+                                      <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
+                                      Remove Suspension
+                                    </DropdownMenuItem>
+                                  ) : (
+                                    <DropdownMenuItem onClick={() => setSuspendDialog({ open: true, user: u })}>
+                                      <AlertTriangle className="w-4 h-4 mr-2 text-amber-500" />
+                                      Suspend User
+                                    </DropdownMenuItem>
+                                  )}
+                                  
                                   {u.role === 'farmer' && (
                                     <>
                                       <DropdownMenuSeparator />
