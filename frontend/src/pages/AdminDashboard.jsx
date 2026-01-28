@@ -978,10 +978,373 @@ export default function AdminDashboard() {
                   </CardContent>
                 </Card>
               </TabsContent>
+
+              {/* Orders Tab */}
+              <TabsContent value="orders" className="mt-6">
+                <Card>
+                  <CardContent className="p-0">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Order</TableHead>
+                          <TableHead>Buyer</TableHead>
+                          <TableHead>Seller</TableHead>
+                          <TableHead>Amount</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredOrders.length > 0 ? filteredOrders.map(o => (
+                          <TableRow key={o.id}>
+                            <TableCell className="font-medium max-w-[200px] truncate">
+                              {o.title}
+                            </TableCell>
+                            <TableCell>{o.buyer?.email || 'N/A'}</TableCell>
+                            <TableCell>{o.seller?.email || 'N/A'}</TableCell>
+                            <TableCell className="font-mono font-bold">
+                              {o.currency === 'NGN' ? '₦' : '$'}{o.current_bid?.toLocaleString()}
+                            </TableCell>
+                            <TableCell>
+                              {o.cancelled ? (
+                                <Badge variant="destructive">Cancelled</Badge>
+                              ) : o.is_paid ? (
+                                <Badge variant="success" className="bg-green-100 text-green-800">Paid</Badge>
+                              ) : (
+                                <Badge variant="secondary">Unpaid</Badge>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {new Date(o.created_at).toLocaleDateString()}
+                            </TableCell>
+                            <TableCell>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button size="sm" variant="ghost">
+                                    <MoreHorizontal className="w-4 h-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  {!o.is_paid && !o.cancelled && (
+                                    <>
+                                      <DropdownMenuItem onClick={() => setRelistDialog({ open: true, order: o })}>
+                                        <RotateCcw className="w-4 h-4 mr-2" />
+                                        Relist Auction
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem 
+                                        onClick={() => setCancelOrderDialog({ open: true, order: o })}
+                                        className="text-red-600"
+                                      >
+                                        <XCircle className="w-4 h-4 mr-2" />
+                                        Cancel Order
+                                      </DropdownMenuItem>
+                                    </>
+                                  )}
+                                  {o.cancelled && (
+                                    <DropdownMenuItem disabled className="text-muted-foreground">
+                                      Order already cancelled
+                                    </DropdownMenuItem>
+                                  )}
+                                  {o.is_paid && (
+                                    <DropdownMenuItem disabled className="text-muted-foreground">
+                                      Order already paid
+                                    </DropdownMenuItem>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        )) : (
+                          <TableRow>
+                            <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                              No orders found
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Escrows Tab */}
+              <TabsContent value="escrows" className="mt-6">
+                <Card>
+                  <CardContent className="p-0">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>ID</TableHead>
+                          <TableHead>Auction</TableHead>
+                          <TableHead>Buyer</TableHead>
+                          <TableHead>Seller</TableHead>
+                          <TableHead>Amount</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredEscrows.length > 0 ? filteredEscrows.map(e => (
+                          <TableRow key={e.id}>
+                            <TableCell className="font-mono text-xs">
+                              {e.id?.slice(0, 8)}...
+                            </TableCell>
+                            <TableCell className="max-w-[150px] truncate">
+                              {e.auction?.title || 'N/A'}
+                            </TableCell>
+                            <TableCell>{e.buyer?.email || 'N/A'}</TableCell>
+                            <TableCell>{e.seller?.email || 'N/A'}</TableCell>
+                            <TableCell className="font-mono font-bold">
+                              {e.currency === 'NGN' ? '₦' : '$'}{e.amount?.toLocaleString()}
+                            </TableCell>
+                            <TableCell>
+                              <Badge 
+                                variant={
+                                  e.status === 'released' ? 'success' : 
+                                  e.status === 'refunded' ? 'destructive' : 
+                                  'secondary'
+                                }
+                                className={e.status === 'released' ? 'bg-green-100 text-green-800' : ''}
+                              >
+                                {e.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {e.status === 'pending' && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-red-300 text-red-600 hover:bg-red-50"
+                                  onClick={() => setRefundDialog({ open: true, escrow: e })}
+                                >
+                                  <Undo2 className="w-4 h-4 mr-1" />
+                                  Refund
+                                </Button>
+                              )}
+                              {e.status === 'refunded' && (
+                                <span className="text-xs text-muted-foreground">Refunded</span>
+                              )}
+                              {e.status === 'released' && (
+                                <span className="text-xs text-muted-foreground">Released</span>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        )) : (
+                          <TableRow>
+                            <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                              No escrows found
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              </TabsContent>
             </Tabs>
           </>
         )}
       </div>
+
+      {/* Reset Password Dialog */}
+      <Dialog open={resetPasswordDialog.open} onOpenChange={(open) => !open && setResetPasswordDialog({ open: false, user: null })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <KeyRound className="w-5 h-5" />
+              Reset Password
+            </DialogTitle>
+            <DialogDescription>
+              Reset password for {resetPasswordDialog.user?.email}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="new-password">New Password</Label>
+              <Input
+                id="new-password"
+                type="password"
+                placeholder="Minimum 8 characters"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setResetPasswordDialog({ open: false, user: null })}>
+              Cancel
+            </Button>
+            <Button onClick={handleResetPassword} disabled={processingId}>
+              Reset Password
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Suspend User Dialog */}
+      <Dialog open={suspendDialog.open} onOpenChange={(open) => !open && setSuspendDialog({ open: false, user: null })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-600">
+              <AlertTriangle className="w-5 h-5" />
+              Suspend User
+            </DialogTitle>
+            <DialogDescription>
+              Suspend {suspendDialog.user?.email} ({suspendDialog.user?.role})
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="suspend-days">Suspension Duration (days)</Label>
+              <Input
+                id="suspend-days"
+                type="number"
+                min="1"
+                max="365"
+                value={suspendDays}
+                onChange={(e) => setSuspendDays(parseInt(e.target.value) || 30)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="suspend-reason">Reason (optional)</Label>
+              <Textarea
+                id="suspend-reason"
+                placeholder="Enter reason for suspension..."
+                value={suspendReason}
+                onChange={(e) => setSuspendReason(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSuspendDialog({ open: false, user: null })}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleSuspendUser} disabled={processingId}>
+              Suspend User
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Cancel Order Dialog */}
+      <Dialog open={cancelOrderDialog.open} onOpenChange={(open) => !open && setCancelOrderDialog({ open: false, order: null })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <XCircle className="w-5 h-5" />
+              Cancel Order
+            </DialogTitle>
+            <DialogDescription>
+              Cancel order: {cancelOrderDialog.order?.title}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
+              <p className="text-sm text-amber-800">
+                This will cancel the order and refund any pending escrow to the buyer.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cancel-reason">Reason (optional)</Label>
+              <Textarea
+                id="cancel-reason"
+                placeholder="Enter reason for cancellation..."
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCancelOrderDialog({ open: false, order: null })}>
+              Keep Order
+            </Button>
+            <Button variant="destructive" onClick={handleCancelOrder} disabled={processingId}>
+              Cancel Order
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Relist Order Dialog */}
+      <Dialog open={relistDialog.open} onOpenChange={(open) => !open && setRelistDialog({ open: false, order: null })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <RotateCcw className="w-5 h-5" />
+              Relist Auction
+            </DialogTitle>
+            <DialogDescription>
+              Relist unpaid order: {relistDialog.order?.title}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-sm text-blue-800">
+                This will reset the auction and make it available for bidding again.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="relist-days">New Duration (days)</Label>
+              <Input
+                id="relist-days"
+                type="number"
+                min="1"
+                max="30"
+                value={relistDays}
+                onChange={(e) => setRelistDays(parseInt(e.target.value) || 7)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRelistDialog({ open: false, order: null })}>
+              Cancel
+            </Button>
+            <Button onClick={handleRelistOrder} disabled={processingId}>
+              Relist Auction
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Refund Dialog */}
+      <Dialog open={refundDialog.open} onOpenChange={(open) => !open && setRefundDialog({ open: false, escrow: null })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <Undo2 className="w-5 h-5" />
+              Process Refund
+            </DialogTitle>
+            <DialogDescription>
+              Refund {refundDialog.escrow?.currency === 'NGN' ? '₦' : '$'}{refundDialog.escrow?.amount?.toLocaleString()} to buyer
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="p-3 bg-red-50 rounded-lg border border-red-200">
+              <p className="text-sm text-red-800">
+                This will refund the escrow amount to the buyer and mark the order as refunded.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="refund-reason">Reason (optional)</Label>
+              <Textarea
+                id="refund-reason"
+                placeholder="Enter reason for refund..."
+                value={refundReason}
+                onChange={(e) => setRefundReason(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRefundDialog({ open: false, escrow: null })}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleRefund} disabled={processingId}>
+              Process Refund
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
