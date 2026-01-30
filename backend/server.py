@@ -4620,6 +4620,177 @@ async def get_campaign_stats(admin: dict = Depends(verify_admin)):
     }
     return stats
 
+# Automated campaign scheduling configuration
+class AutoScheduleConfig(BaseModel):
+    campaign_type: CampaignType
+    day_of_week: int = Field(ge=0, le=6, description="0=Monday, 6=Sunday")
+    hour: int = Field(ge=0, le=23, description="Hour in UTC")
+    target_audience: str = Field(default="all", pattern="^(all|buyers|farmers|inactive)$")
+    enabled: bool = True
+
+@api_router.get("/admin/campaigns/auto-schedules")
+async def get_auto_schedules(admin: dict = Depends(verify_admin)):
+    """Get all automated campaign schedules"""
+    schedules = await db.campaign_auto_schedules.find({}, {"_id": 0}).to_list(20)
+    return schedules
+
+@api_router.post("/admin/campaigns/auto-schedules")
+async def create_auto_schedule(data: AutoScheduleConfig, admin: dict = Depends(verify_admin)):
+    """Create an automated campaign schedule (e.g., weekly highlights every Monday at 9am)"""
+    schedule_id = str(uuid.uuid4())
+    days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    
+    schedule = {
+        "id": schedule_id,
+        "campaign_type": data.campaign_type.value,
+        "day_of_week": data.day_of_week,
+        "day_name": days[data.day_of_week],
+        "hour": data.hour,
+        "target_audience": data.target_audience,
+        "enabled": data.enabled,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_by": admin['email'],
+        "last_run": None,
+        "run_count": 0
+    }
+    
+    await db.campaign_auto_schedules.insert_one(schedule.copy())
+    logger.info(f"Admin {admin['email']} created auto-schedule {schedule_id}")
+    
+    return {"success": True, "schedule_id": schedule_id, "schedule": schedule}
+
+@api_router.put("/admin/campaigns/auto-schedules/{schedule_id}")
+async def update_auto_schedule(schedule_id: str, data: AutoScheduleConfig, admin: dict = Depends(verify_admin)):
+    """Update an automated campaign schedule"""
+    days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    
+    result = await db.campaign_auto_schedules.update_one(
+        {"id": schedule_id},
+        {"$set": {
+            "campaign_type": data.campaign_type.value,
+            "day_of_week": data.day_of_week,
+            "day_name": days[data.day_of_week],
+            "hour": data.hour,
+            "target_audience": data.target_audience,
+            "enabled": data.enabled,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Schedule not found")
+    
+    return {"success": True, "message": "Schedule updated"}
+
+@api_router.delete("/admin/campaigns/auto-schedules/{schedule_id}")
+async def delete_auto_schedule(schedule_id: str, admin: dict = Depends(verify_admin)):
+    """Delete an automated campaign schedule"""
+    result = await db.campaign_auto_schedules.delete_one({"id": schedule_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Schedule not found")
+    return {"success": True, "message": "Schedule deleted"}
+
+# Internal endpoint for cron job to run automated campaigns
+@api_router.post("/internal/run-auto-campaigns")
+async def run_auto_campaigns():
+    """Check and run any due automated campaigns (called by cron every hour)"""
+    now = datetime.now(timezone.utc)
+    current_day = now.weekday()  # 0=Monday
+    current_hour = now.hour
+    
+    # Find schedules that should run now
+    due_schedules = await db.campaign_auto_schedules.find({
+        "enabled": True,
+        "day_of_week": current_day,
+        "hour": current_hour
+    }, {"_id": 0}).to_list(10)
+    
+    results = []
+    
+    for schedule in due_schedules:
+        # Check if already run today
+        if schedule.get("last_run"):
+            last_run = datetime.fromisoformat(schedule["last_run"].replace('Z', '+00:00'))
+            if last_run.date() == now.date():
+                continue  # Already ran today
+        
+        try:
+            # Get target users
+            user_filter = {"is_active": True}
+            if schedule['target_audience'] == 'buyers':
+                user_filter['role'] = 'buyer'
+            elif schedule['target_audience'] == 'farmers':
+                user_filter['role'] = 'farmer'
+            elif schedule['target_audience'] == 'inactive':
+                thirty_days_ago = (now - timedelta(days=30)).isoformat()
+                user_filter['last_login'] = {"$lt": thirty_days_ago}
+            
+            users = await db.users.find(user_filter, {"_id": 0, "email": 1, "name": 1, "role": 1, "last_login": 1}).to_list(500)
+            
+            sent_count = 0
+            campaign_type = schedule['campaign_type']
+            
+            # Send appropriate campaign type
+            if campaign_type == 'weekly_highlights':
+                auctions = await db.auctions.find({"is_active": True}, {"_id": 0}).sort("current_bid", -1).to_list(10)
+                for user in users:
+                    try:
+                        await MarketingEmailService.send_weekly_auction_highlights(user['email'], user['name'], auctions)
+                        sent_count += 1
+                    except:
+                        pass
+            
+            elif campaign_type == 'seller_promotions':
+                sellers = await db.users.find({"role": "farmer", "is_verified": True}, {"_id": 0}).sort("rating", -1).to_list(10)
+                for user in users:
+                    try:
+                        await MarketingEmailService.send_seller_promotions(user['email'], user['name'], sellers)
+                        sent_count += 1
+                    except:
+                        pass
+            
+            elif campaign_type == 'auction_ending':
+                tomorrow = now + timedelta(hours=24)
+                ending = await db.auctions.find({"is_active": True, "ends_at": {"$lt": tomorrow.isoformat()}}, {"_id": 0}).to_list(20)
+                for user in users:
+                    try:
+                        await MarketingEmailService.send_auction_ending_soon(user['email'], user['name'], ending)
+                        sent_count += 1
+                    except:
+                        pass
+            
+            # Update schedule
+            await db.campaign_auto_schedules.update_one(
+                {"id": schedule['id']},
+                {"$set": {
+                    "last_run": now.isoformat(),
+                    "run_count": schedule.get("run_count", 0) + 1
+                }}
+            )
+            
+            # Log the campaign
+            await db.marketing_campaigns.insert_one({
+                "id": str(uuid.uuid4()),
+                "type": campaign_type,
+                "target_audience": schedule['target_audience'],
+                "status": "sent",
+                "auto_schedule_id": schedule['id'],
+                "created_at": now.isoformat(),
+                "created_by": "system@jarnnmarket.com",
+                "sent_at": now.isoformat(),
+                "sent_count": sent_count,
+                "failed_count": len(users) - sent_count
+            })
+            
+            results.append({"schedule_id": schedule['id'], "sent_count": sent_count})
+            logger.info(f"[AUTO CAMPAIGN] Ran {campaign_type} - sent to {sent_count} users")
+            
+        except Exception as e:
+            logger.error(f"[AUTO CAMPAIGN ERROR] {schedule['id']}: {e}")
+            results.append({"schedule_id": schedule['id'], "error": str(e)})
+    
+    return {"processed": len(results), "results": results}
+
 # Scheduled campaign check endpoint (to be called by cron/scheduler)
 @api_router.post("/internal/process-scheduled-campaigns")
 async def process_scheduled_campaigns():
