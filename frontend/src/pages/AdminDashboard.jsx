@@ -719,6 +719,10 @@ export default function AdminDashboard() {
                   <DollarSign className="w-4 h-4 mr-2" />
                   Payouts ({payouts.length})
                 </TabsTrigger>
+                <TabsTrigger value="marketing">
+                  <Mail className="w-4 h-4 mr-2" />
+                  Marketing ({campaigns.length})
+                </TabsTrigger>
               </TabsList>
 
               {/* Users Tab */}
