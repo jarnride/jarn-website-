@@ -53,10 +53,13 @@ PAYPAL_CLIENT_SECRET = os.environ.get('PAYPAL_CLIENT_SECRET', 'MOCK_SECRET')
 PAYPAL_MODE = os.environ.get('PAYPAL_MODE', 'sandbox')
 PAYPAL_MOCK_MODE = PAYPAL_CLIENT_ID == 'MOCK_CLIENT_ID'
 
-# Email config (MOCK MODE)
+# Email config
 EMAIL_PROVIDER = os.environ.get('EMAIL_PROVIDER', 'MOCK')
 SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY', '')
 RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '')
+BREVO_API_KEY = os.environ.get('BREVO_API_KEY', '')
+BREVO_SENDER_EMAIL = os.environ.get('BREVO_SENDER_EMAIL', 'info@jarnnmarket.com')
+BREVO_SENDER_NAME = os.environ.get('BREVO_SENDER_NAME', 'Jarnnmarket')
 EMAIL_FROM = os.environ.get('EMAIL_FROM', 'noreply@jarnnmarket.com')
 EMAIL_MOCK_MODE = EMAIL_PROVIDER == 'MOCK'
 
