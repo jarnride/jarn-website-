@@ -1488,7 +1488,13 @@ async def verify_email(request: Request, data: EmailVerificationToken):
     if not verification:
         raise HTTPException(status_code=400, detail="Invalid or expired verification token")
     
-    if datetime.fromisoformat(verification["expires_at"]) < datetime.now(timezone.utc):
+    # Parse expiration date with timezone handling
+    expires_at_str = verification["expires_at"]
+    if expires_at_str.endswith('Z'):
+        expires_at_str = expires_at_str[:-1] + '+00:00'
+    expires_at = datetime.fromisoformat(expires_at_str)
+    
+    if expires_at < datetime.now(timezone.utc):
         raise HTTPException(status_code=400, detail="Verification token has expired. Please register again.")
     
     # Update user's email_verified status
