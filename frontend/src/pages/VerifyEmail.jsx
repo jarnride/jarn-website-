@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import axios from 'axios';
@@ -11,14 +11,16 @@ export default function VerifyEmail() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
+  const hasAttempted = useRef(false);
   
   const [status, setStatus] = useState('verifying'); // verifying, success, error
   const [message, setMessage] = useState('');
 
   useEffect(() => {
-    if (token) {
+    if (token && !hasAttempted.current) {
+      hasAttempted.current = true;
       verifyEmail();
-    } else {
+    } else if (!token) {
       setStatus('error');
       setMessage('Invalid verification link. No token provided.');
     }
