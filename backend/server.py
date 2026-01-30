@@ -147,16 +147,15 @@ def generate_verification_token() -> str:
     """Generate a secure verification token"""
     return str(uuid.uuid4()) + '-' + ''.join(random.choices(string.ascii_letters + string.digits, k=32))
 
-# ================== EMAIL SERVICE (SENDGRID) ==================
+# ================== EMAIL SERVICE (BREVO / SENDGRID) ==================
 
 class EmailService:
-    """Email Service using SendGrid"""
+    """Email Service supporting Brevo (preferred) and SendGrid"""
     
     @staticmethod
     async def send_email(to: str, subject: str, html_body: str, text_body: str = None) -> dict:
         if EMAIL_MOCK_MODE:
             logger.info(f"[MOCK EMAIL] To: {to} | Subject: {subject}")
-            logger.info(f"[MOCK EMAIL] Body: {text_body or html_body[:200]}...")
             return {
                 "success": True,
                 "mock": True,
@@ -164,8 +163,59 @@ class EmailService:
                 "to": to,
                 "subject": subject
             }
-        else:
-            # Real SendGrid implementation
+        
+        # Try Brevo first (preferred)
+        if EMAIL_PROVIDER == 'BREVO' and BREVO_API_KEY:
+            try:
+                import requests
+                
+                payload = {
+                    "sender": {
+                        "name": BREVO_SENDER_NAME,
+                        "email": BREVO_SENDER_EMAIL
+                    },
+                    "to": [{"email": to}],
+                    "subject": subject,
+                    "htmlContent": html_body
+                }
+                
+                if text_body:
+                    payload["textContent"] = text_body
+                
+                response = requests.post(
+                    "https://api.brevo.com/v3/smtp/email",
+                    headers={
+                        "accept": "application/json",
+                        "api-key": BREVO_API_KEY,
+                        "content-type": "application/json"
+                    },
+                    json=payload,
+                    timeout=10
+                )
+                
+                if response.status_code in [200, 201, 202]:
+                    message_id = response.json().get("messageId", "")
+                    logger.info(f"[BREVO EMAIL] Sent to: {to} | Status: {response.status_code} | MessageId: {message_id}")
+                    return {
+                        "success": True,
+                        "mock": False,
+                        "provider": "brevo",
+                        "message_id": message_id,
+                        "status_code": response.status_code,
+                        "to": to,
+                        "subject": subject
+                    }
+                else:
+                    error_msg = response.json().get("message", response.text)
+                    logger.error(f"[BREVO EMAIL ERROR] Status: {response.status_code} | Error: {error_msg}")
+                    raise Exception(f"Brevo API error: {error_msg}")
+                    
+            except Exception as e:
+                logger.error(f"[BREVO EMAIL ERROR] {str(e)}")
+                # Fall through to SendGrid or mock
+        
+        # Fallback to SendGrid
+        if SENDGRID_API_KEY:
             try:
                 from sendgrid import SendGridAPIClient
                 from sendgrid.helpers.mail import Mail, Email, To, Content
@@ -186,22 +236,23 @@ class EmailService:
                 return {
                     "success": response.status_code in [200, 201, 202],
                     "mock": False,
+                    "provider": "sendgrid",
                     "status_code": response.status_code,
                     "to": to,
                     "subject": subject
                 }
             except Exception as e:
                 logger.error(f"[SENDGRID EMAIL ERROR] {str(e)}")
-                # Fallback to mock on error
-                logger.info(f"[FALLBACK MOCK EMAIL] To: {to} | Subject: {subject}")
-                return {
-                    "success": True,
-                    "mock": True,
-                    "message_id": f"MOCK_EMAIL_{uuid.uuid4().hex[:12]}",
-                    "to": to,
-                    "subject": subject,
-                    "error_note": str(e)
-                }
+        
+        # Final fallback to mock
+        logger.info(f"[FALLBACK MOCK EMAIL] To: {to} | Subject: {subject}")
+        return {
+            "success": True,
+            "mock": True,
+            "message_id": f"MOCK_EMAIL_{uuid.uuid4().hex[:12]}",
+            "to": to,
+            "subject": subject
+        }
     
     @staticmethod
     async def send_verification_email(email: str, name: str, token: str) -> dict:
@@ -234,78 +285,122 @@ class EmailService:
         return await EmailService.send_email(email, subject, html_body, text_body)
     
     @staticmethod
-    async def send_new_bid_notification(seller_email: str, seller_name: str, auction_title: str, bid_amount: float, bidder_name: str):
-        subject = f"New Bid on '{auction_title}' - ${bid_amount:.2f}"
+    async def send_password_reset_email(email: str, name: str, reset_link: str) -> dict:
+        """Send password reset link to user"""
+        subject = "Reset Your Password - Jarnnmarket"
         html_body = f"""
-        <h2>New Bid Received!</h2>
-        <p>Hi {seller_name},</p>
-        <p>Great news! <strong>{bidder_name}</strong> placed a bid of <strong>${bid_amount:.2f}</strong> on your auction:</p>
-        <p><strong>{auction_title}</strong></p>
-        <p>Log in to jarnnmarket to view your auction.</p>
-        <p>Best regards,<br>jarnnmarket Team</p>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #dc2626;">Reset Your Password</h2>
+            <p>Hi {name},</p>
+            <p>We received a request to reset your password. Click the button below to set a new password:</p>
+            <div style="margin: 30px 0;">
+                <a href="{reset_link}" 
+                   style="background-color: #dc2626; color: white; padding: 12px 30px; text-decoration: none; border-radius: 25px; display: inline-block;">
+                    Reset Password
+                </a>
+            </div>
+            <p style="color: #666; font-size: 14px;">
+                Or copy and paste this link into your browser:<br>
+                <a href="{reset_link}" style="color: #dc2626;">{reset_link}</a>
+            </p>
+            <p style="color: #666; font-size: 14px;"><strong>This link will expire in 15 minutes.</strong></p>
+            <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+            <p style="color: #999; font-size: 12px;">
+                If you didn't request a password reset, please ignore this email or contact support if you're concerned.
+            </p>
+        </div>
         """
-        text_body = f"Hi {seller_name}, {bidder_name} placed a bid of ${bid_amount:.2f} on your auction '{auction_title}'."
+        text_body = f"Hi {name}, reset your password by clicking this link: {reset_link}. This link expires in 15 minutes."
+        return await EmailService.send_email(email, subject, html_body, text_body)
+    
+    @staticmethod
+    async def send_new_bid_notification(seller_email: str, seller_name: str, auction_title: str, bid_amount: float, bidder_name: str, currency: str = "NGN"):
+        symbol = "₦" if currency == "NGN" else "$"
+        subject = f"New Bid on '{auction_title}' - {symbol}{bid_amount:,.2f}"
+        html_body = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #16a34a;">New Bid Received!</h2>
+            <p>Hi {seller_name},</p>
+            <p>Great news! <strong>{bidder_name}</strong> placed a bid of <strong>{symbol}{bid_amount:,.2f}</strong> on your auction:</p>
+            <p><strong>{auction_title}</strong></p>
+            <p>Log in to Jarnnmarket to view your auction.</p>
+            <p>Best regards,<br>Jarnnmarket Team</p>
+        </div>
+        """
+        text_body = f"Hi {seller_name}, {bidder_name} placed a bid of {symbol}{bid_amount:,.2f} on your auction '{auction_title}'."
         return await EmailService.send_email(seller_email, subject, html_body, text_body)
     
     @staticmethod
-    async def send_outbid_notification(bidder_email: str, bidder_name: str, auction_title: str, new_bid: float):
+    async def send_outbid_notification(bidder_email: str, bidder_name: str, auction_title: str, new_bid: float, currency: str = "NGN"):
+        symbol = "₦" if currency == "NGN" else "$"
         subject = f"You've been outbid on '{auction_title}'"
         html_body = f"""
-        <h2>You've Been Outbid!</h2>
-        <p>Hi {bidder_name},</p>
-        <p>Someone placed a higher bid of <strong>${new_bid:.2f}</strong> on:</p>
-        <p><strong>{auction_title}</strong></p>
-        <p>Don't miss out! Place a higher bid now on jarnnmarket.</p>
-        <p>Best regards,<br>jarnnmarket Team</p>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #f59e0b;">You've Been Outbid!</h2>
+            <p>Hi {bidder_name},</p>
+            <p>Someone placed a higher bid of <strong>{symbol}{new_bid:,.2f}</strong> on:</p>
+            <p><strong>{auction_title}</strong></p>
+            <p>Don't miss out! Place a higher bid now on Jarnnmarket.</p>
+            <p>Best regards,<br>Jarnnmarket Team</p>
+        </div>
         """
-        text_body = f"Hi {bidder_name}, you've been outbid on '{auction_title}'. Current bid: ${new_bid:.2f}."
+        text_body = f"Hi {bidder_name}, you've been outbid on '{auction_title}'. Current bid: {symbol}{new_bid:,.2f}."
         return await EmailService.send_email(bidder_email, subject, html_body, text_body)
     
     @staticmethod
-    async def send_auction_won_notification(winner_email: str, winner_name: str, auction_title: str, final_price: float):
+    async def send_auction_won_notification(winner_email: str, winner_name: str, auction_title: str, final_price: float, currency: str = "NGN"):
+        symbol = "₦" if currency == "NGN" else "$"
         subject = f"Congratulations! You won '{auction_title}'"
         html_body = f"""
-        <h2>Congratulations! You Won!</h2>
-        <p>Hi {winner_name},</p>
-        <p>You won the auction for:</p>
-        <p><strong>{auction_title}</strong></p>
-        <p>Final Price: <strong>${final_price:.2f}</strong></p>
-        <p>Please complete your payment on jarnnmarket to finalize your purchase.</p>
-        <p>Best regards,<br>jarnnmarket Team</p>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #16a34a;">🎉 Congratulations! You Won!</h2>
+            <p>Hi {winner_name},</p>
+            <p>You won the auction for:</p>
+            <p><strong>{auction_title}</strong></p>
+            <p>Final Price: <strong>{symbol}{final_price:,.2f}</strong></p>
+            <p>Please complete your payment on Jarnnmarket to finalize your purchase.</p>
+            <p>Best regards,<br>Jarnnmarket Team</p>
+        </div>
         """
-        text_body = f"Congratulations {winner_name}! You won '{auction_title}' for ${final_price:.2f}. Complete payment on jarnnmarket."
+        text_body = f"Congratulations {winner_name}! You won '{auction_title}' for {symbol}{final_price:,.2f}. Complete payment on Jarnnmarket."
         return await EmailService.send_email(winner_email, subject, html_body, text_body)
     
     @staticmethod
-    async def send_payment_received_notification(seller_email: str, seller_name: str, auction_title: str, amount: float, buyer_name: str):
+    async def send_payment_received_notification(seller_email: str, seller_name: str, auction_title: str, amount: float, buyer_name: str, currency: str = "NGN"):
+        symbol = "₦" if currency == "NGN" else "$"
         subject = f"Payment Received for '{auction_title}'"
         html_body = f"""
-        <h2>Payment Received!</h2>
-        <p>Hi {seller_name},</p>
-        <p><strong>{buyer_name}</strong> has completed payment for:</p>
-        <p><strong>{auction_title}</strong></p>
-        <p>Amount: <strong>${amount:.2f}</strong></p>
-        <p>The funds are held in escrow until the buyer confirms delivery.</p>
-        <p>Please ship the item and provide tracking information.</p>
-        <p>Best regards,<br>jarnnmarket Team</p>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #16a34a;">💰 Payment Received!</h2>
+            <p>Hi {seller_name},</p>
+            <p><strong>{buyer_name}</strong> has completed payment for:</p>
+            <p><strong>{auction_title}</strong></p>
+            <p>Amount: <strong>{symbol}{amount:,.2f}</strong></p>
+            <p>The funds are held in escrow until the buyer confirms delivery.</p>
+            <p>Please ship the item and provide tracking information.</p>
+            <p>Best regards,<br>Jarnnmarket Team</p>
+        </div>
         """
-        text_body = f"Hi {seller_name}, payment of ${amount:.2f} received for '{auction_title}' from {buyer_name}. Funds in escrow."
+        text_body = f"Hi {seller_name}, payment of {symbol}{amount:,.2f} received for '{auction_title}' from {buyer_name}. Funds in escrow."
         return await EmailService.send_email(seller_email, subject, html_body, text_body)
     
     @staticmethod
-    async def send_delivery_confirmed_notification(seller_email: str, seller_name: str, auction_title: str, amount: float):
+    async def send_delivery_confirmed_notification(seller_email: str, seller_name: str, auction_title: str, amount: float, currency: str = "NGN"):
+        symbol = "₦" if currency == "NGN" else "$"
         subject = f"Delivery Confirmed - Payment Released for '{auction_title}'"
         html_body = f"""
-        <h2>Payment Released!</h2>
-        <p>Hi {seller_name},</p>
-        <p>The buyer has confirmed delivery for:</p>
-        <p><strong>{auction_title}</strong></p>
-        <p>Amount Released: <strong>${amount:.2f}</strong></p>
-        <p>The funds have been released from escrow to your account.</p>
-        <p>Thank you for using jarnnmarket!</p>
-        <p>Best regards,<br>jarnnmarket Team</p>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #16a34a;">✅ Payment Released!</h2>
+            <p>Hi {seller_name},</p>
+            <p>The buyer has confirmed delivery for:</p>
+            <p><strong>{auction_title}</strong></p>
+            <p>Amount Released: <strong>{symbol}{amount:,.2f}</strong></p>
+            <p>The funds have been released from escrow to your account.</p>
+            <p>Thank you for using Jarnnmarket!</p>
+            <p>Best regards,<br>Jarnnmarket Team</p>
+        </div>
         """
-        text_body = f"Hi {seller_name}, delivery confirmed for '{auction_title}'. ${amount:.2f} released from escrow."
+        text_body = f"Hi {seller_name}, delivery confirmed for '{auction_title}'. {symbol}{amount:,.2f} released from escrow."
         return await EmailService.send_email(seller_email, subject, html_body, text_body)
     
     @staticmethod
@@ -313,14 +408,16 @@ class EmailService:
         subject = f"New {rating}-Star Review from {reviewer_name}"
         stars = "⭐" * rating
         html_body = f"""
-        <h2>New Review Received!</h2>
-        <p>Hi {seller_name},</p>
-        <p><strong>{reviewer_name}</strong> left you a review:</p>
-        <p>{stars} ({rating}/5 stars)</p>
-        <p>Log in to jarnnmarket to see the full review.</p>
-        <p>Best regards,<br>jarnnmarket Team</p>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #16a34a;">New Review Received!</h2>
+            <p>Hi {seller_name},</p>
+            <p><strong>{reviewer_name}</strong> left you a review:</p>
+            <p style="font-size: 24px;">{stars} ({rating}/5 stars)</p>
+            <p>Log in to Jarnnmarket to see the full review.</p>
+            <p>Best regards,<br>Jarnnmarket Team</p>
+        </div>
         """
-        text_body = f"Hi {seller_name}, {reviewer_name} left you a {rating}-star review on jarnnmarket."
+        text_body = f"Hi {seller_name}, {reviewer_name} left you a {rating}-star review on Jarnnmarket."
         return await EmailService.send_email(seller_email, subject, html_body, text_body)
 
 # ================== SMS SERVICE (TWILIO) ==================
