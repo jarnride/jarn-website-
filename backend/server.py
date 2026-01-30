@@ -643,6 +643,138 @@ class MarketingEmailService:
         text_body = f"Hi {user_name}! Auctions ending soon at Jarnnmarket. Visit {FRONTEND_URL}/auctions to bid now!"
         return await EmailService.send_email(user_email, subject, html_body, text_body)
 
+# ================== PAYSTACK SERVICE ==================
+
+class PaystackService:
+    """Paystack Service for Nigerian Naira (NGN) payments"""
+    
+    @staticmethod
+    async def initialize_transaction(email: str, amount: float, reference: str, auction_id: str, callback_url: str = None) -> dict:
+        """Initialize a Paystack transaction"""
+        if PAYSTACK_MOCK_MODE:
+            mock_ref = f"PAYSTACK_MOCK_{uuid.uuid4().hex[:12].upper()}"
+            logger.info(f"[MOCK PAYSTACK] Initialized: {mock_ref} for ₦{amount:,.2f}")
+            return {
+                "success": True,
+                "mock": True,
+                "reference": mock_ref,
+                "authorization_url": f"{FRONTEND_URL}/payment/paystack-mock?ref={mock_ref}",
+                "access_code": f"MOCK_{uuid.uuid4().hex[:8]}"
+            }
+        
+        try:
+            import httpx
+            
+            payload = {
+                "email": email,
+                "amount": int(amount * 100),  # Convert to kobo
+                "currency": "NGN",
+                "reference": reference,
+                "callback_url": callback_url or f"{FRONTEND_URL}/payment/paystack-callback",
+                "metadata": {
+                    "auction_id": auction_id,
+                    "custom_fields": [
+                        {"display_name": "Auction ID", "variable_name": "auction_id", "value": auction_id}
+                    ]
+                }
+            }
+            
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    f"{PAYSTACK_API_URL}/transaction/initialize",
+                    json=payload,
+                    headers={
+                        "Authorization": f"Bearer {PAYSTACK_SECRET_KEY}",
+                        "Content-Type": "application/json"
+                    },
+                    timeout=15.0
+                )
+                
+                data = response.json()
+                
+                if data.get("status"):
+                    logger.info(f"[PAYSTACK] Initialized transaction: {data['data']['reference']}")
+                    return {
+                        "success": True,
+                        "mock": False,
+                        "reference": data["data"]["reference"],
+                        "authorization_url": data["data"]["authorization_url"],
+                        "access_code": data["data"]["access_code"]
+                    }
+                else:
+                    logger.error(f"[PAYSTACK ERROR] {data.get('message', 'Unknown error')}")
+                    return {"success": False, "error": data.get("message", "Failed to initialize payment")}
+                    
+        except Exception as e:
+            logger.error(f"[PAYSTACK EXCEPTION] {str(e)}")
+            return {"success": False, "error": str(e)}
+    
+    @staticmethod
+    async def verify_transaction(reference: str) -> dict:
+        """Verify a Paystack transaction"""
+        if PAYSTACK_MOCK_MODE or reference.startswith("PAYSTACK_MOCK"):
+            logger.info(f"[MOCK PAYSTACK] Verified: {reference}")
+            return {
+                "success": True,
+                "mock": True,
+                "status": "success",
+                "reference": reference,
+                "amount": 0,
+                "currency": "NGN"
+            }
+        
+        try:
+            import httpx
+            
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    f"{PAYSTACK_API_URL}/transaction/verify/{reference}",
+                    headers={
+                        "Authorization": f"Bearer {PAYSTACK_SECRET_KEY}",
+                        "Content-Type": "application/json"
+                    },
+                    timeout=15.0
+                )
+                
+                data = response.json()
+                
+                if data.get("status") and data["data"]["status"] == "success":
+                    logger.info(f"[PAYSTACK] Verified transaction: {reference}")
+                    return {
+                        "success": True,
+                        "mock": False,
+                        "status": "success",
+                        "reference": reference,
+                        "amount": data["data"]["amount"] / 100,  # Convert from kobo
+                        "currency": data["data"]["currency"],
+                        "transaction_id": data["data"]["id"],
+                        "authorization_code": data["data"].get("authorization", {}).get("authorization_code")
+                    }
+                else:
+                    return {
+                        "success": False,
+                        "status": data["data"]["status"] if data.get("data") else "failed",
+                        "error": data.get("message", "Transaction not successful")
+                    }
+                    
+        except Exception as e:
+            logger.error(f"[PAYSTACK VERIFY ERROR] {str(e)}")
+            return {"success": False, "error": str(e)}
+    
+    @staticmethod
+    def verify_webhook_signature(request_body: bytes, signature: str) -> bool:
+        """Verify Paystack webhook signature using HMAC-SHA512"""
+        import hmac
+        import hashlib
+        
+        computed = hmac.new(
+            PAYSTACK_SECRET_KEY.encode(),
+            request_body,
+            hashlib.sha512
+        ).hexdigest()
+        
+        return computed == signature
+
 # ================== SMS SERVICE (TWILIO) ==================
 
 class SMSService:
