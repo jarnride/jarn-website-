@@ -1219,6 +1219,195 @@ export default function AdminDashboard() {
                   </CardContent>
                 </Card>
               </TabsContent>
+
+              {/* Marketing Campaigns Tab */}
+              <TabsContent value="marketing" className="mt-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* Create Campaign Card */}
+                  <Card className="lg:col-span-1">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Send className="w-5 h-5" />
+                        Create Campaign
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>Campaign Type</Label>
+                        <select 
+                          className="w-full p-2 border rounded-md bg-background"
+                          value={newCampaign.type}
+                          onChange={(e) => setNewCampaign(prev => ({ ...prev, type: e.target.value }))}
+                        >
+                          <option value="weekly_highlights">Weekly Auction Highlights</option>
+                          <option value="seller_promotions">Featured Sellers</option>
+                          <option value="reengagement">Re-engagement (Inactive Users)</option>
+                          <option value="auction_ending">Auctions Ending Soon</option>
+                        </select>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label>Target Audience</Label>
+                        <select 
+                          className="w-full p-2 border rounded-md bg-background"
+                          value={newCampaign.audience}
+                          onChange={(e) => setNewCampaign(prev => ({ ...prev, audience: e.target.value }))}
+                        >
+                          <option value="all">All Users</option>
+                          <option value="buyers">Buyers Only</option>
+                          <option value="farmers">Farmers Only</option>
+                          <option value="inactive">Inactive Users (30+ days)</option>
+                        </select>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="schedule-campaign"
+                          checked={newCampaign.scheduled}
+                          onChange={(e) => setNewCampaign(prev => ({ ...prev, scheduled: e.target.checked }))}
+                          className="rounded border-gray-300"
+                        />
+                        <Label htmlFor="schedule-campaign" className="cursor-pointer">Schedule for later</Label>
+                      </div>
+                      
+                      {newCampaign.scheduled && (
+                        <div className="space-y-2">
+                          <Label>Schedule Date & Time</Label>
+                          <Input
+                            type="datetime-local"
+                            value={newCampaign.scheduledAt}
+                            onChange={(e) => setNewCampaign(prev => ({ ...prev, scheduledAt: e.target.value }))}
+                          />
+                        </div>
+                      )}
+                      
+                      <Button 
+                        className="w-full" 
+                        onClick={handleCreateCampaign}
+                        disabled={creatingCampaign}
+                      >
+                        {creatingCampaign ? (
+                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <Send className="w-4 h-4 mr-2" />
+                        )}
+                        {newCampaign.scheduled ? 'Schedule Campaign' : 'Create Campaign'}
+                      </Button>
+                      
+                      {/* Campaign Stats */}
+                      {campaignStats && (
+                        <div className="pt-4 border-t space-y-2">
+                          <h4 className="font-medium text-sm text-muted-foreground">Campaign Statistics</h4>
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div className="bg-muted p-2 rounded">
+                              <div className="text-muted-foreground">Total Sent</div>
+                              <div className="font-bold">{campaignStats.total_emails_sent || 0}</div>
+                            </div>
+                            <div className="bg-muted p-2 rounded">
+                              <div className="text-muted-foreground">Campaigns</div>
+                              <div className="font-bold">{campaignStats.total_campaigns || 0}</div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                  
+                  {/* Campaign List */}
+                  <Card className="lg:col-span-2">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Mail className="w-5 h-5" />
+                        Campaign History
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Type</TableHead>
+                            <TableHead>Audience</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Sent</TableHead>
+                            <TableHead>Created</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {campaigns.length > 0 ? campaigns.map((campaign) => (
+                            <TableRow key={campaign.id}>
+                              <TableCell className="font-medium">
+                                {getCampaignTypeLabel(campaign.type)}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="capitalize">
+                                  {campaign.target_audience}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                {campaign.status === 'sent' ? (
+                                  <Badge className="bg-green-100 text-green-800">Sent</Badge>
+                                ) : campaign.status === 'scheduled' ? (
+                                  <Badge className="bg-blue-100 text-blue-800">
+                                    <Clock className="w-3 h-3 mr-1" />
+                                    Scheduled
+                                  </Badge>
+                                ) : (
+                                  <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {campaign.status === 'sent' ? (
+                                  <span className="text-sm">
+                                    {campaign.sent_count} / {campaign.sent_count + campaign.failed_count}
+                                  </span>
+                                ) : (
+                                  <span className="text-muted-foreground">-</span>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-sm text-muted-foreground">
+                                {new Date(campaign.created_at).toLocaleDateString()}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex justify-end gap-2">
+                                  {campaign.status !== 'sent' && (
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleSendCampaign(campaign.id)}
+                                      disabled={processingId === campaign.id}
+                                    >
+                                      {processingId === campaign.id ? (
+                                        <RefreshCw className="w-3 h-3 animate-spin" />
+                                      ) : (
+                                        <Send className="w-3 h-3" />
+                                      )}
+                                    </Button>
+                                  )}
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => handleDeleteCampaign(campaign.id)}
+                                    disabled={processingId === campaign.id}
+                                  >
+                                    <XCircle className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          )) : (
+                            <TableRow>
+                              <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                                No campaigns created yet. Create your first marketing campaign!
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
             </Tabs>
           </>
         )}
