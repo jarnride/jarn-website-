@@ -272,14 +272,11 @@ class EmailService:
             <p>Hi {name},</p>
             <p>Thank you for registering at Jarnnmarket. Please verify your email address to complete your registration.</p>
             <div style="margin: 30px 0;">
-                <a href="{verification_link}" 
-                   style="background-color: #16a34a; color: white; padding: 12px 30px; text-decoration: none; border-radius: 25px; display: inline-block;">
-                    Verify My Email
-                </a>
+                <a href="{verification_link}" style="background-color: #16a34a; color: white; padding: 12px 30px; text-decoration: none; border-radius: 25px; display: inline-block;">Verify My Email</a>
             </div>
             <p style="color: #666; font-size: 14px;">
                 Or copy and paste this link into your browser:<br>
-                <a href="{verification_link}" style="color: #16a34a;">{verification_link}</a>
+                <span style="color: #16a34a; word-break: break-all;">{verification_link}</span>
             </p>
             <p style="color: #666; font-size: 14px;">This link will expire in 24 hours.</p>
             <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
