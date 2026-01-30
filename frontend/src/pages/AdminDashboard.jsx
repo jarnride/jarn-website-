@@ -536,6 +536,65 @@ export default function AdminDashboard() {
     return labels[type] || type;
   };
 
+  // Auto-schedule handlers
+  const handleCreateAutoSchedule = async () => {
+    setCreatingAutoSchedule(true);
+    try {
+      const headers = { Authorization: `Bearer ${token}` };
+      const payload = {
+        campaign_type: newAutoSchedule.type,
+        day_of_week: newAutoSchedule.day,
+        hour: newAutoSchedule.hour,
+        target_audience: newAutoSchedule.audience,
+        enabled: true
+      };
+      
+      const res = await axios.post(`${API}/admin/campaigns/auto-schedules`, payload, { headers });
+      setAutoSchedules(prev => [...prev, res.data.schedule]);
+      toast.success('Auto-schedule created successfully');
+      setNewAutoSchedule({ type: 'weekly_highlights', day: 0, hour: 9, audience: 'all' });
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to create auto-schedule');
+    } finally {
+      setCreatingAutoSchedule(false);
+    }
+  };
+
+  const handleToggleAutoSchedule = async (scheduleId, enabled) => {
+    try {
+      const headers = { Authorization: `Bearer ${token}` };
+      const schedule = autoSchedules.find(s => s.id === scheduleId);
+      await axios.put(`${API}/admin/campaigns/auto-schedules/${scheduleId}`, {
+        ...schedule,
+        campaign_type: schedule.campaign_type,
+        day_of_week: schedule.day_of_week,
+        hour: schedule.hour,
+        target_audience: schedule.target_audience,
+        enabled: !enabled
+      }, { headers });
+      setAutoSchedules(prev => prev.map(s => s.id === scheduleId ? { ...s, enabled: !enabled } : s));
+      toast.success(`Schedule ${enabled ? 'disabled' : 'enabled'}`);
+    } catch (error) {
+      toast.error('Failed to update schedule');
+    }
+  };
+
+  const handleDeleteAutoSchedule = async (scheduleId) => {
+    try {
+      const headers = { Authorization: `Bearer ${token}` };
+      await axios.delete(`${API}/admin/campaigns/auto-schedules/${scheduleId}`, { headers });
+      setAutoSchedules(prev => prev.filter(s => s.id !== scheduleId));
+      toast.success('Schedule deleted');
+    } catch (error) {
+      toast.error('Failed to delete schedule');
+    }
+  };
+
+  const getDayName = (day) => {
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    return days[day];
+  };
+
   const filteredUsers = users.filter(u => 
     u.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     u.email?.toLowerCase().includes(searchQuery.toLowerCase())
