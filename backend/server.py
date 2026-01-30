@@ -1480,9 +1480,18 @@ async def register(request: Request, data: UserCreate):
 @limiter.limit("10/minute")
 async def verify_email(request: Request, data: EmailVerificationToken):
     """Verify user's email address"""
+    logger.info(f"Verification attempt with token: {data.token[:20]}...")
+    
     verification = await db.email_verifications.find_one({"token": data.token})
     
     if not verification:
+        logger.warning(f"Verification token not found: {data.token[:20]}...")
+        # Check if token exists with different case or whitespace
+        all_tokens = await db.email_verifications.find({}, {"token": 1}).to_list(100)
+        for t in all_tokens:
+            if t.get("token", "").strip() == data.token.strip():
+                logger.warning(f"Token found with whitespace difference")
+                break
         raise HTTPException(status_code=400, detail="Invalid or expired verification token")
     
     # Parse expiration date with timezone handling
@@ -1492,6 +1501,7 @@ async def verify_email(request: Request, data: EmailVerificationToken):
     expires_at = datetime.fromisoformat(expires_at_str)
     
     if expires_at < datetime.now(timezone.utc):
+        logger.warning(f"Token expired: {data.token[:20]}... expired at {expires_at}")
         raise HTTPException(status_code=400, detail="Verification token has expired. Please register again.")
     
     # Update user's email_verified status
