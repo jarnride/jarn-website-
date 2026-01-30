@@ -1474,6 +1474,140 @@ export default function AdminDashboard() {
                     </CardContent>
                   </Card>
                 </div>
+                
+                {/* Auto-Scheduled Campaigns Section */}
+                <div className="mt-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Calendar className="w-5 h-5" />
+                        Automated Weekly Campaigns
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Create Auto-Schedule */}
+                        <div className="space-y-4 p-4 border rounded-lg">
+                          <h4 className="font-medium">Create New Schedule</h4>
+                          
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-2">
+                              <Label>Campaign Type</Label>
+                              <select 
+                                className="w-full p-2 border rounded-md bg-background text-sm"
+                                value={newAutoSchedule.type}
+                                onChange={(e) => setNewAutoSchedule(prev => ({ ...prev, type: e.target.value }))}
+                              >
+                                <option value="weekly_highlights">Weekly Highlights</option>
+                                <option value="seller_promotions">Featured Sellers</option>
+                                <option value="auction_ending">Ending Soon</option>
+                                <option value="reengagement">Re-engagement</option>
+                              </select>
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <Label>Target Audience</Label>
+                              <select 
+                                className="w-full p-2 border rounded-md bg-background text-sm"
+                                value={newAutoSchedule.audience}
+                                onChange={(e) => setNewAutoSchedule(prev => ({ ...prev, audience: e.target.value }))}
+                              >
+                                <option value="all">All Users</option>
+                                <option value="buyers">Buyers Only</option>
+                                <option value="farmers">Farmers Only</option>
+                              </select>
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <Label>Day of Week</Label>
+                              <select 
+                                className="w-full p-2 border rounded-md bg-background text-sm"
+                                value={newAutoSchedule.day}
+                                onChange={(e) => setNewAutoSchedule(prev => ({ ...prev, day: parseInt(e.target.value) }))}
+                              >
+                                <option value={0}>Monday</option>
+                                <option value={1}>Tuesday</option>
+                                <option value={2}>Wednesday</option>
+                                <option value={3}>Thursday</option>
+                                <option value={4}>Friday</option>
+                                <option value={5}>Saturday</option>
+                                <option value={6}>Sunday</option>
+                              </select>
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <Label>Time (UTC)</Label>
+                              <select 
+                                className="w-full p-2 border rounded-md bg-background text-sm"
+                                value={newAutoSchedule.hour}
+                                onChange={(e) => setNewAutoSchedule(prev => ({ ...prev, hour: parseInt(e.target.value) }))}
+                              >
+                                {[...Array(24)].map((_, i) => (
+                                  <option key={i} value={i}>{i.toString().padStart(2, '0')}:00</option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+                          
+                          <Button 
+                            className="w-full" 
+                            onClick={handleCreateAutoSchedule}
+                            disabled={creatingAutoSchedule}
+                          >
+                            {creatingAutoSchedule ? (
+                              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                            ) : (
+                              <Calendar className="w-4 h-4 mr-2" />
+                            )}
+                            Create Auto-Schedule
+                          </Button>
+                        </div>
+                        
+                        {/* Active Schedules List */}
+                        <div className="space-y-3">
+                          <h4 className="font-medium">Active Schedules</h4>
+                          {autoSchedules.length > 0 ? (
+                            <div className="space-y-2">
+                              {autoSchedules.map((schedule) => (
+                                <div key={schedule.id} className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
+                                  <div>
+                                    <div className="font-medium text-sm">{getCampaignTypeLabel(schedule.campaign_type)}</div>
+                                    <div className="text-xs text-muted-foreground">
+                                      Every {schedule.day_name || getDayName(schedule.day_of_week)} at {schedule.hour.toString().padStart(2, '0')}:00 UTC
+                                    </div>
+                                    <div className="text-xs text-muted-foreground">
+                                      Audience: {schedule.target_audience} • Runs: {schedule.run_count || 0}
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Button
+                                      size="sm"
+                                      variant={schedule.enabled ? "default" : "outline"}
+                                      onClick={() => handleToggleAutoSchedule(schedule.id, schedule.enabled)}
+                                    >
+                                      {schedule.enabled ? 'On' : 'Off'}
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="destructive"
+                                      onClick={() => handleDeleteAutoSchedule(schedule.id)}
+                                    >
+                                      <XCircle className="w-3 h-3" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-center text-muted-foreground py-6 border rounded-lg">
+                              No auto-schedules configured. Create one to automate your marketing!
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
               </TabsContent>
             </Tabs>
           </>
