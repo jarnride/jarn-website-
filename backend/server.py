@@ -420,6 +420,222 @@ class EmailService:
         text_body = f"Hi {seller_name}, {reviewer_name} left you a {rating}-star review on Jarnnmarket."
         return await EmailService.send_email(seller_email, subject, html_body, text_body)
 
+# ================== MARKETING EMAIL SERVICE ==================
+
+class MarketingEmailService:
+    """Marketing Email Service for campaigns and scheduled emails"""
+    
+    @staticmethod
+    async def send_weekly_auction_highlights(user_email: str, user_name: str, auctions: list) -> dict:
+        """Send weekly auction highlights email"""
+        subject = "🌾 This Week's Top Auctions at Jarnnmarket"
+        
+        auction_items_html = ""
+        for auction in auctions[:6]:
+            currency_symbol = "₦" if auction.get("currency", "NGN") == "NGN" else "$"
+            auction_items_html += f"""
+            <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
+                <img src="{auction.get('image_url', '')}" alt="{auction.get('title', '')}" style="width: 100%; max-height: 150px; object-fit: cover; border-radius: 4px;">
+                <h3 style="color: #16a34a; margin: 10px 0 5px;">{auction.get('title', 'Fresh Produce')}</h3>
+                <p style="margin: 5px 0; color: #6b7280;">Current Bid: <strong>{currency_symbol}{auction.get('current_bid', 0):,.2f}</strong></p>
+                <p style="margin: 5px 0; color: #6b7280;">Ends: {auction.get('ends_at', 'Soon')[:10]}</p>
+            </div>
+            """
+        
+        html_body = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f9fafb; padding: 20px;">
+            <div style="background: #16a34a; color: white; padding: 20px; border-radius: 8px 8px 0 0; text-align: center;">
+                <h1 style="margin: 0;">🌾 Jarnnmarket</h1>
+                <p style="margin: 5px 0 0;">Fresh from Nigerian Farms</p>
+            </div>
+            <div style="background: white; padding: 20px; border-radius: 0 0 8px 8px;">
+                <h2>Hi {user_name}!</h2>
+                <p>Here are this week's hottest auctions you don't want to miss:</p>
+                <div style="display: grid; gap: 15px;">
+                    {auction_items_html}
+                </div>
+                <div style="text-align: center; margin-top: 20px;">
+                    <a href="{FRONTEND_URL}/auctions" style="background: #16a34a; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; display: inline-block;">Browse All Auctions</a>
+                </div>
+                <p style="color: #6b7280; font-size: 12px; margin-top: 20px;">
+                    You're receiving this because you're subscribed to weekly highlights.
+                    <a href="{FRONTEND_URL}/settings/notifications">Unsubscribe</a>
+                </p>
+            </div>
+        </div>
+        """
+        text_body = f"Hi {user_name}! Check out this week's top auctions at Jarnnmarket. Visit {FRONTEND_URL}/auctions to browse."
+        return await EmailService.send_email(user_email, subject, html_body, text_body)
+    
+    @staticmethod
+    async def send_seller_promotions(user_email: str, user_name: str, featured_sellers: list) -> dict:
+        """Send featured seller promotions email"""
+        subject = "⭐ Meet Our Top-Rated Sellers This Week"
+        
+        seller_items_html = ""
+        for seller in featured_sellers[:4]:
+            rating = seller.get('rating', 0)
+            stars = "⭐" * int(rating)
+            seller_items_html += f"""
+            <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 15px; margin-bottom: 15px; display: flex; align-items: center;">
+                <div style="width: 60px; height: 60px; background: #16a34a; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; margin-right: 15px;">
+                    {seller.get('name', 'S')[0].upper()}
+                </div>
+                <div>
+                    <h3 style="color: #16a34a; margin: 0 0 5px;">{seller.get('name', 'Farmer')}</h3>
+                    <p style="margin: 0; color: #6b7280;">{stars} ({rating:.1f})</p>
+                    <p style="margin: 5px 0 0; color: #6b7280; font-size: 13px;">{seller.get('location', 'Nigeria')}</p>
+                </div>
+            </div>
+            """
+        
+        html_body = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f9fafb; padding: 20px;">
+            <div style="background: #16a34a; color: white; padding: 20px; border-radius: 8px 8px 0 0; text-align: center;">
+                <h1 style="margin: 0;">⭐ Featured Farmers</h1>
+                <p style="margin: 5px 0 0;">Trusted sellers from Jarnnmarket</p>
+            </div>
+            <div style="background: white; padding: 20px; border-radius: 0 0 8px 8px;">
+                <h2>Hi {user_name}!</h2>
+                <p>Discover our verified and top-rated farmers with the freshest produce:</p>
+                {seller_items_html}
+                <div style="text-align: center; margin-top: 20px;">
+                    <a href="{FRONTEND_URL}/auctions" style="background: #16a34a; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; display: inline-block;">Shop Now</a>
+                </div>
+                <p style="color: #6b7280; font-size: 12px; margin-top: 20px;">
+                    You're receiving this because you're subscribed to seller promotions.
+                    <a href="{FRONTEND_URL}/settings/notifications">Unsubscribe</a>
+                </p>
+            </div>
+        </div>
+        """
+        text_body = f"Hi {user_name}! Check out our top-rated farmers at Jarnnmarket. Visit {FRONTEND_URL}/auctions to shop."
+        return await EmailService.send_email(user_email, subject, html_body, text_body)
+    
+    @staticmethod
+    async def send_welcome_series(user_email: str, user_name: str, user_role: str) -> dict:
+        """Send welcome onboarding email to new users"""
+        subject = f"🎉 Welcome to Jarnnmarket, {user_name}!"
+        
+        if user_role == "farmer":
+            cta_text = "Create Your First Listing"
+            cta_url = f"{FRONTEND_URL}/dashboard"
+            role_content = """
+            <h3>Getting Started as a Seller:</h3>
+            <ul style="color: #374151; line-height: 1.8;">
+                <li>✅ Complete your profile and add payout details</li>
+                <li>📸 Upload high-quality photos of your produce</li>
+                <li>💰 Set competitive starting prices</li>
+                <li>🚚 Offer multiple delivery options</li>
+                <li>⭐ Build your reputation with great service</li>
+            </ul>
+            <p><strong>🎁 Free Trial:</strong> Create up to 5 free listings in your first 3 days!</p>
+            """
+        else:
+            cta_text = "Browse Auctions"
+            cta_url = f"{FRONTEND_URL}/auctions"
+            role_content = """
+            <h3>Getting Started as a Buyer:</h3>
+            <ul style="color: #374151; line-height: 1.8;">
+                <li>🔍 Browse fresh produce from verified farmers</li>
+                <li>💵 Bid on auctions or Buy Now instantly</li>
+                <li>🔒 Payments protected by escrow</li>
+                <li>🚚 Choose your preferred delivery method</li>
+                <li>⭐ Leave reviews to help other buyers</li>
+            </ul>
+            """
+        
+        html_body = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f9fafb; padding: 20px;">
+            <div style="background: #16a34a; color: white; padding: 30px; border-radius: 8px 8px 0 0; text-align: center;">
+                <h1 style="margin: 0; font-size: 28px;">🌾 Welcome to Jarnnmarket!</h1>
+                <p style="margin: 10px 0 0; font-size: 16px;">Nigeria's Premier Agricultural Marketplace</p>
+            </div>
+            <div style="background: white; padding: 25px; border-radius: 0 0 8px 8px;">
+                <h2 style="color: #16a34a;">Hi {user_name}! 👋</h2>
+                <p>Thank you for joining Jarnnmarket - where Nigerian farmers connect directly with buyers for fresh, quality produce at fair prices.</p>
+                {role_content}
+                <div style="text-align: center; margin: 25px 0;">
+                    <a href="{cta_url}" style="background: #16a34a; color: white; padding: 15px 35px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">{cta_text}</a>
+                </div>
+                <div style="background: #f3f4f6; padding: 15px; border-radius: 6px; margin-top: 20px;">
+                    <p style="margin: 0; color: #6b7280; font-size: 14px;">
+                        <strong>Need Help?</strong> Contact us on WhatsApp: <a href="https://wa.me/447449858053">+44 744 985 8053</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+        """
+        text_body = f"Welcome to Jarnnmarket, {user_name}! Visit {cta_url} to get started. Need help? WhatsApp us at +447449858053."
+        return await EmailService.send_email(user_email, subject, html_body, text_body)
+    
+    @staticmethod
+    async def send_reengagement_email(user_email: str, user_name: str, days_inactive: int) -> dict:
+        """Send re-engagement email to inactive users"""
+        subject = f"🌾 We Miss You, {user_name}! Fresh Deals Await"
+        
+        html_body = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f9fafb; padding: 20px;">
+            <div style="background: #16a34a; color: white; padding: 25px; border-radius: 8px 8px 0 0; text-align: center;">
+                <h1 style="margin: 0;">We Miss You! 🌾</h1>
+            </div>
+            <div style="background: white; padding: 25px; border-radius: 0 0 8px 8px;">
+                <h2 style="color: #16a34a;">Hi {user_name}!</h2>
+                <p>It's been {days_inactive} days since we last saw you at Jarnnmarket. A lot has happened!</p>
+                <div style="background: #f0fdf4; border-left: 4px solid #16a34a; padding: 15px; margin: 20px 0;">
+                    <h3 style="color: #16a34a; margin: 0 0 10px;">What's New:</h3>
+                    <ul style="margin: 0; padding-left: 20px; color: #374151;">
+                        <li>🆕 New verified sellers have joined</li>
+                        <li>🔥 Hot auctions ending soon</li>
+                        <li>💰 Great deals on fresh produce</li>
+                    </ul>
+                </div>
+                <div style="text-align: center; margin: 25px 0;">
+                    <a href="{FRONTEND_URL}/auctions" style="background: #16a34a; color: white; padding: 15px 35px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">See What's New</a>
+                </div>
+                <p style="color: #6b7280; font-size: 12px; margin-top: 20px;">
+                    Don't want these emails? <a href="{FRONTEND_URL}/settings/notifications">Unsubscribe</a>
+                </p>
+            </div>
+        </div>
+        """
+        text_body = f"Hi {user_name}! It's been {days_inactive} days since you visited Jarnnmarket. Check out the latest deals at {FRONTEND_URL}/auctions"
+        return await EmailService.send_email(user_email, subject, html_body, text_body)
+    
+    @staticmethod
+    async def send_auction_ending_soon(user_email: str, user_name: str, auctions: list) -> dict:
+        """Send notification about auctions ending within 24 hours"""
+        subject = "⏰ Auctions Ending Soon - Don't Miss Out!"
+        
+        auction_items_html = ""
+        for auction in auctions[:5]:
+            currency_symbol = "₦" if auction.get("currency", "NGN") == "NGN" else "$"
+            auction_items_html += f"""
+            <div style="border: 1px solid #fbbf24; border-radius: 8px; padding: 15px; margin-bottom: 15px; background: #fffbeb;">
+                <h3 style="color: #d97706; margin: 0 0 5px;">⏰ {auction.get('title', 'Auction')}</h3>
+                <p style="margin: 5px 0; color: #6b7280;">Current Bid: <strong>{currency_symbol}{auction.get('current_bid', 0):,.2f}</strong></p>
+                <p style="margin: 5px 0; color: #dc2626; font-weight: bold;">Ends: {auction.get('time_left', 'Soon')}</p>
+            </div>
+            """
+        
+        html_body = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f9fafb; padding: 20px;">
+            <div style="background: #d97706; color: white; padding: 20px; border-radius: 8px 8px 0 0; text-align: center;">
+                <h1 style="margin: 0;">⏰ Hurry! Auctions Ending Soon</h1>
+            </div>
+            <div style="background: white; padding: 20px; border-radius: 0 0 8px 8px;">
+                <h2>Hi {user_name}!</h2>
+                <p>These auctions are ending within 24 hours - place your bids now!</p>
+                {auction_items_html}
+                <div style="text-align: center; margin-top: 20px;">
+                    <a href="{FRONTEND_URL}/auctions" style="background: #d97706; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; display: inline-block;">Bid Now</a>
+                </div>
+            </div>
+        </div>
+        """
+        text_body = f"Hi {user_name}! Auctions ending soon at Jarnnmarket. Visit {FRONTEND_URL}/auctions to bid now!"
+        return await EmailService.send_email(user_email, subject, html_body, text_body)
+
 # ================== SMS SERVICE (TWILIO) ==================
 
 class SMSService:
