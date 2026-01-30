@@ -2793,6 +2793,155 @@ async def mock_approve_paypal(order_id: str):
         "instructions": "Call POST /api/paypal/capture/{order_id} to complete the payment"
     }
 
+# ================== PAYSTACK ROUTES ==================
+
+@api_router.post("/paystack/initialize")
+async def initialize_paystack_payment(request: Request, user: dict = Depends(get_current_user)):
+    """Initialize a Paystack payment for an auction"""
+    data = await request.json()
+    auction_id = data.get("auction_id")
+    amount = data.get("amount")
+    
+    if not auction_id or not amount:
+        raise HTTPException(status_code=400, detail="auction_id and amount are required")
+    
+    auction = await db.auctions.find_one({"id": auction_id}, {"_id": 0})
+    if not auction:
+        raise HTTPException(status_code=404, detail="Auction not found")
+    
+    reference = f"JM-{auction_id[:8]}-{uuid.uuid4().hex[:8]}".upper()
+    
+    result = await PaystackService.initialize_transaction(
+        email=user["email"],
+        amount=float(amount),
+        reference=reference,
+        auction_id=auction_id,
+        callback_url=f"{FRONTEND_URL}/payment/paystack-callback"
+    )
+    
+    if result["success"]:
+        # Store payment transaction
+        await db.payment_transactions.insert_one({
+            "id": str(uuid.uuid4()),
+            "reference": result["reference"],
+            "auction_id": auction_id,
+            "buyer_id": user["id"],
+            "amount": float(amount),
+            "currency": "NGN",
+            "payment_method": "paystack",
+            "status": "pending",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+        
+        return {
+            "success": True,
+            "authorization_url": result["authorization_url"],
+            "reference": result["reference"],
+            "access_code": result.get("access_code"),
+            "mock_mode": result.get("mock", False)
+        }
+    else:
+        raise HTTPException(status_code=400, detail=result.get("error", "Failed to initialize payment"))
+
+@api_router.post("/paystack/verify/{reference}")
+async def verify_paystack_payment(reference: str, user: dict = Depends(get_current_user)):
+    """Verify a Paystack payment"""
+    result = await PaystackService.verify_transaction(reference)
+    
+    if result["success"] and result["status"] == "success":
+        # Update payment transaction
+        await db.payment_transactions.update_one(
+            {"reference": reference},
+            {"$set": {
+                "status": "completed",
+                "verified_at": datetime.now(timezone.utc).isoformat(),
+                "paystack_transaction_id": result.get("transaction_id")
+            }}
+        )
+        
+        # Get the payment transaction to create escrow
+        payment = await db.payment_transactions.find_one({"reference": reference}, {"_id": 0})
+        if payment:
+            auction = await db.auctions.find_one({"id": payment["auction_id"]}, {"_id": 0})
+            if auction:
+                # Create escrow
+                escrow_result = await EscrowService.create_escrow(
+                    auction_id=payment["auction_id"],
+                    buyer_id=user["id"],
+                    seller_id=auction["seller_id"],
+                    amount=payment["amount"],
+                    payment_method="paystack"
+                )
+                
+                # Update auction
+                await db.auctions.update_one(
+                    {"id": payment["auction_id"]},
+                    {"$set": {
+                        "is_active": False,
+                        "winner_id": user["id"],
+                        "escrow_id": escrow_result["escrow_id"],
+                        "sold_at": datetime.now(timezone.utc).isoformat()
+                    }}
+                )
+        
+        return {
+            "success": True,
+            "message": "Payment verified successfully",
+            "reference": reference,
+            "amount": result.get("amount", 0)
+        }
+    else:
+        raise HTTPException(status_code=400, detail=result.get("error", "Payment verification failed"))
+
+@api_router.post("/paystack/webhook")
+async def paystack_webhook(request: Request):
+    """Handle Paystack webhook events"""
+    signature = request.headers.get("x-paystack-signature")
+    if not signature:
+        raise HTTPException(status_code=400, detail="Missing signature")
+    
+    body = await request.body()
+    
+    if not PAYSTACK_MOCK_MODE and not PaystackService.verify_webhook_signature(body, signature):
+        raise HTTPException(status_code=401, detail="Invalid signature")
+    
+    event_data = await request.json()
+    event = event_data.get("event")
+    
+    logger.info(f"[PAYSTACK WEBHOOK] Event: {event}")
+    
+    if event == "charge.success":
+        reference = event_data["data"]["reference"]
+        await db.payment_transactions.update_one(
+            {"reference": reference},
+            {"$set": {
+                "status": "completed",
+                "webhook_verified_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        logger.info(f"[PAYSTACK] Payment successful via webhook: {reference}")
+    
+    elif event == "charge.failed":
+        reference = event_data["data"]["reference"]
+        await db.payment_transactions.update_one(
+            {"reference": reference},
+            {"$set": {
+                "status": "failed",
+                "failed_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        logger.info(f"[PAYSTACK] Payment failed via webhook: {reference}")
+    
+    return {"status": 200}
+
+@api_router.get("/paystack/config")
+async def get_paystack_config():
+    """Get Paystack public configuration for frontend"""
+    return {
+        "public_key": PAYSTACK_PUBLIC_KEY,
+        "mock_mode": PAYSTACK_MOCK_MODE
+    }
+
 # ================== ESCROW ROUTES ==================
 
 @api_router.post("/escrow/confirm-delivery")
