@@ -104,6 +104,12 @@ export default function AdminDashboard() {
   const [campaignStats, setCampaignStats] = useState(null);
   const [creatingCampaign, setCreatingCampaign] = useState(false);
   const [newCampaign, setNewCampaign] = useState({ type: 'weekly_highlights', audience: 'all', scheduled: false, scheduledAt: '' });
+  
+  // Auto-schedule states
+  const [autoSchedules, setAutoSchedules] = useState([]);
+  const [newAutoSchedule, setNewAutoSchedule] = useState({ type: 'weekly_highlights', day: 0, hour: 9, audience: 'all' });
+  const [creatingAutoSchedule, setCreatingAutoSchedule] = useState(false);
+
   useEffect(() => {
     // Wait for auth to finish loading
     if (authLoading) {
