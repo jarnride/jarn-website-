@@ -4184,7 +4184,7 @@ async def create_marketing_campaign(data: CampaignCreate, admin: dict = Depends(
     
     campaign = {
         "id": campaign_id,
-        "type": data.campaign_type,
+        "type": data.campaign_type.value,
         "target_audience": data.target_audience,
         "status": "scheduled" if data.scheduled_at else "pending",
         "scheduled_at": data.scheduled_at,
@@ -4194,7 +4194,7 @@ async def create_marketing_campaign(data: CampaignCreate, admin: dict = Depends(
         "failed_count": 0
     }
     
-    await db.marketing_campaigns.insert_one(campaign)
+    await db.marketing_campaigns.insert_one(campaign.copy())
     logger.info(f"Admin {admin['email']} created campaign {campaign_id} ({data.campaign_type})")
     
     return {"success": True, "campaign_id": campaign_id, "campaign": campaign}
