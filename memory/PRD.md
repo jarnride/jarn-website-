@@ -12,7 +12,7 @@
 | Frontend | React + TailwindCSS + Shadcn/UI |
 | Database | MongoDB |
 | Payments | Stripe, PayPal (sandbox) |
-| Email | SendGrid |
+| Email | Brevo (was SendGrid) |
 | SMS | Twilio |
 | Real-time | WebSockets (Socket.IO) |
 | Auth | JWT |
@@ -155,7 +155,7 @@
 
 ### Notifications
 - [x] Real-time notification bell
-- [x] Email notifications (SendGrid - MOCKED due to sender verification)
+- [x] Email notifications (Brevo - LIVE and working)
 - [x] SMS notifications (Twilio - configured)
 - [x] Offer notifications
 - [x] Bid notifications
@@ -267,6 +267,13 @@
 3. ✅ **Admin Dashboard Fix** - Fixed auth loading race condition
 4. ✅ **Admin User Creation** - Created admin@jarnnmarket.com / admin123
 
+## Completed (Jan 30, 2026)
+1. ✅ **P0: Brevo Email Integration** - Replaced SendGrid with Brevo, emails now sending live
+2. ✅ **Seller Payout Details** - Bank Name, Account Number, NIN fields for farmers
+3. ✅ **Proximity-Based Search** - Sort auctions by seller distance to buyer location
+4. ✅ **Realistic Demo Content** - All categories seeded with Nigerian agricultural products
+5. ✅ **Admin Panel Overhaul** - Order/User/Payout management, cancel orders, suspend users
+
 ---
 
 ## Upcoming Tasks (Priority Order)
@@ -280,5 +287,10 @@
 ---
 
 ## Known Issues
-- SendGrid email sending returns 403 (sender not verified in SendGrid account)
 - WebSocket connection errors in browser (non-critical, local ws:// issue)
+
+## Services Status
+- **Email (Brevo):** ✅ LIVE - Sending real transactional emails
+- **SMS (Twilio):** ⚠️ Keys configured, not fully tested in live mode
+- **Payments (PayPal):** ⚠️ Sandbox mode, not fully tested in live mode
+- **Payments (Stripe):** ✅ Test mode active
