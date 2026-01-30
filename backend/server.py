@@ -4156,6 +4156,209 @@ async def admin_get_escrows(status: str = "", admin: dict = Depends(verify_admin
     
     return escrows
 
+# ================== MARKETING CAMPAIGN ROUTES ==================
+
+class CampaignType(str, Enum):
+    WEEKLY_HIGHLIGHTS = "weekly_highlights"
+    SELLER_PROMOTIONS = "seller_promotions"
+    REENGAGEMENT = "reengagement"
+    AUCTION_ENDING = "auction_ending"
+
+class CampaignCreate(BaseModel):
+    campaign_type: CampaignType
+    target_audience: str = Field(default="all", pattern="^(all|buyers|farmers|inactive)$")
+    scheduled_at: Optional[str] = None  # ISO datetime, None = immediate
+
+@api_router.get("/admin/campaigns")
+async def get_marketing_campaigns(admin: dict = Depends(verify_admin)):
+    """Get all marketing campaigns"""
+    campaigns = await db.marketing_campaigns.find({}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return campaigns
+
+@api_router.post("/admin/campaigns")
+async def create_marketing_campaign(data: CampaignCreate, admin: dict = Depends(verify_admin)):
+    """Create and optionally schedule a marketing campaign"""
+    campaign_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc)
+    
+    campaign = {
+        "id": campaign_id,
+        "type": data.campaign_type,
+        "target_audience": data.target_audience,
+        "status": "scheduled" if data.scheduled_at else "pending",
+        "scheduled_at": data.scheduled_at,
+        "created_at": now.isoformat(),
+        "created_by": admin['email'],
+        "sent_count": 0,
+        "failed_count": 0
+    }
+    
+    await db.marketing_campaigns.insert_one(campaign)
+    logger.info(f"Admin {admin['email']} created campaign {campaign_id} ({data.campaign_type})")
+    
+    return {"success": True, "campaign_id": campaign_id, "campaign": campaign}
+
+@api_router.post("/admin/campaigns/{campaign_id}/send")
+async def send_marketing_campaign(campaign_id: str, admin: dict = Depends(verify_admin)):
+    """Manually trigger sending a marketing campaign"""
+    campaign = await db.marketing_campaigns.find_one({"id": campaign_id}, {"_id": 0})
+    if not campaign:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    
+    if campaign['status'] == 'sent':
+        raise HTTPException(status_code=400, detail="Campaign already sent")
+    
+    # Get target users based on audience
+    user_filter = {"is_active": True}
+    if campaign['target_audience'] == 'buyers':
+        user_filter['role'] = 'buyer'
+    elif campaign['target_audience'] == 'farmers':
+        user_filter['role'] = 'farmer'
+    elif campaign['target_audience'] == 'inactive':
+        thirty_days_ago = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+        user_filter['last_login'] = {"$lt": thirty_days_ago}
+    
+    users = await db.users.find(user_filter, {"_id": 0, "email": 1, "name": 1, "role": 1, "last_login": 1}).to_list(1000)
+    
+    sent_count = 0
+    failed_count = 0
+    
+    # Get relevant data for campaign
+    if campaign['type'] == CampaignType.WEEKLY_HIGHLIGHTS:
+        auctions = await db.auctions.find({"is_active": True}, {"_id": 0}).sort("current_bid", -1).to_list(10)
+        for user in users:
+            try:
+                await MarketingEmailService.send_weekly_auction_highlights(user['email'], user['name'], auctions)
+                sent_count += 1
+            except Exception as e:
+                logger.error(f"Failed to send weekly highlights to {user['email']}: {e}")
+                failed_count += 1
+    
+    elif campaign['type'] == CampaignType.SELLER_PROMOTIONS:
+        sellers = await db.users.find(
+            {"role": "farmer", "is_verified": True},
+            {"_id": 0, "name": 1, "location": 1, "rating": 1}
+        ).sort("rating", -1).to_list(10)
+        for user in users:
+            try:
+                await MarketingEmailService.send_seller_promotions(user['email'], user['name'], sellers)
+                sent_count += 1
+            except Exception as e:
+                logger.error(f"Failed to send seller promo to {user['email']}: {e}")
+                failed_count += 1
+    
+    elif campaign['type'] == CampaignType.REENGAGEMENT:
+        for user in users:
+            try:
+                last_login = user.get('last_login')
+                if last_login:
+                    days_inactive = (datetime.now(timezone.utc) - datetime.fromisoformat(last_login.replace('Z', '+00:00'))).days
+                else:
+                    days_inactive = 30
+                await MarketingEmailService.send_reengagement_email(user['email'], user['name'], days_inactive)
+                sent_count += 1
+            except Exception as e:
+                logger.error(f"Failed to send reengagement to {user['email']}: {e}")
+                failed_count += 1
+    
+    elif campaign['type'] == CampaignType.AUCTION_ENDING:
+        tomorrow = datetime.now(timezone.utc) + timedelta(hours=24)
+        ending_auctions = await db.auctions.find(
+            {"is_active": True, "ends_at": {"$lt": tomorrow.isoformat()}},
+            {"_id": 0}
+        ).to_list(20)
+        for auction in ending_auctions:
+            ends_at = datetime.fromisoformat(auction['ends_at'].replace('Z', '+00:00'))
+            hours_left = max(0, (ends_at - datetime.now(timezone.utc)).total_seconds() / 3600)
+            auction['time_left'] = f"{int(hours_left)} hours"
+        
+        for user in users:
+            try:
+                await MarketingEmailService.send_auction_ending_soon(user['email'], user['name'], ending_auctions)
+                sent_count += 1
+            except Exception as e:
+                logger.error(f"Failed to send auction ending to {user['email']}: {e}")
+                failed_count += 1
+    
+    # Update campaign status
+    await db.marketing_campaigns.update_one(
+        {"id": campaign_id},
+        {"$set": {
+            "status": "sent",
+            "sent_at": datetime.now(timezone.utc).isoformat(),
+            "sent_count": sent_count,
+            "failed_count": failed_count
+        }}
+    )
+    
+    logger.info(f"Campaign {campaign_id} sent: {sent_count} successful, {failed_count} failed")
+    return {
+        "success": True,
+        "sent_count": sent_count,
+        "failed_count": failed_count,
+        "message": f"Campaign sent to {sent_count} users"
+    }
+
+@api_router.delete("/admin/campaigns/{campaign_id}")
+async def delete_marketing_campaign(campaign_id: str, admin: dict = Depends(verify_admin)):
+    """Delete a marketing campaign"""
+    result = await db.marketing_campaigns.delete_one({"id": campaign_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    return {"success": True, "message": "Campaign deleted"}
+
+@api_router.get("/admin/campaigns/stats")
+async def get_campaign_stats(admin: dict = Depends(verify_admin)):
+    """Get marketing campaign statistics"""
+    total_campaigns = await db.marketing_campaigns.count_documents({})
+    sent_campaigns = await db.marketing_campaigns.count_documents({"status": "sent"})
+    
+    pipeline = [
+        {"$match": {"status": "sent"}},
+        {"$group": {
+            "_id": None,
+            "total_sent": {"$sum": "$sent_count"},
+            "total_failed": {"$sum": "$failed_count"}
+        }}
+    ]
+    agg_result = await db.marketing_campaigns.aggregate(pipeline).to_list(1)
+    
+    stats = {
+        "total_campaigns": total_campaigns,
+        "sent_campaigns": sent_campaigns,
+        "pending_campaigns": total_campaigns - sent_campaigns,
+        "total_emails_sent": agg_result[0]["total_sent"] if agg_result else 0,
+        "total_emails_failed": agg_result[0]["total_failed"] if agg_result else 0
+    }
+    return stats
+
+# Scheduled campaign check endpoint (to be called by cron/scheduler)
+@api_router.post("/internal/process-scheduled-campaigns")
+async def process_scheduled_campaigns():
+    """Process any scheduled campaigns that are due (called by scheduler)"""
+    now = datetime.now(timezone.utc).isoformat()
+    
+    due_campaigns = await db.marketing_campaigns.find({
+        "status": "scheduled",
+        "scheduled_at": {"$lte": now}
+    }, {"_id": 0}).to_list(10)
+    
+    processed = []
+    for campaign in due_campaigns:
+        # Create a mock admin for automated sends
+        mock_admin = {"email": "system@jarnnmarket.com"}
+        try:
+            # Manually process each campaign
+            await db.marketing_campaigns.update_one(
+                {"id": campaign['id']},
+                {"$set": {"status": "pending"}}
+            )
+            processed.append(campaign['id'])
+        except Exception as e:
+            logger.error(f"Failed to process scheduled campaign {campaign['id']}: {e}")
+    
+    return {"processed_campaigns": processed, "count": len(processed)}
+
 # ================== SELLER ANALYTICS ROUTES ==================
 
 @api_router.get("/sellers/me/analytics")
