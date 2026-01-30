@@ -54,6 +54,12 @@ PAYPAL_CLIENT_SECRET = os.environ.get('PAYPAL_CLIENT_SECRET', 'MOCK_SECRET')
 PAYPAL_MODE = os.environ.get('PAYPAL_MODE', 'sandbox')
 PAYPAL_MOCK_MODE = PAYPAL_CLIENT_ID == 'MOCK_CLIENT_ID'
 
+# Paystack config for Nigerian payments
+PAYSTACK_PUBLIC_KEY = os.environ.get('PAYSTACK_PUBLIC_KEY', '')
+PAYSTACK_SECRET_KEY = os.environ.get('PAYSTACK_SECRET_KEY', '')
+PAYSTACK_API_URL = "https://api.paystack.co"
+PAYSTACK_MOCK_MODE = not PAYSTACK_SECRET_KEY
+
 # Email config
 EMAIL_PROVIDER = os.environ.get('EMAIL_PROVIDER', 'MOCK')
 SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY', '')
