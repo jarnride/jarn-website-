@@ -249,7 +249,7 @@
 | Stripe | ✅ Active | Test mode |
 | PayPal | ✅ Configured | Sandbox mode |
 | Twilio SMS | ✅ Configured | API keys set |
-| SendGrid | ⚠️ MOCKED | Needs sender verification |
+| Brevo Email | ✅ LIVE | Replaced SendGrid (Jan 30, 2026) |
 
 ---
 
