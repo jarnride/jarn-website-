@@ -305,4 +305,5 @@
 - **Email (Brevo):** ✅ LIVE - Sending real transactional & marketing emails
 - **SMS (Twilio):** ⚠️ Keys configured, not fully tested in live mode
 - **Payments (PayPal):** ✅ LIVE mode enabled
+- **Payments (Paystack):** ⚠️ Backend ready, awaiting API keys for NGN payments
 - **Payments (Stripe):** ✅ Test mode active
