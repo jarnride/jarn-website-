@@ -273,13 +273,19 @@
 3. ✅ **Proximity-Based Search** - Sort auctions by seller distance to buyer location
 4. ✅ **Realistic Demo Content** - All categories seeded with Nigerian agricultural products
 5. ✅ **Admin Panel Overhaul** - Order/User/Payout management, cancel orders, suspend users
+6. ✅ **PayPal Live Mode** - Switched from sandbox to live mode
+7. ✅ **Marketing Email Campaigns** - Admin can create/send/schedule email campaigns:
+   - Weekly Auction Highlights
+   - Featured Sellers
+   - Re-engagement emails
+   - Auctions Ending Soon alerts
 
 ---
 
 ## Upcoming Tasks (Priority Order)
 1. **Push Notifications** - Web Push API integration (playbook retrieved)
-2. **Backend Refactoring** - Split server.py into modules (3000+ lines)
-3. **Twilio/PayPal Full Integration** - Switch from mock to real
+2. **Backend Refactoring** - Split server.py into modules (4000+ lines)
+3. **Twilio SMS Full Integration** - Test live SMS sending
 4. **Delivery Tracking** - AfterShip integration
 5. **Mobile App** - React Native version
 6. **Tiered Subscriptions** - Bronze/Silver/Gold plans
@@ -290,7 +296,7 @@
 - WebSocket connection errors in browser (non-critical, local ws:// issue)
 
 ## Services Status
-- **Email (Brevo):** ✅ LIVE - Sending real transactional emails
+- **Email (Brevo):** ✅ LIVE - Sending real transactional & marketing emails
 - **SMS (Twilio):** ⚠️ Keys configured, not fully tested in live mode
-- **Payments (PayPal):** ⚠️ Sandbox mode, not fully tested in live mode
+- **Payments (PayPal):** ✅ LIVE mode enabled
 - **Payments (Stripe):** ✅ Test mode active
