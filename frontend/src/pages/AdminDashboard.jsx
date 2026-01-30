@@ -468,6 +468,66 @@ export default function AdminDashboard() {
     }
   };
 
+  // Marketing Campaign Handlers
+  const handleCreateCampaign = async () => {
+    setCreatingCampaign(true);
+    try {
+      const headers = { Authorization: `Bearer ${token}` };
+      const payload = {
+        campaign_type: newCampaign.type,
+        target_audience: newCampaign.audience,
+        scheduled_at: newCampaign.scheduled && newCampaign.scheduledAt ? new Date(newCampaign.scheduledAt).toISOString() : null
+      };
+      
+      const res = await axios.post(`${API}/admin/campaigns`, payload, { headers });
+      setCampaigns(prev => [res.data.campaign, ...prev]);
+      toast.success('Campaign created successfully');
+      setNewCampaign({ type: 'weekly_highlights', audience: 'all', scheduled: false, scheduledAt: '' });
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to create campaign');
+    } finally {
+      setCreatingCampaign(false);
+    }
+  };
+
+  const handleSendCampaign = async (campaignId) => {
+    setProcessingId(campaignId);
+    try {
+      const headers = { Authorization: `Bearer ${token}` };
+      const res = await axios.post(`${API}/admin/campaigns/${campaignId}/send`, {}, { headers });
+      toast.success(`Campaign sent to ${res.data.sent_count} users`);
+      fetchAdminData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to send campaign');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleDeleteCampaign = async (campaignId) => {
+    setProcessingId(campaignId);
+    try {
+      const headers = { Authorization: `Bearer ${token}` };
+      await axios.delete(`${API}/admin/campaigns/${campaignId}`, { headers });
+      setCampaigns(prev => prev.filter(c => c.id !== campaignId));
+      toast.success('Campaign deleted');
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to delete campaign');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const getCampaignTypeLabel = (type) => {
+    const labels = {
+      'weekly_highlights': 'Weekly Auction Highlights',
+      'seller_promotions': 'Featured Sellers',
+      'reengagement': 'Re-engagement',
+      'auction_ending': 'Auctions Ending Soon'
+    };
+    return labels[type] || type;
+  };
+
   const filteredUsers = users.filter(u => 
     u.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     u.email?.toLowerCase().includes(searchQuery.toLowerCase())
