@@ -279,6 +279,12 @@
    - Featured Sellers
    - Re-engagement emails
    - Auctions Ending Soon alerts
+8. ✅ **Removed "Made with Emergent" badge** from homepage
+9. ✅ **Paystack Integration** - Backend ready for Nigerian NGN payments (requires API keys)
+10. ✅ **Automated Campaign Scheduling** - Admin can set up recurring weekly campaigns:
+    - Configure day of week and time (UTC)
+    - Select campaign type and audience
+    - Enable/disable schedules
 
 ---
 
