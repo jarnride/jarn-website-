@@ -98,7 +98,12 @@ export default function AdminDashboard() {
   const [cancelReason, setCancelReason] = useState('');
   const [relistDays, setRelistDays] = useState(7);
   const [refundReason, setRefundReason] = useState('');
-
+  
+  // Marketing campaign states
+  const [campaigns, setCampaigns] = useState([]);
+  const [campaignStats, setCampaignStats] = useState(null);
+  const [creatingCampaign, setCreatingCampaign] = useState(false);
+  const [newCampaign, setNewCampaign] = useState({ type: 'weekly_highlights', audience: 'all', scheduled: false, scheduledAt: '' });
   useEffect(() => {
     // Wait for auth to finish loading
     if (authLoading) {
