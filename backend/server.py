@@ -5036,13 +5036,15 @@ async def seed_data():
 async def root():
     return {
         "message": "jarnnmarket API",
-        "version": "3.0.0",
+        "version": "3.1.0",
         "features": {
             "sms_verification": "mock" if TWILIO_MOCK_MODE else "live",
             "paypal": "mock" if PAYPAL_MOCK_MODE else "live",
+            "paystack": "mock" if PAYSTACK_MOCK_MODE else "live",
             "email": "mock" if EMAIL_MOCK_MODE else "live",
             "escrow": "enabled",
-            "reviews": "enabled"
+            "reviews": "enabled",
+            "marketing_campaigns": "enabled"
         }
     }
 
