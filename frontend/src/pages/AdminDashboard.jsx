@@ -48,7 +48,11 @@ import {
   RotateCcw,
   AlertTriangle,
   Receipt,
-  Undo2
+  Undo2,
+  Mail,
+  Send,
+  Calendar,
+  Clock
 } from 'lucide-react';
 import {
   Dialog,
