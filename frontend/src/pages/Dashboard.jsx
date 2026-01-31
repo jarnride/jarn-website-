@@ -401,12 +401,95 @@ export default function Dashboard() {
 
               <TabsContent value="ended" className="mt-6">
                 {endedAuctions.length > 0 ? (
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {endedAuctions.map(auction => (
-                      <div key={auction.id} className="opacity-75">
-                        <AuctionCard auction={auction} />
+                  <div className="space-y-6">
+                    {/* Relistable Auctions Section */}
+                    {relistableAuctions.length > 0 && (
+                      <div>
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className="font-semibold flex items-center gap-2">
+                            <RotateCcw className="w-5 h-5 text-blue-500" />
+                            Available for Relist ({relistableAuctions.length})
+                          </h3>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground">Relist duration:</span>
+                            <select 
+                              value={relistDays} 
+                              onChange={(e) => setRelistDays(parseInt(e.target.value))}
+                              className="px-2 py-1 border rounded text-sm"
+                            >
+                              <option value={3}>3 days</option>
+                              <option value={7}>7 days</option>
+                              <option value={14}>14 days</option>
+                              <option value={30}>30 days</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                          {relistableAuctions.map(auction => (
+                            <Card key={auction.id} className="overflow-hidden border-blue-200 bg-blue-50/30">
+                              <div className="relative">
+                                <img 
+                                  src={auction.image_url || '/placeholder-auction.jpg'} 
+                                  alt={auction.title}
+                                  className="w-full h-40 object-cover opacity-75"
+                                />
+                                <Badge className="absolute top-2 right-2 bg-amber-500">Expired</Badge>
+                              </div>
+                              <CardContent className="p-4">
+                                <h4 className="font-semibold truncate">{auction.title}</h4>
+                                <p className="text-sm text-muted-foreground">
+                                  Last price: {auction.currency === 'NGN' ? '₦' : '$'}{auction.current_bid?.toLocaleString() || auction.starting_price?.toLocaleString()}
+                                </p>
+                                <p className="text-xs text-muted-foreground mb-3">
+                                  Ended: {new Date(auction.ends_at).toLocaleDateString()}
+                                </p>
+                                <Button 
+                                  onClick={() => handleRelistAuction(auction.id)}
+                                  disabled={relistingAuction === auction.id}
+                                  className="w-full"
+                                  size="sm"
+                                >
+                                  {relistingAuction === auction.id ? (
+                                    <>
+                                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                                      Relisting...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <RotateCcw className="w-4 h-4 mr-2" />
+                                      Relist for {relistDays} days
+                                    </>
+                                  )}
+                                </Button>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
                       </div>
-                    ))}
+                    )}
+                    
+                    {/* Sold Auctions Section */}
+                    {soldAuctions.length > 0 && (
+                      <div>
+                        <h3 className="font-semibold flex items-center gap-2 mb-4">
+                          <Trophy className="w-5 h-5 text-green-500" />
+                          Sold Items ({soldAuctions.length})
+                        </h3>
+                        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                          {soldAuctions.map(auction => (
+                            <div key={auction.id} className="opacity-75">
+                              <AuctionCard auction={auction} />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {relistableAuctions.length === 0 && soldAuctions.length === 0 && (
+                      <div className="empty-state">
+                        <p className="text-muted-foreground">No ended auctions yet</p>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="empty-state">
