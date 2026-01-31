@@ -1581,7 +1581,7 @@ async def login(request: Request, data: UserLogin):
     if not user.get("email_verified", False) and not is_demo_or_admin:
         raise HTTPException(
             status_code=403, 
-            detail="Please verify your email before logging in. Check your inbox for the verification link."
+            detail="Please verify your email before logging in. Check your inbox for the verification code."
         )
     
     # Check if account is approved by admin
