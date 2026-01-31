@@ -42,11 +42,17 @@ JWT_EXPIRATION_HOURS = 24 * 7
 # Stripe config
 STRIPE_API_KEY = os.environ.get('STRIPE_API_KEY', 'sk_test_emergent')
 
-# Twilio config (MOCK MODE)
+# Twilio config (MOCK MODE) - Legacy
 TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID', 'MOCK_SID')
 TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN', 'MOCK_TOKEN')
 TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER', '+1234567890')
 TWILIO_MOCK_MODE = TWILIO_ACCOUNT_SID == 'MOCK_SID'
+
+# NigeriaBulkSMS config for phone verification
+NIGERIABULKSMS_API_KEY = os.environ.get('NIGERIABULKSMS_API_KEY', '')
+NIGERIABULKSMS_SENDER = os.environ.get('NIGERIABULKSMS_SENDER', 'Jarnnmarket')
+NIGERIABULKSMS_API_URL = "https://portal.nigeriabulksms.com/api/"
+SMS_MOCK_MODE = not NIGERIABULKSMS_API_KEY
 
 # PayPal config (MOCK MODE)
 PAYPAL_CLIENT_ID = os.environ.get('PAYPAL_CLIENT_ID', 'MOCK_CLIENT_ID')
