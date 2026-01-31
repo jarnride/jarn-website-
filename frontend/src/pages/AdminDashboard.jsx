@@ -109,6 +109,10 @@ export default function AdminDashboard() {
   const [autoSchedules, setAutoSchedules] = useState([]);
   const [newAutoSchedule, setNewAutoSchedule] = useState({ type: 'weekly_highlights', day: 0, hour: 9, audience: 'all' });
   const [creatingAutoSchedule, setCreatingAutoSchedule] = useState(false);
+  
+  // Pending approvals state
+  const [pendingApprovals, setPendingApprovals] = useState([]);
+  const [rejectionReason, setRejectionReason] = useState('');
 
   useEffect(() => {
     // Wait for auth to finish loading
