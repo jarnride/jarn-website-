@@ -70,7 +70,7 @@ BREVO_SENDER_NAME = os.environ.get('BREVO_SENDER_NAME', 'Jarnnmarket')
 EMAIL_FROM = os.environ.get('EMAIL_FROM', 'noreply@jarnnmarket.com')
 EMAIL_MOCK_MODE = EMAIL_PROVIDER == 'MOCK'
 
-# Frontend URL for verification links
+# Frontend URL for verification pages
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://jarnnmarket-1.preview.emergentagent.com')
 
 # High-value bid threshold for notifications
