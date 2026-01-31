@@ -1194,8 +1194,21 @@ export default function AdminDashboard() {
                                           Verify Seller
                                         </DropdownMenuItem>
                                       )}
+                                      <DropdownMenuItem onClick={() => handleExtendSubscription(u.id, u.name)}>
+                                        <CalendarPlus className="w-4 h-4 mr-2 text-green-500" />
+                                        Extend Subscription (+{extendDays}d)
+                                      </DropdownMenuItem>
                                     </>
                                   )}
+                                  
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem 
+                                    onClick={() => handleDeleteUser(u.id, u.name)}
+                                    className="text-red-600"
+                                  >
+                                    <Trash2 className="w-4 h-4 mr-2" />
+                                    Delete User
+                                  </DropdownMenuItem>
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             </TableCell>
