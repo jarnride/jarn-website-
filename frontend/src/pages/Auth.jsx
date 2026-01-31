@@ -147,13 +147,13 @@ export default function Auth() {
       const response = await axios.post(`${API}/auth/resend-verification`, {
         email: registeredEmail
       });
-      toast.success('Verification email sent!');
+      toast.success('New verification code sent!');
       setResendCountdown(60);
-      if (response.data.mock_token) {
-        setMockToken(response.data.mock_token);
+      if (response.data.mock_code) {
+        setMockToken(response.data.mock_code);
       }
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to resend verification email');
+      toast.error(error.response?.data?.detail || 'Failed to resend verification code');
     } finally {
       setLoading(false);
     }
