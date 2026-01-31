@@ -802,8 +802,12 @@ export default function AdminDashboard() {
             </div>
 
             {/* Tabs */}
-            <Tabs defaultValue="users">
+            <Tabs defaultValue="approvals">
               <TabsList className="flex-wrap">
+                <TabsTrigger value="approvals" className={pendingApprovals.length > 0 ? "bg-orange-100 text-orange-800" : ""}>
+                  <UserCheck className="w-4 h-4 mr-2" />
+                  Approvals {pendingApprovals.length > 0 && `(${pendingApprovals.length})`}
+                </TabsTrigger>
                 <TabsTrigger value="users">
                   <Users className="w-4 h-4 mr-2" />
                   Users ({filteredUsers.length})
