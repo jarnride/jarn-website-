@@ -141,7 +141,7 @@ export default function AdminDashboard() {
     try {
       const headers = { Authorization: `Bearer ${token}` };
       
-      const [statsRes, usersRes, auctionsRes, payoutsRes, ordersRes, escrowsRes, campaignsRes, campaignStatsRes] = await Promise.all([
+      const [statsRes, usersRes, auctionsRes, payoutsRes, ordersRes, escrowsRes, campaignsRes, campaignStatsRes, autoSchedulesRes, pendingApprovalsRes] = await Promise.all([
         axios.get(`${API}/admin/stats`, { headers }),
         axios.get(`${API}/admin/users`, { headers }),
         axios.get(`${API}/admin/auctions`, { headers }),
@@ -164,8 +164,6 @@ export default function AdminDashboard() {
       setCampaignStats(campaignStatsRes.data);
       setAutoSchedules(autoSchedulesRes.data);
       setPendingApprovals(pendingApprovalsRes.data);
-      setUsers(usersRes.data);
-      setAuctions(auctionsRes.data);
       setPayouts(payoutsRes.data);
     } catch (error) {
       console.error('Failed to fetch admin data:', error);
