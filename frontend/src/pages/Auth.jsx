@@ -172,14 +172,22 @@ export default function Auth() {
               Check Your Email
             </h1>
             <p className="text-muted-foreground mb-4">
-              We've sent a verification link to:
+              We've sent a verification code to:
             </p>
             <p className="font-semibold text-lg mb-6">{registeredEmail}</p>
             <p className="text-sm text-muted-foreground mb-6">
-              Click the link in the email to verify your account and start using Jarnnmarket.
+              Enter the 6-digit code from your email to verify your account.
             </p>
             
             <div className="space-y-3">
+              <Button
+                onClick={() => navigate(`/verify-email?email=${encodeURIComponent(registeredEmail)}`)}
+                className="w-full rounded-full"
+                data-testid="enter-code-btn"
+              >
+                Enter Verification Code
+              </Button>
+              
               <Button
                 onClick={handleResendVerification}
                 variant="outline"
@@ -188,7 +196,7 @@ export default function Auth() {
                 data-testid="resend-verification"
               >
                 <Send className="w-4 h-4 mr-2" />
-                {resendCountdown > 0 ? `Resend in ${resendCountdown}s` : 'Resend Verification Email'}
+                {resendCountdown > 0 ? `Resend in ${resendCountdown}s` : 'Resend Code'}
               </Button>
               
               <Button
@@ -207,13 +215,8 @@ export default function Auth() {
             {mockToken && (
               <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-left">
                 <p className="font-medium text-yellow-800 text-sm mb-2">Development Mode</p>
-                <p className="text-xs text-yellow-700 mb-2">Email is in mock mode. Use this link to verify:</p>
-                <a 
-                  href={`/verify-email?token=${mockToken}`}
-                  className="text-xs text-blue-600 hover:underline break-all"
-                >
-                  {window.location.origin}/verify-email?token={mockToken}
-                </a>
+                <p className="text-xs text-yellow-700 mb-2">Email is in mock mode. Your verification code is:</p>
+                <p className="text-2xl font-bold text-center tracking-widest text-yellow-900 font-mono">{mockToken}</p>
               </div>
             )}
           </div>
