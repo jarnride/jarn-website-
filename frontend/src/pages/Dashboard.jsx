@@ -30,6 +30,8 @@ export default function Dashboard() {
   const [showPhoneVerification, setShowPhoneVerification] = useState(false);
   const [processingOffer, setProcessingOffer] = useState(null);
   const [requestingPayout, setRequestingPayout] = useState(null);
+  const [relistingAuction, setRelistingAuction] = useState(null);
+  const [relistDays, setRelistDays] = useState(7);
 
   useEffect(() => {
     if (!user) {
