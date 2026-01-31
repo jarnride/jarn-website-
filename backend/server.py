@@ -1432,7 +1432,7 @@ async def register(request: Request, data: UserCreate):
         raise HTTPException(status_code=400, detail="Invalid phone number format")
     
     user_id = str(uuid.uuid4())
-    verification_token = generate_verification_token()
+    verification_code = generate_verification_code()  # 6-digit code
     expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
     
     user_doc = {
@@ -1460,28 +1460,29 @@ async def register(request: Request, data: UserCreate):
     
     await db.users.insert_one(user_doc)
     
-    # Store email verification token
+    # Store email verification code
     await db.email_verifications.insert_one({
         "user_id": user_id,
         "email": data.email.lower(),
-        "token": verification_token,
+        "code": verification_code,
         "expires_at": expires_at.isoformat(),
         "created_at": datetime.now(timezone.utc).isoformat()
     })
     
-    # Send verification email
-    await EmailService.send_verification_email(data.email.lower(), sanitize_string(data.name), verification_token)
+    # Send verification email with code
+    await EmailService.send_verification_email(data.email.lower(), sanitize_string(data.name), verification_code)
     
     # Log registration (without sensitive data)
     logger.info(f"New user registered: {user_id}, role: {data.role}, email verification required, pending admin approval")
     
     return {
         "success": True,
-        "message": "Registration successful! Please check your email to verify your account. Your account will be activated after admin approval.",
+        "message": "Registration successful! Please check your email for your verification code. Your account will be activated after admin approval.",
         "email_verification_required": True,
         "admin_approval_required": True,
+        "email": data.email.lower(),
         "mock_mode": EMAIL_MOCK_MODE,
-        "mock_token": verification_token if EMAIL_MOCK_MODE else None
+        "mock_code": verification_code if EMAIL_MOCK_MODE else None
     }
 
 @api_router.post("/auth/verify-email")
