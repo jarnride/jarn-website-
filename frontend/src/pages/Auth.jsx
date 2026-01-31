@@ -119,6 +119,7 @@ export default function Auth() {
         payload.bank_name = registerForm.bank_name || null;
         payload.bank_account_number = registerForm.bank_account_number || null;
         payload.national_id = registerForm.national_id || null;
+        payload.company_name = registerForm.company_name || null;
       }
       
       const response = await axios.post(`${API}/auth/register`, payload);
