@@ -3215,7 +3215,9 @@ async def seller_relist_auction(auction_id: str, days: int = 7, user: dict = Dep
     if auction["seller_id"] != user["id"]:
         raise HTTPException(status_code=403, detail="You can only relist your own auctions")
     
-    if auction.get("is_active"):
+    # Check if auction is still active and not expired
+    is_expired = datetime.fromisoformat(auction["ends_at"]) < datetime.now(timezone.utc)
+    if auction.get("is_active") and not is_expired:
         raise HTTPException(status_code=400, detail="Auction is still active. Wait until it ends to relist.")
     
     if auction.get("winner_id") and auction.get("escrow_id"):
