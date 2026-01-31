@@ -1028,13 +1028,14 @@ class UserCreate(BaseModel):
     bank_name: Optional[str] = Field(default=None, max_length=100)
     bank_account_number: Optional[str] = Field(default=None, max_length=20)
     national_id: Optional[str] = Field(default=None, max_length=30)
+    company_name: Optional[str] = Field(default=None, max_length=200)
     
     @field_validator('name')
     @classmethod
     def sanitize_name(cls, v):
         return sanitize_string(v)
     
-    @field_validator('bank_name', 'bank_account_number', 'national_id')
+    @field_validator('bank_name', 'bank_account_number', 'national_id', 'company_name')
     @classmethod
     def sanitize_bank_fields(cls, v):
         if v:
