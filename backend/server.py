@@ -1530,18 +1530,18 @@ async def verify_email(request: Request, data: EmailVerificationCode):
 @api_router.post("/auth/resend-verification")
 @limiter.limit("3/minute")
 async def resend_verification_email(request: Request, data: ResendVerificationEmail):
-    """Resend email verification link"""
+    """Resend email verification code"""
     user = await db.users.find_one({"email": data.email.lower()}, {"_id": 0})
     
     if not user:
         # Don't reveal if email exists
-        return {"success": True, "message": "If this email is registered, a verification link has been sent."}
+        return {"success": True, "message": "If this email is registered, a verification code has been sent."}
     
     if user.get("email_verified"):
         return {"success": True, "message": "Email is already verified. Please login."}
     
-    # Generate new token
-    token = generate_verification_token()
+    # Generate new code
+    code = generate_verification_code()
     expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
     
     await db.email_verifications.update_one(
@@ -1549,21 +1549,21 @@ async def resend_verification_email(request: Request, data: ResendVerificationEm
         {"$set": {
             "user_id": user["id"],
             "email": user["email"],
-            "token": token,
+            "code": code,
             "expires_at": expires_at.isoformat(),
             "created_at": datetime.now(timezone.utc).isoformat()
         }},
         upsert=True
     )
     
-    # Send verification email
-    await EmailService.send_verification_email(user["email"], user["name"], token)
+    # Send verification email with code
+    await EmailService.send_verification_email(user["email"], user["name"], code)
     
     return {
         "success": True,
-        "message": "Verification email sent. Please check your inbox.",
+        "message": "Verification code sent. Please check your inbox.",
         "mock_mode": EMAIL_MOCK_MODE,
-        "mock_token": token if EMAIL_MOCK_MODE else None
+        "mock_code": code if EMAIL_MOCK_MODE else None
     }
 
 @api_router.post("/auth/login")
