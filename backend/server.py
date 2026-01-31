@@ -3200,6 +3200,67 @@ async def get_my_cancellations(user: dict = Depends(get_current_user)):
         "suspended_until": suspended_until
     }
 
+# ================== SELLER RELIST ROUTES ==================
+
+@api_router.post("/sellers/auctions/{auction_id}/relist")
+async def seller_relist_auction(auction_id: str, days: int = 7, user: dict = Depends(get_current_user)):
+    """Seller can relist their expired or ended auction"""
+    if user.get("role") != "farmer":
+        raise HTTPException(status_code=403, detail="Only sellers can relist auctions")
+    
+    auction = await db.auctions.find_one({"id": auction_id}, {"_id": 0})
+    if not auction:
+        raise HTTPException(status_code=404, detail="Auction not found")
+    
+    if auction["seller_id"] != user["id"]:
+        raise HTTPException(status_code=403, detail="You can only relist your own auctions")
+    
+    if auction.get("is_active"):
+        raise HTTPException(status_code=400, detail="Auction is still active. Wait until it ends to relist.")
+    
+    if auction.get("winner_id") and auction.get("escrow_id"):
+        raise HTTPException(status_code=400, detail="This auction has been sold and cannot be relisted")
+    
+    # Create new end date
+    new_end_date = datetime.now(timezone.utc) + timedelta(days=days)
+    
+    await db.auctions.update_one(
+        {"id": auction_id},
+        {"$set": {
+            "is_active": True,
+            "ends_at": new_end_date.isoformat(),
+            "current_bid": auction.get("starting_price", 0),
+            "bid_count": 0,
+            "winner_id": None,
+            "relisted_at": datetime.now(timezone.utc).isoformat(),
+            "relisted_count": auction.get("relisted_count", 0) + 1
+        }}
+    )
+    
+    logger.info(f"Seller {user['id']} relisted auction {auction_id} for {days} days")
+    return {
+        "success": True,
+        "message": f"Auction relisted for {days} days",
+        "new_end_date": new_end_date.isoformat()
+    }
+
+@api_router.get("/sellers/me/ended-auctions")
+async def get_my_ended_auctions(user: dict = Depends(get_current_user)):
+    """Get seller's ended/expired auctions that can be relisted"""
+    if user.get("role") != "farmer":
+        raise HTTPException(status_code=403, detail="Only sellers can access this")
+    
+    auctions = await db.auctions.find({
+        "seller_id": user["id"],
+        "is_active": False,
+        "$or": [
+            {"winner_id": None},
+            {"escrow_id": None}
+        ]
+    }, {"_id": 0}).sort("ends_at", -1).to_list(50)
+    
+    return auctions
+
 # ================== SELLER FREE TRIAL ROUTES ==================
 
 @api_router.get("/sellers/me/listing-allowance")
