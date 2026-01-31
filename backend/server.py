@@ -1569,14 +1569,35 @@ async def login(request: Request, data: UserLogin):
     if not user or not verify_password(data.password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
+    # Demo/legacy users and admins bypass verification checks
+    demo_users = ["john@farm.com", "sarah@farm.com", "peter@farm.com", "buyer@demo.com", "admin@jarnnmarket.com"]
+    is_demo_or_admin = user["email"] in demo_users or user.get("role") == "admin"
+    
     # Check if email is verified
-    if not user.get("email_verified", False):
-        # For demo users (seeded data), allow login without email verification
-        if user["email"] not in ["john@farm.com", "sarah@farm.com", "peter@farm.com", "buyer@demo.com"]:
+    if not user.get("email_verified", False) and not is_demo_or_admin:
+        raise HTTPException(
+            status_code=403, 
+            detail="Please verify your email before logging in. Check your inbox for the verification link."
+        )
+    
+    # Check if account is approved by admin
+    if not user.get("is_approved", False) and not is_demo_or_admin:
+        approval_status = user.get("approval_status", "pending")
+        if approval_status == "rejected":
             raise HTTPException(
-                status_code=403, 
-                detail="Please verify your email before logging in. Check your inbox for the verification link."
+                status_code=403,
+                detail="Your account registration was not approved. Please contact support for more information."
             )
+        raise HTTPException(
+            status_code=403, 
+            detail="Your account is pending admin approval. You will receive an email once your account is approved."
+        )
+    
+    # Update last login
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {"last_login": datetime.now(timezone.utc).isoformat()}}
+    )
     
     token = create_token(user["id"])
     return {
@@ -1587,6 +1608,7 @@ async def login(request: Request, data: UserLogin):
             "phone": user.get("phone"),
             "phone_verified": user.get("phone_verified", False),
             "email_verified": user.get("email_verified", True),  # For legacy users
+            "is_approved": user.get("is_approved", True),  # For legacy users
             "role": user["role"],
             "rating_avg": user.get("rating_avg", 0.0),
             "rating_count": user.get("rating_count", 0),
