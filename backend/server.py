@@ -1052,8 +1052,9 @@ class PhoneVerificationVerify(BaseModel):
     phone: str = Field(..., min_length=10, max_length=20)
     code: str = Field(..., min_length=6, max_length=6)
 
-class EmailVerificationToken(BaseModel):
-    token: str
+class EmailVerificationCode(BaseModel):
+    email: EmailStr
+    code: str = Field(min_length=6, max_length=6)
 
 class ResendVerificationEmail(BaseModel):
     email: EmailStr
