@@ -64,7 +64,10 @@ import {
   Calendar,
   Clock,
   UserCheck,
-  UserX
+  UserX,
+  Trash2,
+  Filter,
+  CalendarPlus
 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 
