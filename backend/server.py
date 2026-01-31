@@ -1437,6 +1437,8 @@ async def register(request: Request, data: UserCreate):
         "phone": data.phone,
         "phone_verified": False,
         "email_verified": False,  # New field
+        "is_approved": False,  # Requires admin approval
+        "approval_status": "pending",  # pending, approved, rejected
         "password_hash": hash_password(data.password),
         "role": data.role,
         "rating_avg": 0.0,
@@ -1466,12 +1468,13 @@ async def register(request: Request, data: UserCreate):
     await EmailService.send_verification_email(data.email.lower(), sanitize_string(data.name), verification_token)
     
     # Log registration (without sensitive data)
-    logger.info(f"New user registered: {user_id}, role: {data.role}, email verification required")
+    logger.info(f"New user registered: {user_id}, role: {data.role}, email verification required, pending admin approval")
     
     return {
         "success": True,
-        "message": "Registration successful! Please check your email to verify your account.",
+        "message": "Registration successful! Please check your email to verify your account. Your account will be activated after admin approval.",
         "email_verification_required": True,
+        "admin_approval_required": True,
         "mock_mode": EMAIL_MOCK_MODE,
         "mock_token": verification_token if EMAIL_MOCK_MODE else None
     }
