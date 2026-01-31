@@ -116,6 +116,12 @@ export default function AdminDashboard() {
   // Pending approvals state
   const [pendingApprovals, setPendingApprovals] = useState([]);
   const [rejectionReason, setRejectionReason] = useState('');
+  
+  // User filter state
+  const [userFilter, setUserFilter] = useState('all'); // all, buyers, sellers, approved, pending
+  
+  // Subscription extension state
+  const [extendDays, setExtendDays] = useState(30);
 
   useEffect(() => {
     // Wait for auth to finish loading
