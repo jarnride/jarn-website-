@@ -5339,7 +5339,7 @@ async def root():
         "message": "jarnnmarket API",
         "version": "3.1.0",
         "features": {
-            "sms_verification": "mock" if TWILIO_MOCK_MODE else "live",
+            "sms_verification": "mock" if SMS_MOCK_MODE else "live",
             "paypal": "mock" if PAYPAL_MOCK_MODE else "live",
             "paystack": "mock" if PAYSTACK_MOCK_MODE else "live",
             "email": "mock" if EMAIL_MOCK_MODE else "live",
