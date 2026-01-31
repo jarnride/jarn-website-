@@ -836,6 +836,148 @@ export default function AdminDashboard() {
                 </TabsTrigger>
               </TabsList>
 
+              {/* Approvals Tab */}
+              <TabsContent value="approvals" className="mt-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <UserCheck className="w-5 h-5 text-orange-500" />
+                      Pending User Approvals
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      Review and approve new user registrations before they can access the platform.
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    {pendingApprovals.length > 0 ? (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>User</TableHead>
+                            <TableHead>Role</TableHead>
+                            <TableHead>Email Verified</TableHead>
+                            <TableHead>Registered</TableHead>
+                            <TableHead>Payout Details</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {pendingApprovals.map((user) => (
+                            <TableRow key={user.id}>
+                              <TableCell>
+                                <div>
+                                  <div className="font-medium">{user.name}</div>
+                                  <div className="text-sm text-muted-foreground">{user.email}</div>
+                                  {user.phone && <div className="text-xs text-muted-foreground">{user.phone}</div>}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant={user.role === 'farmer' ? 'default' : 'secondary'} className="capitalize">
+                                  {user.role === 'farmer' ? '🌾 Farmer' : '🛒 Buyer'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                {user.email_verified ? (
+                                  <Badge className="bg-green-100 text-green-800">
+                                    <CheckCircle className="w-3 h-3 mr-1" /> Verified
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="outline" className="text-yellow-600">
+                                    Pending
+                                  </Badge>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-sm text-muted-foreground">
+                                {new Date(user.created_at).toLocaleDateString()}
+                              </TableCell>
+                              <TableCell>
+                                {user.role === 'farmer' ? (
+                                  user.payout_details_complete ? (
+                                    <Badge className="bg-green-100 text-green-800">Complete</Badge>
+                                  ) : (
+                                    <Badge variant="outline" className="text-orange-600">Incomplete</Badge>
+                                  )
+                                ) : (
+                                  <span className="text-muted-foreground">N/A</span>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex justify-end gap-2">
+                                  <Button
+                                    size="sm"
+                                    className="bg-green-600 hover:bg-green-700"
+                                    onClick={() => handleApproveUser(user.id)}
+                                    disabled={processingId === user.id}
+                                  >
+                                    {processingId === user.id ? (
+                                      <RefreshCw className="w-3 h-3 animate-spin" />
+                                    ) : (
+                                      <>
+                                        <CheckCircle className="w-3 h-3 mr-1" /> Approve
+                                      </>
+                                    )}
+                                  </Button>
+                                  <Dialog>
+                                    <DialogTrigger asChild>
+                                      <Button size="sm" variant="destructive">
+                                        <UserX className="w-3 h-3 mr-1" /> Reject
+                                      </Button>
+                                    </DialogTrigger>
+                                    <DialogContent>
+                                      <DialogHeader>
+                                        <DialogTitle>Reject User Registration</DialogTitle>
+                                      </DialogHeader>
+                                      <div className="space-y-4">
+                                        <p className="text-sm text-muted-foreground">
+                                          Are you sure you want to reject the registration for <strong>{user.name}</strong> ({user.email})?
+                                        </p>
+                                        <div className="space-y-2">
+                                          <Label>Reason (optional)</Label>
+                                          <Input
+                                            placeholder="Enter rejection reason..."
+                                            value={rejectionReason}
+                                            onChange={(e) => setRejectionReason(e.target.value)}
+                                          />
+                                        </div>
+                                        <div className="flex justify-end gap-2">
+                                          <Button variant="outline" onClick={() => setRejectionReason('')}>
+                                            Cancel
+                                          </Button>
+                                          <Button
+                                            variant="destructive"
+                                            onClick={() => handleRejectUser(user.id)}
+                                            disabled={processingId === user.id}
+                                          >
+                                            {processingId === user.id ? (
+                                              <RefreshCw className="w-3 h-3 animate-spin mr-1" />
+                                            ) : (
+                                              <UserX className="w-3 h-3 mr-1" />
+                                            )}
+                                            Confirm Rejection
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    </DialogContent>
+                                  </Dialog>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    ) : (
+                      <div className="text-center py-12">
+                        <UserCheck className="w-12 h-12 mx-auto text-green-500 mb-4" />
+                        <h3 className="text-lg font-medium text-green-700">All Caught Up!</h3>
+                        <p className="text-muted-foreground mt-2">
+                          No pending user approvals at this time.
+                        </p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
               {/* Users Tab */}
               <TabsContent value="users" className="mt-6">
                 {/* Bulk Actions */}
