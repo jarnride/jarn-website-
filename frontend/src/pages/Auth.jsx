@@ -37,7 +37,8 @@ export default function Auth() {
     // Seller payout details
     bank_name: '',
     bank_account_number: '',
-    national_id: ''
+    national_id: '',
+    company_name: ''
   });
 
   useEffect(() => {
