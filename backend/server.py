@@ -783,14 +783,14 @@ class PaystackService:
         
         return computed == signature
 
-# ================== SMS SERVICE (TWILIO) ==================
+# ================== SMS SERVICE (NIGERIABULKSMS) ==================
 
 class SMSService:
-    """SMS Service using Twilio"""
+    """SMS Service using NigeriaBulkSMS"""
     
     @staticmethod
     async def send_sms(to: str, message: str) -> dict:
-        if TWILIO_MOCK_MODE:
+        if SMS_MOCK_MODE:
             logger.info(f"[MOCK SMS] To: {to} | Message: {message}")
             return {
                 "success": True,
@@ -800,23 +800,54 @@ class SMSService:
             }
         else:
             try:
-                from twilio.rest import Client
-                client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
-                msg = client.messages.create(
-                    body=message,
-                    from_=TWILIO_PHONE_NUMBER,
-                    to=to
-                )
-                logger.info(f"[TWILIO SMS] Sent to: {to} | SID: {msg.sid}")
-                return {
-                    "success": True,
-                    "mock": False,
-                    "message_id": msg.sid,
-                    "to": to,
-                    "status": msg.status
+                import httpx
+                
+                # Format phone number for Nigeria (remove leading 0, add 234)
+                phone = to.strip()
+                if phone.startswith('+'):
+                    phone = phone[1:]
+                elif phone.startswith('0'):
+                    phone = '234' + phone[1:]
+                elif not phone.startswith('234'):
+                    phone = '234' + phone
+                
+                params = {
+                    'api_token': NIGERIABULKSMS_API_KEY,
+                    'from': NIGERIABULKSMS_SENDER,
+                    'to': phone,
+                    'body': message,
+                    'dnd': '2'  # DND filter - 2 means send to all
                 }
+                
+                async with httpx.AsyncClient() as client:
+                    response = await client.get(
+                        f"{NIGERIABULKSMS_API_URL}",
+                        params=params,
+                        timeout=15.0
+                    )
+                    
+                    data = response.json()
+                    
+                    if data.get('data', {}).get('status') == 'success':
+                        logger.info(f"[NIGERIABULKSMS] Sent to: {to} | Status: success")
+                        return {
+                            "success": True,
+                            "mock": False,
+                            "message_id": data.get('data', {}).get('message_id', 'unknown'),
+                            "to": to,
+                            "status": "sent"
+                        }
+                    else:
+                        logger.error(f"[NIGERIABULKSMS ERROR] {data}")
+                        return {
+                            "success": False,
+                            "mock": False,
+                            "error": data.get('error', 'Unknown error'),
+                            "to": to
+                        }
+                        
             except Exception as e:
-                logger.error(f"[TWILIO SMS ERROR] {str(e)}")
+                logger.error(f"[NIGERIABULKSMS EXCEPTION] {str(e)}")
                 return {
                     "success": False,
                     "mock": False,
@@ -826,17 +857,19 @@ class SMSService:
     
     @staticmethod
     async def send_verification_code(to: str, code: str) -> dict:
-        message = f"Your jarnnmarket verification code is: {code}. Valid for 10 minutes."
+        message = f"Your Jarnnmarket verification code is: {code}. Valid for 10 minutes."
         return await SMSService.send_sms(to, message)
     
     @staticmethod
-    async def send_bid_notification(to: str, auction_title: str, bid_amount: float, bidder_name: str) -> dict:
-        message = f"New bid on '{auction_title}': ${bid_amount:.2f} by {bidder_name}. Log in to jarnnmarket to respond!"
+    async def send_bid_notification(to: str, auction_title: str, bid_amount: float, bidder_name: str, currency: str = "NGN") -> dict:
+        symbol = "₦" if currency == "NGN" else "$"
+        message = f"New bid on '{auction_title}': {symbol}{bid_amount:,.0f} by {bidder_name}. Log in to Jarnnmarket!"
         return await SMSService.send_sms(to, message)
     
     @staticmethod
-    async def send_outbid_notification(to: str, auction_title: str, new_bid: float) -> dict:
-        message = f"You've been outbid on '{auction_title}'! Current bid: ${new_bid:.2f}. Place a higher bid now!"
+    async def send_outbid_notification(to: str, auction_title: str, new_bid: float, currency: str = "NGN") -> dict:
+        symbol = "₦" if currency == "NGN" else "$"
+        message = f"You've been outbid on '{auction_title}'! Current bid: {symbol}{new_bid:,.0f}. Place a higher bid now!"
         return await SMSService.send_sms(to, message)
     
     @staticmethod
