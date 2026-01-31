@@ -119,6 +119,28 @@ export default function Dashboard() {
     }
   };
 
+  const handleRelistAuction = async (auctionId) => {
+    setRelistingAuction(auctionId);
+    try {
+      await axios.post(
+        `${API}/sellers/auctions/${auctionId}/relist?days=${relistDays}`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success(`Auction relisted for ${relistDays} days!`);
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to relist auction');
+    } finally {
+      setRelistingAuction(null);
+    }
+  };
+
+  // Check if auction can be relisted (not sold)
+  const canRelist = (auction) => {
+    return !auction.is_active && !auction.winner_id && !auction.escrow_id;
+  };
+
   if (!user) return null;
 
   const activeAuctions = myAuctions.filter(a => 
@@ -127,6 +149,10 @@ export default function Dashboard() {
   const endedAuctions = myAuctions.filter(a => 
     !a.is_active || new Date(a.ends_at) <= new Date()
   );
+  
+  // Separate sold and unsold ended auctions
+  const soldAuctions = endedAuctions.filter(a => a.winner_id || a.escrow_id);
+  const relistableAuctions = endedAuctions.filter(a => canRelist(a));
 
   const heldEscrows = escrows.filter(e => e.status === 'held');
   const releasedEscrows = escrows.filter(e => e.status === 'released');
