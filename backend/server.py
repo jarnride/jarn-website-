@@ -4427,6 +4427,64 @@ async def admin_reject_user(user_id: str, reason: str = "", admin: dict = Depend
     logger.info(f"Admin {admin['email']} rejected user {user_id} ({user['email']})")
     return {"success": True, "message": f"User {user['name']} registration has been rejected"}
 
+@api_router.delete("/admin/users/{user_id}")
+async def admin_delete_user(user_id: str, admin: dict = Depends(verify_admin)):
+    """Permanently delete a user account"""
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if user.get("role") == "admin":
+        raise HTTPException(status_code=403, detail="Cannot delete admin users")
+    
+    # Delete user's data
+    await db.users.delete_one({"id": user_id})
+    await db.email_verifications.delete_many({"user_id": user_id})
+    await db.notifications.delete_many({"user_id": user_id})
+    
+    logger.info(f"Admin {admin['email']} deleted user {user_id} ({user['email']})")
+    return {"success": True, "message": f"User {user['name']} has been permanently deleted"}
+
+@api_router.post("/admin/users/{user_id}/extend-subscription")
+async def admin_extend_subscription(user_id: str, days: int = 30, admin: dict = Depends(verify_admin)):
+    """Manually extend a seller's subscription"""
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if user.get("role") != "farmer":
+        raise HTTPException(status_code=400, detail="User is not a seller")
+    
+    current_expiry = user.get("subscription_expires_at")
+    if current_expiry:
+        try:
+            expiry_date = datetime.fromisoformat(current_expiry.replace('Z', '+00:00'))
+            if expiry_date < datetime.now(timezone.utc):
+                expiry_date = datetime.now(timezone.utc)
+        except:
+            expiry_date = datetime.now(timezone.utc)
+    else:
+        expiry_date = datetime.now(timezone.utc)
+    
+    new_expiry = expiry_date + timedelta(days=days)
+    
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {
+            "subscription_status": "active",
+            "subscription_expires_at": new_expiry.isoformat(),
+            "subscription_extended_by": admin['email'],
+            "subscription_extended_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    logger.info(f"Admin {admin['email']} extended subscription for {user_id} by {days} days")
+    return {
+        "success": True, 
+        "message": f"Subscription extended by {days} days",
+        "new_expiry": new_expiry.isoformat()
+    }
+
 @api_router.post("/admin/orders/{auction_id}/cancel")
 async def admin_cancel_order(auction_id: str, reason: str = "", admin: dict = Depends(verify_admin)):
     """Admin cancel an order/auction"""
