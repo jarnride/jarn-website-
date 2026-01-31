@@ -52,7 +52,9 @@ import {
   Mail,
   Send,
   Calendar,
-  Clock
+  Clock,
+  UserCheck,
+  UserX
 } from 'lucide-react';
 import {
   Dialog,
