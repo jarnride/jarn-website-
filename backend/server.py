@@ -1488,21 +1488,18 @@ async def register(request: Request, data: UserCreate):
 
 @api_router.post("/auth/verify-email")
 @limiter.limit("10/minute")
-async def verify_email(request: Request, data: EmailVerificationToken):
-    """Verify user's email address"""
-    logger.info(f"Verification attempt with token: {data.token[:20]}...")
+async def verify_email(request: Request, data: EmailVerificationCode):
+    """Verify user's email address with code"""
+    logger.info(f"Verification attempt for email: {data.email} with code: {data.code}")
     
-    verification = await db.email_verifications.find_one({"token": data.token})
+    verification = await db.email_verifications.find_one({
+        "email": data.email.lower(),
+        "code": data.code
+    })
     
     if not verification:
-        logger.warning(f"Verification token not found: {data.token[:20]}...")
-        # Check if token exists with different case or whitespace
-        all_tokens = await db.email_verifications.find({}, {"token": 1}).to_list(100)
-        for t in all_tokens:
-            if t.get("token", "").strip() == data.token.strip():
-                logger.warning(f"Token found with whitespace difference")
-                break
-        raise HTTPException(status_code=400, detail="Invalid or expired verification token")
+        logger.warning(f"Verification code not found for email: {data.email}")
+        raise HTTPException(status_code=400, detail="Invalid verification code. Please check and try again.")
     
     # Parse expiration date with timezone handling
     expires_at_str = verification["expires_at"]
@@ -1511,8 +1508,8 @@ async def verify_email(request: Request, data: EmailVerificationToken):
     expires_at = datetime.fromisoformat(expires_at_str)
     
     if expires_at < datetime.now(timezone.utc):
-        logger.warning(f"Token expired: {data.token[:20]}... expired at {expires_at}")
-        raise HTTPException(status_code=400, detail="Verification token has expired. Please register again.")
+        logger.warning(f"Code expired for email: {data.email}")
+        raise HTTPException(status_code=400, detail="Verification code has expired. Please request a new one.")
     
     # Update user's email_verified status
     await db.users.update_one(
@@ -1521,13 +1518,13 @@ async def verify_email(request: Request, data: EmailVerificationToken):
     )
     
     # Delete the verification record
-    await db.email_verifications.delete_one({"token": data.token})
+    await db.email_verifications.delete_one({"email": data.email.lower(), "code": data.code})
     
     logger.info(f"Email verified for user: {verification['user_id']}")
     
     return {
         "success": True,
-        "message": "Email verified successfully! You can now login."
+        "message": "Email verified successfully! Your account is pending admin approval."
     }
 
 @api_router.post("/auth/resend-verification")
