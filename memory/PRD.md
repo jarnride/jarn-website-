@@ -299,6 +299,14 @@
     - Individual digit input boxes with auto-advance
     - Paste support for quick entry
     - Resend code functionality
+14. ✅ **Admin User Management Enhancements:**
+    - Delete user option (permanent deletion)
+    - User filters: All, Buyers, Sellers, Approved, Pending
+    - Extend seller subscription manually (admin)
+15. ✅ **Show/Hide Password Toggle** - Added eye icon to login and registration forms
+16. ✅ **Company Name Field** - Optional field for seller registration
+17. ✅ **NigeriaBulkSMS Integration** - Replaced Twilio with NigeriaBulkSMS for phone verification
+18. ✅ **Seller Relist Auctions** - Sellers can relist their expired/ended auctions
 
 ---
 
