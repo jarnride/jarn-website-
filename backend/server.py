@@ -150,6 +150,10 @@ def sanitize_search_query(query: str) -> str:
 def generate_otp(length: int = 6) -> str:
     return ''.join(random.choices(string.digits, k=length))
 
+def generate_verification_code() -> str:
+    """Generate a 6-digit verification code"""
+    return ''.join(random.choices(string.digits, k=6))
+
 def generate_verification_token() -> str:
     """Generate a secure verification token"""
     return str(uuid.uuid4()) + '-' + ''.join(random.choices(string.ascii_letters + string.digits, k=32))
