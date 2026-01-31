@@ -1037,6 +1037,23 @@ export default function AdminDashboard() {
 
               {/* Users Tab */}
               <TabsContent value="users" className="mt-6">
+                {/* User Filters */}
+                <div className="mb-4 flex flex-wrap gap-2 items-center">
+                  <Filter className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground mr-2">Filter:</span>
+                  {['all', 'buyers', 'sellers', 'approved', 'pending'].map((filter) => (
+                    <Button
+                      key={filter}
+                      size="sm"
+                      variant={userFilter === filter ? 'default' : 'outline'}
+                      onClick={() => setUserFilter(filter)}
+                      className="capitalize"
+                    >
+                      {filter}
+                    </Button>
+                  ))}
+                </div>
+                
                 {/* Bulk Actions */}
                 {selectedUsers.length > 0 && (
                   <div className="mb-4 p-3 bg-blue-50 rounded-lg flex items-center justify-between">
