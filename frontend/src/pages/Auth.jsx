@@ -124,10 +124,10 @@ export default function Auth() {
         setRegisteredEmail(registerForm.email);
         setRegistrationSuccess(true);
         setResendCountdown(60);
-        if (response.data.mock_token) {
-          setMockToken(response.data.mock_token);
+        if (response.data.mock_code) {
+          setMockToken(response.data.mock_code);
         }
-        toast.success('Please check your email to verify your account!');
+        toast.success('Please check your email for your verification code!');
       } else if (response.data.token) {
         toast.success('Account created successfully!');
         navigate('/dashboard');
