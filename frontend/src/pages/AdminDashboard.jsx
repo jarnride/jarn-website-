@@ -640,10 +640,59 @@ export default function AdminDashboard() {
     }
   };
 
-  const filteredUsers = users.filter(u => 
-    u.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    u.email?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const handleDeleteUser = async (userId, userName) => {
+    if (!window.confirm(`Are you sure you want to permanently delete ${userName}? This action cannot be undone.`)) {
+      return;
+    }
+    setProcessingId(userId);
+    try {
+      const headers = { Authorization: `Bearer ${token}` };
+      await axios.delete(`${API}/admin/users/${userId}`, { headers });
+      setUsers(prev => prev.filter(u => u.id !== userId));
+      toast.success('User deleted permanently');
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to delete user');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleExtendSubscription = async (userId, userName) => {
+    setProcessingId(userId);
+    try {
+      const headers = { Authorization: `Bearer ${token}` };
+      const res = await axios.post(`${API}/admin/users/${userId}/extend-subscription?days=${extendDays}`, {}, { headers });
+      toast.success(`${userName}'s subscription extended by ${extendDays} days`);
+      fetchAdminData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to extend subscription');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  // Apply user filter
+  const getFilteredUsers = () => {
+    let filtered = users.filter(u =>
+      u.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      u.email?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    
+    switch (userFilter) {
+      case 'buyers':
+        return filtered.filter(u => u.role === 'buyer');
+      case 'sellers':
+        return filtered.filter(u => u.role === 'farmer');
+      case 'approved':
+        return filtered.filter(u => u.is_approved === true);
+      case 'pending':
+        return filtered.filter(u => u.approval_status === 'pending' || !u.is_approved);
+      default:
+        return filtered;
+    }
+  };
+
+  const filteredUsers = getFilteredUsers();
 
   const filteredAuctions = auctions.filter(a => 
     a.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
