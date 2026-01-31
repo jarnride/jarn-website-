@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Gavel, Mail, Lock, User, Tractor, ShoppingCart, Phone, CheckCircle, Send, Building2, CreditCard, IdCard } from 'lucide-react';
+import { Gavel, Mail, Lock, User, Tractor, ShoppingCart, Phone, CheckCircle, Send, Building2, CreditCard, IdCard, Eye, EyeOff } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -23,6 +23,8 @@ export default function Auth() {
   const [registeredEmail, setRegisteredEmail] = useState('');
   const [mockToken, setMockToken] = useState('');
   const [resendCountdown, setResendCountdown] = useState(0);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
   const [registerForm, setRegisterForm] = useState({ 
