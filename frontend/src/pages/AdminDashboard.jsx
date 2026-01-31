@@ -148,7 +148,8 @@ export default function AdminDashboard() {
         axios.get(`${API}/admin/escrows`, { headers }).catch(() => ({ data: [] })),
         axios.get(`${API}/admin/campaigns`, { headers }).catch(() => ({ data: [] })),
         axios.get(`${API}/admin/campaigns/stats`, { headers }).catch(() => ({ data: {} })),
-        axios.get(`${API}/admin/campaigns/auto-schedules`, { headers }).catch(() => ({ data: [] }))
+        axios.get(`${API}/admin/campaigns/auto-schedules`, { headers }).catch(() => ({ data: [] })),
+        axios.get(`${API}/admin/users/pending-approval`, { headers }).catch(() => ({ data: [] }))
       ]);
       
       setStats(statsRes.data);
@@ -160,6 +161,7 @@ export default function AdminDashboard() {
       setCampaigns(campaignsRes.data);
       setCampaignStats(campaignStatsRes.data);
       setAutoSchedules(autoSchedulesRes.data);
+      setPendingApprovals(pendingApprovalsRes.data);
       setUsers(usersRes.data);
       setAuctions(auctionsRes.data);
       setPayouts(payoutsRes.data);
