@@ -601,6 +601,38 @@ export default function AdminDashboard() {
     return days[day];
   };
 
+  // User approval handlers
+  const handleApproveUser = async (userId) => {
+    setProcessingId(userId);
+    try {
+      const headers = { Authorization: `Bearer ${token}` };
+      await axios.post(`${API}/admin/users/${userId}/approve`, {}, { headers });
+      setPendingApprovals(prev => prev.filter(u => u.id !== userId));
+      toast.success('User approved successfully! They will receive an email notification.');
+      fetchAdminData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to approve user');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleRejectUser = async (userId) => {
+    setProcessingId(userId);
+    try {
+      const headers = { Authorization: `Bearer ${token}` };
+      await axios.post(`${API}/admin/users/${userId}/reject?reason=${encodeURIComponent(rejectionReason)}`, {}, { headers });
+      setPendingApprovals(prev => prev.filter(u => u.id !== userId));
+      setRejectionReason('');
+      toast.success('User registration rejected');
+      fetchAdminData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to reject user');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
   const filteredUsers = users.filter(u => 
     u.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     u.email?.toLowerCase().includes(searchQuery.toLowerCase())
