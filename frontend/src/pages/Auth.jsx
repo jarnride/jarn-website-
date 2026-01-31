@@ -515,6 +515,22 @@ export default function Auth() {
                         Required for identity verification and payout processing.
                       </p>
                     </div>
+                    
+                    {/* Company Name (Optional) */}
+                    <div className="form-group">
+                      <Label htmlFor="register-company">Company/Farm Name (Optional)</Label>
+                      <div className="relative mt-1">
+                        <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          id="register-company"
+                          placeholder="Your farm or business name"
+                          value={registerForm.company_name}
+                          onChange={(e) => setRegisterForm({ ...registerForm, company_name: e.target.value })}
+                          className="pl-10"
+                          data-testid="register-company"
+                        />
+                      </div>
+                    </div>
                   </div>
                 )}
 
