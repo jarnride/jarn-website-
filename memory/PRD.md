@@ -286,6 +286,14 @@
     - Select campaign type and audience
     - Enable/disable schedules
 
+## Completed (Jan 31, 2026)
+11. ✅ **Email Verification Bug Fix** - Fixed React Strict Mode double-call issue
+12. ✅ **Admin User Approval System** - New users require admin approval before accessing platform:
+    - New "Approvals" tab in Admin Dashboard
+    - Review pending registrations with user details
+    - Approve/Reject with email notifications
+    - Login blocked until approved
+
 ---
 
 ## Upcoming Tasks (Priority Order)
