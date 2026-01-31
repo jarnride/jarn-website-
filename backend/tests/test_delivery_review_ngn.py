@@ -162,7 +162,7 @@ class TestDeliveryOptions(TestSetup):
         
         # Buy now with delivery option
         buy_now_data = {
-            "origin_url": "https://jarnnmarket-1.preview.emergentagent.com",
+            "origin_url": "https://harvest-auction-1.preview.emergentagent.com",
             "payment_method": "stripe",
             "delivery_option": "city_to_city",
             "delivery_address": "123 Test Street, Lagos, Nigeria"
@@ -205,7 +205,7 @@ class TestDeliveryOptions(TestSetup):
         
         # Buy now with local pickup
         buy_now_data = {
-            "origin_url": "https://jarnnmarket-1.preview.emergentagent.com",
+            "origin_url": "https://harvest-auction-1.preview.emergentagent.com",
             "payment_method": "stripe",
             "delivery_option": "local_pickup"
             # No delivery_address needed for local pickup
@@ -437,7 +437,7 @@ class TestCheckoutIntegration(TestSetup):
         
         # Buy now with delivery details
         buy_now_data = {
-            "origin_url": "https://jarnnmarket-1.preview.emergentagent.com",
+            "origin_url": "https://harvest-auction-1.preview.emergentagent.com",
             "payment_method": "stripe",
             "delivery_option": "city_to_city",
             "delivery_address": "456 Test Avenue, Kaduna, Nigeria"
