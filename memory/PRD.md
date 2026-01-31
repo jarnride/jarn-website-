@@ -306,13 +306,23 @@
 15. ✅ **Show/Hide Password Toggle** - Added eye icon to login and registration forms
 16. ✅ **Company Name Field** - Optional field for seller registration
 17. ✅ **NigeriaBulkSMS Integration** - Replaced Twilio with NigeriaBulkSMS for phone verification
-18. ✅ **Seller Relist Auctions** - Sellers can relist their expired/ended auctions
+18. ✅ **Seller Relist Auctions** - Sellers can relist their expired/ended auctions:
+    - "Available for Relist" section on Dashboard Ended tab
+    - Configurable relist duration (3, 7, 14, 30 days)
+    - Backend validates expired auctions can be relisted
+    - Fixed frontend canRelist() to check ends_at timestamp
+19. ✅ **Buy Now Only Items** - Bidding is disabled for "Buy Now Only" listings:
+    - Backend blocks bid attempts with clear error message
+    - Frontend hides bidding form, shows only "Buy Now" button
+    - "Buy Now Only" badge displayed on auction cards
 
 ---
 
 ## Upcoming Tasks (Priority Order)
-1. **Push Notifications** - Web Push API integration (playbook retrieved)
-2. **Backend Refactoring** - Split server.py into modules (4000+ lines)
+1. **NigeriaBulkSMS Live Integration** - Backend mock ready, needs API keys
+2. **Paystack Live Integration** - Backend ready, needs API keys for NGN payments
+3. **Backend Refactoring** - Split server.py into modules (5500+ lines - CRITICAL)
+4. **Push Notifications** - Web Push API integration (playbook retrieved)
 3. **Twilio SMS Full Integration** - Test live SMS sending
 4. **Delivery Tracking** - AfterShip integration
 5. **Mobile App** - React Native version
