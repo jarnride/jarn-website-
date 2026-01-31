@@ -266,30 +266,31 @@ class EmailService:
         }
     
     @staticmethod
-    async def send_verification_email(email: str, name: str, token: str) -> dict:
-        """Send email verification link to new user"""
-        verification_link = f"{FRONTEND_URL}/verify-email?token={token}"
-        subject = "Verify Your Email - Jarnnmarket"
+    async def send_verification_email(email: str, name: str, code: str) -> dict:
+        """Send email verification code to new user"""
+        subject = "Your Verification Code - Jarnnmarket"
         html_body = f"""
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2 style="color: #16a34a;">Welcome to Jarnnmarket!</h2>
             <p>Hi {name},</p>
-            <p>Thank you for registering at Jarnnmarket. Please verify your email address to complete your registration.</p>
-            <div style="margin: 30px 0;">
-                <a href="{verification_link}" style="background-color: #16a34a; color: white; padding: 12px 30px; text-decoration: none; border-radius: 25px; display: inline-block;">Verify My Email</a>
+            <p>Thank you for registering at Jarnnmarket. Please use the verification code below to complete your registration:</p>
+            <div style="margin: 30px 0; text-align: center;">
+                <div style="background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); color: white; padding: 20px 40px; border-radius: 12px; display: inline-block;">
+                    <p style="margin: 0 0 8px 0; font-size: 14px; opacity: 0.9;">Your Verification Code</p>
+                    <p style="margin: 0; font-size: 36px; font-weight: bold; letter-spacing: 8px; font-family: monospace;">{code}</p>
+                </div>
             </div>
-            <p style="color: #666; font-size: 14px;">
-                Or copy and paste this link into your browser:<br>
-                <span style="color: #16a34a; word-break: break-all;">{verification_link}</span>
+            <p style="color: #666; font-size: 14px; text-align: center;">
+                Enter this code on the verification page to activate your account.
             </p>
-            <p style="color: #666; font-size: 14px;">This link will expire in 24 hours.</p>
+            <p style="color: #666; font-size: 14px; text-align: center;">This code will expire in 24 hours.</p>
             <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
             <p style="color: #999; font-size: 12px;">
                 If you didn't create an account at Jarnnmarket, please ignore this email.
             </p>
         </div>
         """
-        text_body = f"Hi {name}, please verify your email by clicking this link: {verification_link}"
+        text_body = f"Hi {name}, your Jarnnmarket verification code is: {code}. Enter this code to verify your email. This code expires in 24 hours."
         return await EmailService.send_email(email, subject, html_body, text_body)
     
     @staticmethod
