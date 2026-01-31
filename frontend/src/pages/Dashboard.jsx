@@ -136,9 +136,12 @@ export default function Dashboard() {
     }
   };
 
-  // Check if auction can be relisted (not sold)
+  // Check if auction can be relisted (ended/expired and not sold)
   const canRelist = (auction) => {
-    return !auction.is_active && !auction.winner_id && !auction.escrow_id;
+    const isExpired = new Date(auction.ends_at) <= new Date();
+    const isInactive = !auction.is_active;
+    const notSold = !auction.winner_id && !auction.escrow_id;
+    return (isExpired || isInactive) && notSold;
   };
 
   if (!user) return null;
