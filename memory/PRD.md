@@ -293,6 +293,12 @@
     - Review pending registrations with user details
     - Approve/Reject with email notifications
     - Login blocked until approved
+13. ✅ **Code-Based Email Verification** - Changed from link to 6-digit code:
+    - Users receive verification code in welcome email
+    - Enter code on verification page instead of clicking link
+    - Individual digit input boxes with auto-advance
+    - Paste support for quick entry
+    - Resend code functionality
 
 ---
 
