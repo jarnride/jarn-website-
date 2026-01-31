@@ -4322,6 +4322,105 @@ async def admin_unsuspend_user(user_id: str, admin: dict = Depends(verify_admin)
     logger.info(f"Admin {admin['email']} unsuspended user {user_id} ({user['email']})")
     return {"success": True, "message": "User suspension removed"}
 
+@api_router.get("/admin/users/pending-approval")
+async def get_pending_approval_users(admin: dict = Depends(verify_admin)):
+    """Get all users pending admin approval"""
+    users = await db.users.find(
+        {"approval_status": "pending", "role": {"$ne": "admin"}},
+        {"_id": 0, "password_hash": 0}
+    ).sort("created_at", -1).to_list(100)
+    return users
+
+@api_router.post("/admin/users/{user_id}/approve")
+async def admin_approve_user(user_id: str, admin: dict = Depends(verify_admin)):
+    """Approve a user registration"""
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if user.get("is_approved"):
+        raise HTTPException(status_code=400, detail="User is already approved")
+    
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {
+            "is_approved": True,
+            "approval_status": "approved",
+            "approved_by": admin['email'],
+            "approved_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Send approval email
+    try:
+        subject = "🎉 Your Jarnnmarket Account Has Been Approved!"
+        html_body = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #16a34a;">Welcome to Jarnnmarket!</h2>
+            <p>Hi {user['name']},</p>
+            <p>Great news! Your account has been reviewed and <strong>approved</strong> by our team.</p>
+            <p>You can now log in and start {'selling your farm produce' if user['role'] == 'farmer' else 'browsing fresh produce from Nigerian farmers'}!</p>
+            <div style="margin: 30px 0;">
+                <a href="{FRONTEND_URL}/login" style="background-color: #16a34a; color: white; padding: 12px 30px; text-decoration: none; border-radius: 25px; display: inline-block;">Login Now</a>
+            </div>
+            <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+            <p style="color: #999; font-size: 12px;">Thank you for joining Jarnnmarket - Nigeria's Premier Agricultural Marketplace.</p>
+        </div>
+        """
+        text_body = f"Hi {user['name']}, your Jarnnmarket account has been approved! You can now log in at {FRONTEND_URL}/login"
+        await EmailService.send_email(user['email'], subject, html_body, text_body)
+    except Exception as e:
+        logger.error(f"Failed to send approval email to {user['email']}: {e}")
+    
+    logger.info(f"Admin {admin['email']} approved user {user_id} ({user['email']})")
+    return {"success": True, "message": f"User {user['name']} has been approved"}
+
+@api_router.post("/admin/users/{user_id}/reject")
+async def admin_reject_user(user_id: str, reason: str = "", admin: dict = Depends(verify_admin)):
+    """Reject a user registration"""
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if user.get("approval_status") == "rejected":
+        raise HTTPException(status_code=400, detail="User is already rejected")
+    
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {
+            "is_approved": False,
+            "approval_status": "rejected",
+            "rejection_reason": reason or "Registration not approved",
+            "rejected_by": admin['email'],
+            "rejected_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Send rejection email
+    try:
+        subject = "Jarnnmarket Account Registration Update"
+        html_body = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #dc2626;">Account Registration Update</h2>
+            <p>Hi {user['name']},</p>
+            <p>We regret to inform you that your account registration at Jarnnmarket could not be approved at this time.</p>
+            {f'<p><strong>Reason:</strong> {reason}</p>' if reason else ''}
+            <p>If you believe this is an error or would like more information, please contact our support team.</p>
+            <div style="margin: 30px 0;">
+                <a href="mailto:support@jarnnmarket.com" style="background-color: #6b7280; color: white; padding: 12px 30px; text-decoration: none; border-radius: 25px; display: inline-block;">Contact Support</a>
+            </div>
+            <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+            <p style="color: #999; font-size: 12px;">Jarnnmarket - Nigeria's Premier Agricultural Marketplace</p>
+        </div>
+        """
+        text_body = f"Hi {user['name']}, your Jarnnmarket account registration could not be approved. {f'Reason: {reason}' if reason else ''} Please contact support for more information."
+        await EmailService.send_email(user['email'], subject, html_body, text_body)
+    except Exception as e:
+        logger.error(f"Failed to send rejection email to {user['email']}: {e}")
+    
+    logger.info(f"Admin {admin['email']} rejected user {user_id} ({user['email']})")
+    return {"success": True, "message": f"User {user['name']} registration has been rejected"}
+
 @api_router.post("/admin/orders/{auction_id}/cancel")
 async def admin_cancel_order(auction_id: str, reason: str = "", admin: dict = Depends(verify_admin)):
     """Admin cancel an order/auction"""
