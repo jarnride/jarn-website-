@@ -1751,13 +1751,36 @@ async def send_phone_verification(request: Request, data: PhoneVerificationReque
         upsert=True
     )
     
-    await SMSService.send_verification_code(data.phone, otp)
+    # Try sending SMS
+    sms_result = await SMSService.send_verification_code(data.phone, otp)
+    sms_sent = sms_result.get("success", False)
+    
+    # Always send email backup with the code
+    email_sent = False
+    try:
+        await EmailService.send_phone_verification_code(user["email"], user["name"], otp, data.phone)
+        email_sent = True
+        logger.info(f"Phone verification code sent via email to {user['email']}")
+    except Exception as e:
+        logger.error(f"Failed to send phone verification email: {e}")
+    
+    response_message = "Verification code sent"
+    if sms_sent and email_sent:
+        response_message = "Verification code sent via SMS and email backup"
+    elif sms_sent:
+        response_message = "Verification code sent via SMS"
+    elif email_sent:
+        response_message = "SMS delivery failed. Verification code sent to your registered email"
+    else:
+        response_message = "Unable to send verification code. Please try again."
     
     return {
-        "success": True,
-        "message": "Verification code sent",
-        "mock_mode": TWILIO_MOCK_MODE,
-        "mock_code": otp if TWILIO_MOCK_MODE else None
+        "success": sms_sent or email_sent,
+        "message": response_message,
+        "sms_sent": sms_sent,
+        "email_sent": email_sent,
+        "mock_mode": SMS_MOCK_MODE,
+        "mock_code": otp if SMS_MOCK_MODE else None
     }
 
 @api_router.post("/auth/phone/verify")
