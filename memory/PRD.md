@@ -315,14 +315,17 @@
     - Backend blocks bid attempts with clear error message
     - Frontend hides bidding form, shows only "Buy Now" button
     - "Buy Now Only" badge displayed on auction cards
+20. ✅ **NigeriaBulkSMS Live Integration** - Phone verification via SMS:
+    - Live API integration with username/password auth
+    - Email fallback: verification code sent to registered email if SMS fails
+    - Dual delivery: both SMS and email sent for reliability
 
 ---
 
 ## Upcoming Tasks (Priority Order)
-1. **NigeriaBulkSMS Live Integration** - Backend mock ready, needs API keys
-2. **Paystack Live Integration** - Backend ready, needs API keys for NGN payments
-3. **Backend Refactoring** - Split server.py into modules (5500+ lines - CRITICAL)
-4. **Push Notifications** - Web Push API integration (playbook retrieved)
+1. **Paystack Live Integration** - Backend ready, needs API keys for NGN payments
+2. **Backend Refactoring** - Split server.py into modules (5500+ lines - CRITICAL)
+3. **Push Notifications** - Web Push API integration (playbook retrieved)
 3. **Twilio SMS Full Integration** - Test live SMS sending
 4. **Delivery Tracking** - AfterShip integration
 5. **Mobile App** - React Native version
