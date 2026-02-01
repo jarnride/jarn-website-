@@ -335,7 +335,7 @@
 
 ## Services Status
 - **Email (Brevo):** ✅ LIVE - Sending real transactional & marketing emails
-- **SMS (Twilio):** ⚠️ Keys configured, not fully tested in live mode
+- **SMS (NigeriaBulkSMS):** ✅ LIVE - Phone verification with email fallback
 - **Payments (PayPal):** ✅ LIVE mode enabled
 - **Payments (Paystack):** ⚠️ Backend ready, awaiting API keys for NGN payments
 - **Payments (Stripe):** ✅ Test mode active
