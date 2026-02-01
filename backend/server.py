@@ -812,38 +812,41 @@ class SMSService:
                 elif not phone.startswith('234'):
                     phone = '234' + phone
                 
+                # NigeriaBulkSMS API format: username, password, message, sender, mobiles
                 params = {
-                    'api_token': NIGERIABULKSMS_API_KEY,
-                    'from': NIGERIABULKSMS_SENDER,
-                    'to': phone,
-                    'body': message,
-                    'dnd': '2'  # DND filter - 2 means send to all
+                    'username': NIGERIABULKSMS_USERNAME,
+                    'password': NIGERIABULKSMS_PASSWORD,
+                    'message': message,
+                    'sender': NIGERIABULKSMS_SENDER,
+                    'mobiles': phone
                 }
                 
                 async with httpx.AsyncClient() as client:
                     response = await client.get(
-                        f"{NIGERIABULKSMS_API_URL}",
+                        NIGERIABULKSMS_API_URL,
                         params=params,
                         timeout=15.0
                     )
                     
-                    data = response.json()
+                    response_text = response.text.strip()
+                    logger.info(f"[NIGERIABULKSMS RESPONSE] {response_text}")
                     
-                    if data.get('data', {}).get('status') == 'success':
+                    # API returns "OK" on success, error message on failure
+                    if response_text.upper() == "OK" or "OK" in response_text.upper():
                         logger.info(f"[NIGERIABULKSMS] Sent to: {to} | Status: success")
                         return {
                             "success": True,
                             "mock": False,
-                            "message_id": data.get('data', {}).get('message_id', 'unknown'),
+                            "message_id": f"NBS_{uuid.uuid4().hex[:12]}",
                             "to": to,
                             "status": "sent"
                         }
                     else:
-                        logger.error(f"[NIGERIABULKSMS ERROR] {data}")
+                        logger.error(f"[NIGERIABULKSMS ERROR] Response: {response_text}")
                         return {
                             "success": False,
                             "mock": False,
-                            "error": data.get('error', 'Unknown error'),
+                            "error": response_text,
                             "to": to
                         }
                         
