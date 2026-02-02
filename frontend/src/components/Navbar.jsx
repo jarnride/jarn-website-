@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import { useCart } from '@/context/CartContext';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,12 +13,15 @@ import {
 } from '@/components/ui/dropdown-menu';
 import NotificationBell from '@/components/NotificationBell';
 import JarnnLogo from '@/components/JarnnLogo';
-import { Menu, X, User, LogOut, LayoutDashboard, Plus, HelpCircle, Shield } from 'lucide-react';
+import { Menu, X, User, LogOut, LayoutDashboard, Plus, HelpCircle, Shield, ShoppingCart } from 'lucide-react';
 
 export const Navbar = () => {
   const { user, logout } = useAuth();
+  const { getCartCount, openCart } = useCart();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
+  const cartCount = getCartCount();
 
   // Check if user is admin
   const isAdmin = user?.email === 'admin@jarnnmarket.com' || 
