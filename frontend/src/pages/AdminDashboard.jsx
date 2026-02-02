@@ -862,36 +862,39 @@ export default function AdminDashboard() {
 
             {/* Tabs */}
             <Tabs defaultValue="approvals">
-              <TabsList className="flex-wrap">
-                <TabsTrigger value="approvals" className={pendingApprovals.length > 0 ? "bg-orange-100 text-orange-800" : ""}>
-                  <UserCheck className="w-4 h-4 mr-2" />
-                  Approvals {pendingApprovals.length > 0 && `(${pendingApprovals.length})`}
-                </TabsTrigger>
-                <TabsTrigger value="users">
-                  <Users className="w-4 h-4 mr-2" />
-                  Users ({filteredUsers.length})
-                </TabsTrigger>
-                <TabsTrigger value="auctions">
-                  <Gavel className="w-4 h-4 mr-2" />
-                  Auctions ({filteredAuctions.length})
-                </TabsTrigger>
-                <TabsTrigger value="orders">
-                  <Receipt className="w-4 h-4 mr-2" />
-                  Orders ({filteredOrders.length})
-                </TabsTrigger>
-                <TabsTrigger value="escrows">
-                  <Shield className="w-4 h-4 mr-2" />
-                  Escrows ({filteredEscrows.length})
-                </TabsTrigger>
-                <TabsTrigger value="payouts">
-                  <DollarSign className="w-4 h-4 mr-2" />
-                  Payouts ({payouts.length})
-                </TabsTrigger>
-                <TabsTrigger value="marketing">
-                  <Mail className="w-4 h-4 mr-2" />
-                  Marketing ({campaigns.length})
-                </TabsTrigger>
-              </TabsList>
+              <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
+                <TabsList className="flex w-max md:w-auto md:flex-wrap gap-1 mb-2">
+                  <TabsTrigger value="approvals" className={`text-xs md:text-sm whitespace-nowrap ${pendingApprovals.length > 0 ? "bg-orange-100 text-orange-800" : ""}`}>
+                    <UserCheck className="w-4 h-4 mr-1 md:mr-2" />
+                    <span className="hidden sm:inline">Approvals</span>
+                    {pendingApprovals.length > 0 && ` (${pendingApprovals.length})`}
+                  </TabsTrigger>
+                  <TabsTrigger value="users" className="text-xs md:text-sm whitespace-nowrap">
+                    <Users className="w-4 h-4 mr-1 md:mr-2" />
+                    <span className="hidden sm:inline">Users</span> ({filteredUsers.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="auctions" className="text-xs md:text-sm whitespace-nowrap">
+                    <Gavel className="w-4 h-4 mr-1 md:mr-2" />
+                    <span className="hidden sm:inline">Auctions</span> ({filteredAuctions.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="orders" className="text-xs md:text-sm whitespace-nowrap">
+                    <Receipt className="w-4 h-4 mr-1 md:mr-2" />
+                    <span className="hidden sm:inline">Orders</span> ({filteredOrders.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="escrows" className="text-xs md:text-sm whitespace-nowrap">
+                    <Shield className="w-4 h-4 mr-1 md:mr-2" />
+                    <span className="hidden sm:inline">Escrows</span> ({filteredEscrows.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="payouts" className="text-xs md:text-sm whitespace-nowrap">
+                    <DollarSign className="w-4 h-4 mr-1 md:mr-2" />
+                    <span className="hidden sm:inline">Payouts</span> ({payouts.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="marketing" className="text-xs md:text-sm whitespace-nowrap">
+                    <Mail className="w-4 h-4 mr-1 md:mr-2" />
+                    <span className="hidden sm:inline">Marketing</span> ({campaigns.length})
+                  </TabsTrigger>
+                </TabsList>
+              </div>
 
               {/* Approvals Tab */}
               <TabsContent value="approvals" className="mt-6">
