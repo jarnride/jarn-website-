@@ -74,16 +74,15 @@ export default function Dashboard() {
         const ordersWithWinner = auctionsRes.data.filter(a => a.winner_id && !a.cancelled);
         setMyOrders(ordersWithWinner);
         
-        // Fetch received offers for each active auction
-        const allOffers = [];
-        for (const auction of auctionsRes.data.filter(a => a.is_active)) {
-          try {
-            const offersRes = await axios.get(`${API}/auctions/${auction.id}/offers`, { headers });
-            allOffers.push(...offersRes.data.map(o => ({ ...o, auction_title: auction.title })));
-          } catch (e) {
-            // Ignore errors for auctions without offers
-          }
-        }
+        // Fetch received offers for each active auction IN PARALLEL
+        const activeAuctionsForOffers = auctionsRes.data.filter(a => a.is_active);
+        const offerPromises = activeAuctionsForOffers.map(auction => 
+          axios.get(`${API}/auctions/${auction.id}/offers`, { headers })
+            .then(res => res.data.map(o => ({ ...o, auction_title: auction.title })))
+            .catch(() => [])  // Ignore errors for auctions without offers
+        );
+        const offerResults = await Promise.all(offerPromises);
+        const allOffers = offerResults.flat();
         setReceivedOffers(allOffers.filter(o => o.status === 'pending'));
       } else {
         const [bidsRes, wonRes, offersRes] = await Promise.all([
