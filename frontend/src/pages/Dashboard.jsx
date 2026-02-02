@@ -70,6 +70,10 @@ export default function Dashboard() {
         setMyAuctions(auctionsRes.data);
         setPayouts(payoutsRes.data);
         
+        // Filter orders (auctions with a winner/buyer)
+        const ordersWithWinner = auctionsRes.data.filter(a => a.winner_id && !a.cancelled);
+        setMyOrders(ordersWithWinner);
+        
         // Fetch received offers for each active auction
         const allOffers = [];
         for (const auction of auctionsRes.data.filter(a => a.is_active)) {
