@@ -68,8 +68,9 @@ export const AuctionCard = ({ auction }) => {
   };
 
   return (
+    <>
     <div className="auction-card card-hover" data-testid={`auction-card-${auction.id}`}>
-      <div className="relative">
+      <div className="relative group">
         <img
           src={auction.image_url}
           alt={auction.title}
@@ -79,6 +80,20 @@ export const AuctionCard = ({ auction }) => {
           title={`View ${auction.seller_name}'s profile`}
         />
         <Badge className="auction-card-badge">{auction.category}</Badge>
+        
+        {/* Quick View Button - appears on hover */}
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setShowQuickView(true);
+          }}
+          className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-white/90 hover:bg-white text-black px-4 py-2 rounded-full text-sm font-medium opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center gap-2 shadow-lg"
+          data-testid={`quick-view-${auction.id}`}
+        >
+          <Eye className="w-4 h-4" />
+          Quick View
+        </button>
         
         {/* Badges for listing types */}
         <div className="absolute top-3 right-3 flex flex-col gap-1">
