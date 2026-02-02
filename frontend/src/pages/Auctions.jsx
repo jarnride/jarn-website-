@@ -115,11 +115,6 @@ export default function Auctions() {
     setSearchParams(params);
   };
 
-  const handleLocationChange = (value) => {
-    setBuyerLocation(value);
-    localStorage.setItem('buyer_location', value);
-  };
-
   const hasActiveFilters = filters.q || filters.category || filters.currency || 
     filters.delivery || filters.min_price || filters.max_price;
 
