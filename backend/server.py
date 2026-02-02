@@ -1606,10 +1606,10 @@ async def verify_email(request: Request, data: EmailVerificationCode):
         logger.warning(f"Code expired for email: {data.email}")
         raise HTTPException(status_code=400, detail="Verification code has expired. Please request a new one.")
     
-    # Update user's email_verified status
+    # Update user's email_verified status AND phone_verified (one-time during registration)
     await db.users.update_one(
         {"id": verification["user_id"]},
-        {"$set": {"email_verified": True}}
+        {"$set": {"email_verified": True, "phone_verified": True}}
     )
     
     # Delete the verification record
