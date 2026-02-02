@@ -70,6 +70,9 @@ export default function AuctionDetail() {
       setAuction(auctionRes.data);
       setBids(bidsRes.data);
       
+      // Track as recently viewed
+      addRecentlyViewed(auctionRes.data);
+      
       const endTime = new Date(auctionRes.data.ends_at).getTime();
       setIsExpired(Date.now() > endTime);
       setIsSold(auctionRes.data.sold_via === 'buy_now' || !auctionRes.data.is_active);
