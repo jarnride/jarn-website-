@@ -13,7 +13,7 @@ BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://backend-revival-14.p
 SELLER_EMAIL = "john@farm.com"
 SELLER_PASSWORD = "password123"
 BUYER_EMAIL = "buyer@demo.com"
-BUYER_PASSWORD = "password"
+BUYER_PASSWORD = "password123"
 ADMIN_EMAIL = "admin@jarnnmarket.com"
 ADMIN_PASSWORD = "admin123"
 
