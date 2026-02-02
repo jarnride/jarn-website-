@@ -4,6 +4,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { io } from 'socket.io-client';
 import { useAuth } from '@/context/AuthContext';
+import { useCart } from '@/context/CartContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -23,7 +24,7 @@ import CountdownTimer from '@/components/CountdownTimer';
 import PhoneVerification from '@/components/PhoneVerification';
 import CheckoutModal from '@/components/CheckoutModal';
 import { ReviewModal, ReviewsList } from '@/components/SellerReview';
-import { MapPin, User, Calendar, Clock, TrendingUp, AlertCircle, CreditCard, Zap, ShoppingCart, Shield, Package, MessageSquare, Star, Send, DollarSign, Truck, Globe, Home, XCircle } from 'lucide-react';
+import { MapPin, User, Calendar, Clock, TrendingUp, AlertCircle, CreditCard, Zap, ShoppingCart, Shield, Package, MessageSquare, Star, Send, DollarSign, Truck, Globe, Home, XCircle, Check } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const WS_URL = process.env.REACT_APP_BACKEND_URL?.replace('https://', 'wss://').replace('http://', 'ws://');
@@ -32,6 +33,7 @@ export default function AuctionDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user, token } = useAuth();
+  const { addToCart, isInCart, openCart } = useCart();
   
   const [auction, setAuction] = useState(null);
   const [bids, setBids] = useState([]);
