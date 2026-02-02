@@ -375,6 +375,25 @@
     - Responsive table layouts with min-width columns
     - Mobile-optimized stat cards (2-column grid)
 
+## Completed (Feb 2, 2026)
+29. ✅ **Cancel Order Feature (Seller Dashboard)**:
+    - New "Orders" tab in seller dashboard showing sold items
+    - Cancel Order button on each order card
+    - Cancel Order dialog with optional reason field
+    - Refund warning for paid orders
+    - Both automatic and manual refund options available
+    - Backend endpoints: `/api/sellers/orders/{id}/cancel`, `/api/buyers/orders/{id}/cancel`, `/api/admin/orders/{id}/cancel`
+30. ✅ **Login Role Selection**:
+    - New role selection screen at `/auth` (before login/register forms)
+    - Visual "I'm a Buyer" and "I'm a Seller" cards with icons
+    - Role indicator shown in login/register form header
+    - "Change account type" button to return to role selection
+    - No more role toggle in registration form (cleaner UX)
+31. ✅ **Dashboard Performance Fix**:
+    - Fixed sequential API calls causing 10+ second load times
+    - Offer fetching now uses Promise.all() for parallel requests
+    - Dashboard loads significantly faster
+
 ---
 
 ## Upcoming Tasks (Priority Order)
