@@ -1556,6 +1556,17 @@ async def register(request: Request, data: UserCreate):
     # Send verification email with code
     await EmailService.send_verification_email(data.email.lower(), sanitize_string(data.name), verification_code)
     
+    # Also send SMS verification code if phone is provided (one-time during registration)
+    sms_sent = False
+    if data.phone:
+        try:
+            sms_result = await SMSService.send_verification_code(data.phone, verification_code)
+            sms_sent = sms_result.get("success", False)
+            if sms_sent:
+                logger.info(f"SMS verification code sent to {data.phone}")
+        except Exception as e:
+            logger.error(f"Failed to send SMS verification: {e}")
+    
     # Log registration (without sensitive data)
     logger.info(f"New user registered: {user_id}, role: {data.role}, email verification required, pending admin approval")
     
@@ -1565,6 +1576,7 @@ async def register(request: Request, data: UserCreate):
         "email_verification_required": True,
         "admin_approval_required": True,
         "email": data.email.lower(),
+        "sms_sent": sms_sent,
         "mock_mode": EMAIL_MOCK_MODE,
         "mock_code": verification_code if EMAIL_MOCK_MODE else None
     }
