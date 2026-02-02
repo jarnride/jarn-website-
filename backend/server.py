@@ -3615,6 +3615,100 @@ async def request_payout(data: PayoutRequest, user: dict = Depends(get_current_u
 
 # ================== USER ROUTES ==================
 
+# ================== WISHLIST ROUTES ==================
+
+@api_router.get("/wishlist")
+async def get_wishlist(user: dict = Depends(get_current_user)):
+    """Get user's wishlist"""
+    wishlist = await db.wishlists.find_one({"user_id": user["id"]}, {"_id": 0})
+    if not wishlist:
+        return []
+    
+    # Fetch full auction data for each item
+    auction_ids = wishlist.get("items", [])
+    auctions = await db.auctions.find({"id": {"$in": auction_ids}}, {"_id": 0}).to_list(100)
+    
+    # Add addedAt timestamp from wishlist
+    items_with_dates = []
+    for auction in auctions:
+        item = dict(auction)
+        # Find the addedAt date from wishlist
+        for witem in wishlist.get("items_data", []):
+            if witem.get("id") == auction["id"]:
+                item["addedAt"] = witem.get("addedAt")
+                break
+        items_with_dates.append(item)
+    
+    return items_with_dates
+
+@api_router.post("/wishlist/{auction_id}")
+async def add_to_wishlist(auction_id: str, user: dict = Depends(get_current_user)):
+    """Add auction to wishlist"""
+    # Verify auction exists
+    auction = await db.auctions.find_one({"id": auction_id})
+    if not auction:
+        raise HTTPException(status_code=404, detail="Auction not found")
+    
+    # Get or create wishlist
+    wishlist = await db.wishlists.find_one({"user_id": user["id"]})
+    
+    if wishlist:
+        if auction_id in wishlist.get("items", []):
+            return {"success": True, "message": "Already in wishlist"}
+        
+        # Add to existing wishlist
+        await db.wishlists.update_one(
+            {"user_id": user["id"]},
+            {
+                "$push": {
+                    "items": auction_id,
+                    "items_data": {
+                        "id": auction_id,
+                        "addedAt": datetime.now(timezone.utc).isoformat()
+                    }
+                },
+                "$set": {"updated_at": datetime.now(timezone.utc).isoformat()}
+            }
+        )
+    else:
+        # Create new wishlist
+        await db.wishlists.insert_one({
+            "user_id": user["id"],
+            "items": [auction_id],
+            "items_data": [{
+                "id": auction_id,
+                "addedAt": datetime.now(timezone.utc).isoformat()
+            }],
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        })
+    
+    return {"success": True, "message": "Added to wishlist"}
+
+@api_router.delete("/wishlist/{auction_id}")
+async def remove_from_wishlist(auction_id: str, user: dict = Depends(get_current_user)):
+    """Remove auction from wishlist"""
+    result = await db.wishlists.update_one(
+        {"user_id": user["id"]},
+        {
+            "$pull": {
+                "items": auction_id,
+                "items_data": {"id": auction_id}
+            },
+            "$set": {"updated_at": datetime.now(timezone.utc).isoformat()}
+        }
+    )
+    
+    return {"success": True, "message": "Removed from wishlist"}
+
+@api_router.delete("/wishlist")
+async def clear_wishlist(user: dict = Depends(get_current_user)):
+    """Clear entire wishlist"""
+    await db.wishlists.delete_one({"user_id": user["id"]})
+    return {"success": True, "message": "Wishlist cleared"}
+
+# ================== USER PROFILE ROUTES ==================
+
 @api_router.get("/users/{user_id}/profile")
 async def get_user_profile(user_id: str):
     """Get public profile of a seller"""
