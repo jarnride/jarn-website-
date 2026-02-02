@@ -329,6 +329,9 @@
     - Cart drawer with quantity controls (+/-)
     - "Keep Shopping" and "Proceed to Checkout" buttons
     - Checkout page with order summary, delivery address, payment method selection
+    - **Add to Cart buttons on auction cards** for faster shopping
+    - Toast notifications with "View Cart" action when items added
+    - Visual feedback: checkmark icon on items already in cart
 23. ✅ **Mobile Admin Dashboard**:
     - Horizontally scrollable tabs on mobile
     - Responsive table layouts with min-width columns
