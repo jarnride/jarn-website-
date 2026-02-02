@@ -1777,6 +1777,10 @@ async def update_payout_details(data: PayoutDetailsUpdate, user: dict = Depends(
 @api_router.post("/auth/phone/send-code")
 @limiter.limit("3/minute")
 async def send_phone_verification(request: Request, data: PhoneVerificationRequest, user: dict = Depends(get_current_user)):
+    # Check if phone is already verified - only allow one-time verification
+    if user.get("phone_verified"):
+        raise HTTPException(status_code=400, detail="Phone number is already verified. Phone verification is only allowed once during registration.")
+    
     if not validate_phone(data.phone):
         raise HTTPException(status_code=400, detail="Invalid phone number format")
     
