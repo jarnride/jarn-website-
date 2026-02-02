@@ -182,19 +182,38 @@ export const AuctionCard = ({ auction }) => {
           </div>
         )}
 
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <span className="text-sm text-muted-foreground">
             {isBuyNowOnly ? 'Fixed Price' : `${auction.bid_count} bids`}
           </span>
-          <Link to={`/auctions/${auction.id}`}>
-            <Button 
-              className="rounded-full bg-primary hover:bg-primary/90 btn-hover-lift" 
-              data-testid={`bid-now-${auction.id}`}
-              disabled={isSold}
-            >
-              {isSold ? 'View' : isBuyNowOnly ? 'Buy Now' : 'Bid Now'}
-            </Button>
-          </Link>
+          <div className="flex gap-2">
+            {/* Add to Cart Button - Only for Buy Now items */}
+            {(auction.buy_now_price || isBuyNowOnly) && !isSold && (
+              <Button 
+                variant={inCart || justAdded ? "secondary" : "outline"}
+                size="icon"
+                className={`rounded-full transition-all ${justAdded ? 'bg-green-100 text-green-600' : ''}`}
+                onClick={handleAddToCart}
+                data-testid={`add-to-cart-${auction.id}`}
+                title={inCart ? 'In Cart' : 'Add to Cart'}
+              >
+                {justAdded || inCart ? (
+                  <Check className="w-4 h-4" />
+                ) : (
+                  <ShoppingCart className="w-4 h-4" />
+                )}
+              </Button>
+            )}
+            <Link to={`/auctions/${auction.id}`}>
+              <Button 
+                className="rounded-full bg-primary hover:bg-primary/90 btn-hover-lift" 
+                data-testid={`bid-now-${auction.id}`}
+                disabled={isSold}
+              >
+                {isSold ? 'View' : isBuyNowOnly ? 'Buy Now' : 'Bid Now'}
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
     </div>
