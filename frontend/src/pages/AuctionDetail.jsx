@@ -904,6 +904,29 @@ export default function AuctionDetail() {
                             </>
                           )}
                         </Button>
+
+                        {/* Add to Cart Button */}
+                        <Button
+                          variant={isInCart(auction.id) ? "secondary" : "ghost"}
+                          className={`w-full rounded-full py-4 ${isInCart(auction.id) ? 'bg-green-100 text-green-700' : 'text-muted-foreground'}`}
+                          onClick={() => {
+                            addToCart(auction, 1);
+                            toast.success(`${auction.title} added to cart!`);
+                          }}
+                          data-testid="add-to-cart-auction-btn"
+                        >
+                          {isInCart(auction.id) ? (
+                            <>
+                              <Check className="w-4 h-4 mr-2" />
+                              In Cart
+                            </>
+                          ) : (
+                            <>
+                              <ShoppingCart className="w-4 h-4 mr-2" />
+                              Add to Cart Instead
+                            </>
+                          )}
+                        </Button>
                       </>
                     )}
 
