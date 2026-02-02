@@ -88,6 +88,12 @@ export default function Auth() {
       return;
     }
     
+    // Validate phone number (required)
+    if (!registerForm.phone || registerForm.phone.trim().length < 10) {
+      toast.error('Please enter a valid phone number');
+      return;
+    }
+    
     // Validate farmer payout details
     if (registerForm.role === 'farmer') {
       if (!registerForm.bank_name || registerForm.bank_name.trim().length < 2) {
@@ -111,7 +117,7 @@ export default function Auth() {
         email: registerForm.email,
         password: registerForm.password,
         role: registerForm.role,
-        phone: registerForm.phone || null
+        phone: registerForm.phone
       };
       
       // Add seller payout details for farmers
