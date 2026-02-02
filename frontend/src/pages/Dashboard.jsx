@@ -445,6 +445,70 @@ export default function Dashboard() {
                 )}
               </TabsContent>
 
+              {/* Orders Tab - Seller's sold items with cancel option */}
+              <TabsContent value="orders" className="mt-6">
+                {myOrders.length > 0 ? (
+                  <div className="space-y-4">
+                    {myOrders.map(order => (
+                      <Card key={order.id}>
+                        <CardContent className="p-4">
+                          <div className="flex items-center gap-4">
+                            <img 
+                              src={order.image_url || '/placeholder-auction.jpg'} 
+                              alt={order.title}
+                              className="w-20 h-20 rounded-lg object-cover"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-semibold truncate">{order.title}</h4>
+                              <p className="text-sm text-muted-foreground">
+                                Buyer: {order.buyer_email || 'Buyer'}
+                              </p>
+                              <p className="text-lg font-bold font-mono text-primary">
+                                {order.currency === 'NGN' ? '₦' : '$'}{order.current_bid?.toLocaleString()}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              {order.is_paid ? (
+                                <Badge className="bg-green-100 text-green-800">
+                                  <CheckCircle className="w-3 h-3 mr-1" /> Paid
+                                </Badge>
+                              ) : (
+                                <Badge variant="secondary">Awaiting Payment</Badge>
+                              )}
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {new Date(order.ends_at).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                          {!order.cancelled && (
+                            <div className="mt-4 pt-4 border-t flex justify-end gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-red-300 text-red-600 hover:bg-red-50"
+                                onClick={() => setCancelDialog({ open: true, auction: order })}
+                                data-testid={`cancel-order-${order.id}`}
+                              >
+                                <XCircle className="w-4 h-4 mr-1" />
+                                Cancel Order
+                              </Button>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="empty-state">
+                    <ShoppingCart className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                    <h3 className="text-xl font-semibold mb-2">No orders yet</h3>
+                    <p className="text-muted-foreground">
+                      When buyers win or purchase your items, they will appear here.
+                    </p>
+                  </div>
+                )}
+              </TabsContent>
+
               <TabsContent value="ended" className="mt-6">
                 {endedAuctions.length > 0 ? (
                   <div className="space-y-6">
