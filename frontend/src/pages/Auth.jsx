@@ -537,40 +537,6 @@ export default function Auth() {
                   </p>
                 </div>
 
-                <div className="form-group">
-                  <Label>I am a...</Label>
-                  <RadioGroup 
-                    value={registerForm.role}
-                    onValueChange={(value) => setRegisterForm({ ...registerForm, role: value })}
-                    className="flex gap-4 mt-2"
-                  >
-                    <div className="flex-1">
-                      <Label 
-                        htmlFor="role-farmer"
-                        className={`flex items-center justify-center gap-2 p-4 rounded-lg border-2 cursor-pointer transition-colors ${
-                          registerForm.role === 'farmer' ? 'border-primary bg-primary/5' : 'border-border'
-                        }`}
-                      >
-                        <RadioGroupItem value="farmer" id="role-farmer" className="sr-only" />
-                        <Tractor className="w-5 h-5" />
-                        <span>Farmer</span>
-                      </Label>
-                    </div>
-                    <div className="flex-1">
-                      <Label 
-                        htmlFor="role-buyer"
-                        className={`flex items-center justify-center gap-2 p-4 rounded-lg border-2 cursor-pointer transition-colors ${
-                          registerForm.role === 'buyer' ? 'border-primary bg-primary/5' : 'border-border'
-                        }`}
-                      >
-                        <RadioGroupItem value="buyer" id="role-buyer" className="sr-only" />
-                        <ShoppingCart className="w-5 h-5" />
-                        <span>Buyer</span>
-                      </Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-
                 {/* Seller Payout Details - Only show for farmers */}
                 {registerForm.role === 'farmer' && (
                   <div className="space-y-4 p-4 bg-muted/50 rounded-lg border">
