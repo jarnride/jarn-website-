@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Clock, MapPin, User, Zap, Star, MessageSquare, CheckCircle, Shield, ShoppingCart, Check, Eye, Heart } from 'lucide-react';
+import { Clock, MapPin, User, Zap, Star, MessageSquare, CheckCircle, Shield, ShoppingCart, Check, Eye, Heart, Navigation } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
+import { useLocation } from '@/context/LocationContext';
 import { toast } from 'sonner';
 import QuickViewModal from '@/components/QuickViewModal';
 
@@ -13,12 +14,17 @@ export const AuctionCard = ({ auction }) => {
   const navigate = useNavigate();
   const { addToCart, isInCart } = useCart();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
+  const { getDistanceToLocation, formatDistance, userLocation } = useLocation();
   const [timeLeft, setTimeLeft] = useState('');
   const [isUrgent, setIsUrgent] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
   const [showQuickView, setShowQuickView] = useState(false);
 
   const inWishlist = isInWishlist(auction.id);
+  
+  // Calculate distance if user has location set
+  const distance = userLocation ? (auction.distance || getDistanceToLocation(auction.location)) : null;
+  const distanceText = formatDistance(distance);
 
   const handleWishlistToggle = (e) => {
     e.preventDefault();
@@ -47,6 +53,7 @@ export const AuctionCard = ({ auction }) => {
         setTimeLeft('Ended');
         return;
       }
+
 
       const hours = Math.floor(diff / (1000 * 60 * 60));
       const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
