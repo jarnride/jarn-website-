@@ -174,6 +174,13 @@ export default function Auth() {
     }
   };
 
+  // Handle role selection
+  const handleRoleSelect = (role) => {
+    setSelectedRole(role);
+    setRegisterForm({ ...registerForm, role });
+    setShowRoleSelection(false);
+  };
+
   // Show verification pending screen
   if (registrationSuccess) {
     return (
@@ -240,9 +247,96 @@ export default function Auth() {
     );
   }
 
+  // Role Selection Screen
+  if (showRoleSelection) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted/30 py-12 px-4" data-testid="role-selection">
+        <div className="w-full max-w-lg">
+          {/* Logo */}
+          <div className="text-center mb-8">
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <Gavel className="w-10 h-10 text-primary" />
+              <span 
+                className="text-3xl font-bold text-primary"
+                style={{ fontFamily: 'Playfair Display, serif' }}
+              >
+                Jarnnmarket
+              </span>
+            </div>
+            <p className="text-muted-foreground text-lg">
+              How would you like to use Jarnnmarket?
+            </p>
+          </div>
+
+          {/* Role Selection Cards */}
+          <div className="grid gap-4 md:grid-cols-2">
+            {/* Buyer Card */}
+            <Card 
+              className="cursor-pointer transition-all hover:shadow-lg hover:border-primary group"
+              onClick={() => handleRoleSelect('buyer')}
+              data-testid="select-buyer"
+            >
+              <CardContent className="p-6 text-center">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                  <ShoppingCart className="w-8 h-8 text-blue-600" />
+                </div>
+                <h3 className="text-xl font-bold mb-2">I'm a Buyer</h3>
+                <p className="text-muted-foreground text-sm">
+                  Browse fresh produce, bid on auctions, and purchase directly from farmers
+                </p>
+                <div className="mt-4 flex flex-wrap gap-2 justify-center">
+                  <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full">Browse Auctions</span>
+                  <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full">Place Bids</span>
+                  <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full">Buy Now</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Seller/Farmer Card */}
+            <Card 
+              className="cursor-pointer transition-all hover:shadow-lg hover:border-primary group"
+              onClick={() => handleRoleSelect('farmer')}
+              data-testid="select-farmer"
+            >
+              <CardContent className="p-6 text-center">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-100 flex items-center justify-center group-hover:bg-green-200 transition-colors">
+                  <Tractor className="w-8 h-8 text-green-600" />
+                </div>
+                <h3 className="text-xl font-bold mb-2">I'm a Seller</h3>
+                <p className="text-muted-foreground text-sm">
+                  List your produce, manage auctions, and connect with buyers nationwide
+                </p>
+                <div className="mt-4 flex flex-wrap gap-2 justify-center">
+                  <span className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded-full">Create Listings</span>
+                  <span className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded-full">Receive Bids</span>
+                  <span className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded-full">Get Paid</span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <p className="text-center text-sm text-muted-foreground mt-6">
+            You can change your role later in settings
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/30 py-12 px-4" data-testid="auth-page">
       <div className="w-full max-w-md">
+        {/* Back to role selection */}
+        <Button
+          variant="ghost"
+          className="mb-4"
+          onClick={() => setShowRoleSelection(true)}
+          data-testid="back-to-role-selection"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Change account type
+        </Button>
+
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-4">
@@ -253,6 +347,19 @@ export default function Auth() {
             >
               Jarnnmarket
             </span>
+          </div>
+          <div className="flex items-center justify-center gap-2 mb-2">
+            {selectedRole === 'farmer' ? (
+              <>
+                <Tractor className="w-5 h-5 text-green-600" />
+                <span className="text-green-600 font-medium">Seller Account</span>
+              </>
+            ) : (
+              <>
+                <ShoppingCart className="w-5 h-5 text-blue-600" />
+                <span className="text-blue-600 font-medium">Buyer Account</span>
+              </>
+            )}
           </div>
           <p className="text-muted-foreground">
             {mode === 'login' ? 'Welcome back!' : 'Create your account'}
