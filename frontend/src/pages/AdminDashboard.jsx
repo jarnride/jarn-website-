@@ -1026,6 +1026,7 @@ export default function AdminDashboard() {
                           ))}
                         </TableBody>
                       </Table>
+                      </div>
                     ) : (
                       <div className="text-center py-12">
                         <UserCheck className="w-12 h-12 mx-auto text-green-500 mb-4" />
