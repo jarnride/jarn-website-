@@ -347,3 +347,14 @@
         font-size: 1.25rem;
     }
 }
+
+/* Hide scrollbar for recently viewed */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
