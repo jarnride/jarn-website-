@@ -752,6 +752,29 @@ export default function AuctionDetail() {
                       )}
                     </Button>
 
+                    {/* Add to Cart Button */}
+                    <Button
+                      variant={isInCart(auction.id) ? "secondary" : "outline"}
+                      className={`w-full rounded-full py-6 text-lg ${isInCart(auction.id) ? 'bg-green-100 text-green-700 border-green-300' : ''}`}
+                      onClick={() => {
+                        addToCart(auction, 1);
+                        toast.success(`${auction.title} added to cart!`);
+                      }}
+                      data-testid="add-to-cart-detail-btn"
+                    >
+                      {isInCart(auction.id) ? (
+                        <>
+                          <Check className="w-5 h-5 mr-2" />
+                          In Cart - View Cart
+                        </>
+                      ) : (
+                        <>
+                          <ShoppingCart className="w-5 h-5 mr-2" />
+                          Add to Cart
+                        </>
+                      )}
+                    </Button>
+
                     {/* Make Offer Button */}
                     {canMakeOffer && (
                       <>
