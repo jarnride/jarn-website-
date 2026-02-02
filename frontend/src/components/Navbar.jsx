@@ -60,6 +60,22 @@ export const Navbar = () => {
 
           {/* Desktop Auth */}
           <div className="hidden md:flex items-center gap-3">
+            {/* Wishlist Button - visible to all */}
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="relative"
+              onClick={() => navigate('/wishlist')}
+              data-testid="wishlist-btn"
+            >
+              <Heart className="w-5 h-5" />
+              {wishlistCount > 0 && (
+                <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs bg-red-500 text-white">
+                  {wishlistCount}
+                </Badge>
+              )}
+            </Button>
+
             {/* Cart Button - visible to all */}
             <Button 
               variant="ghost" 
