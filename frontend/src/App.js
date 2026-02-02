@@ -58,6 +58,7 @@ function App() {
           </div>
           <Toaster position="top-right" richColors />
         </BrowserRouter>
+        </RecentlyViewedProvider>
       </CartProvider>
     </AuthProvider>
   );
