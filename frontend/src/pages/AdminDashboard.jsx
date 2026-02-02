@@ -910,17 +910,18 @@ export default function AdminDashboard() {
                   </CardHeader>
                   <CardContent>
                     {pendingApprovals.length > 0 ? (
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>User</TableHead>
-                            <TableHead>Role</TableHead>
-                            <TableHead>Email Verified</TableHead>
-                            <TableHead>Registered</TableHead>
-                            <TableHead>Payout Details</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
+                      <div className="overflow-x-auto -mx-6 px-6">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="min-w-[150px]">User</TableHead>
+                              <TableHead className="min-w-[80px]">Role</TableHead>
+                              <TableHead className="min-w-[100px]">Email Verified</TableHead>
+                              <TableHead className="min-w-[100px]">Registered</TableHead>
+                              <TableHead className="min-w-[100px]">Payout Details</TableHead>
+                              <TableHead className="text-right min-w-[150px]">Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
                         <TableBody>
                           {pendingApprovals.map((user) => (
                             <TableRow key={user.id}>
