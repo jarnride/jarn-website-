@@ -8,7 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Gavel, Mail, Lock, User, Tractor, ShoppingCart, Phone, CheckCircle, Send, Building2, CreditCard, IdCard, Eye, EyeOff } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Gavel, Mail, Lock, User, Tractor, ShoppingCart, Phone, CheckCircle, Send, Building2, CreditCard, IdCard, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -16,6 +17,10 @@ export default function Auth() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, login } = useAuth();
+  
+  // Role selection screen state
+  const [selectedRole, setSelectedRole] = useState(searchParams.get('role') || null);
+  const [showRoleSelection, setShowRoleSelection] = useState(!searchParams.get('role'));
   
   const [mode, setMode] = useState(searchParams.get('mode') || 'login');
   const [loading, setLoading] = useState(false);
