@@ -234,6 +234,14 @@ export const AuctionCard = ({ auction }) => {
         </div>
       </div>
     </div>
+    
+    {/* Quick View Modal */}
+    <QuickViewModal 
+      auction={auction} 
+      open={showQuickView} 
+      onClose={() => setShowQuickView(false)} 
+    />
+    </>
   );
 };
 
