@@ -1,20 +1,41 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Clock, MapPin, User, Zap, Star, MessageSquare, CheckCircle, Shield, ShoppingCart, Check, Eye } from 'lucide-react';
+import { Clock, MapPin, User, Zap, Star, MessageSquare, CheckCircle, Shield, ShoppingCart, Check, Eye, Heart } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useCart } from '@/context/CartContext';
+import { useWishlist } from '@/context/WishlistContext';
 import { toast } from 'sonner';
 import QuickViewModal from '@/components/QuickViewModal';
 
 export const AuctionCard = ({ auction }) => {
   const navigate = useNavigate();
   const { addToCart, isInCart } = useCart();
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const [timeLeft, setTimeLeft] = useState('');
   const [isUrgent, setIsUrgent] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
   const [showQuickView, setShowQuickView] = useState(false);
+
+  const inWishlist = isInWishlist(auction.id);
+
+  const handleWishlistToggle = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (inWishlist) {
+      removeFromWishlist(auction.id);
+      toast.success('Removed from wishlist');
+    } else {
+      addToWishlist(auction);
+      toast.success('Added to wishlist!', {
+        action: {
+          label: 'View Wishlist',
+          onClick: () => navigate('/wishlist')
+        }
+      });
+    }
+  };
 
   useEffect(() => {
     const calculateTimeLeft = () => {
