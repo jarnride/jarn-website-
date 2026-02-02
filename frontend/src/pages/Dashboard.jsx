@@ -11,7 +11,16 @@ import AuctionCard from '@/components/AuctionCard';
 import PhoneVerification from '@/components/PhoneVerification';
 import SellerAnalytics from '@/components/SellerAnalytics';
 import SellerTrialBanner from '@/components/SellerTrialBanner';
-import { Plus, Package, Gavel, Trophy, TrendingUp, Clock, Shield, Phone, CheckCircle, MessageSquare, DollarSign, Check, X, BarChart3, AlertTriangle, RefreshCw, RotateCcw } from 'lucide-react';
+import { Plus, Package, Gavel, Trophy, TrendingUp, Clock, Shield, Phone, CheckCircle, MessageSquare, DollarSign, Check, X, BarChart3, AlertTriangle, RefreshCw, RotateCcw, ShoppingCart, XCircle } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
