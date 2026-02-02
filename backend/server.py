@@ -3599,6 +3599,34 @@ async def request_payout(data: PayoutRequest, user: dict = Depends(get_current_u
 
 # ================== USER ROUTES ==================
 
+@api_router.get("/users/{user_id}/profile")
+async def get_user_profile(user_id: str):
+    """Get public profile of a seller"""
+    user = await db.users.find_one({"id": user_id}, {"_id": 0, "password_hash": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Only return seller profiles
+    if user.get("role") != "farmer":
+        raise HTTPException(status_code=404, detail="Seller not found")
+    
+    # Get review stats
+    reviews = await db.reviews.find({"seller_id": user_id}, {"_id": 0}).to_list(100)
+    avg_rating = sum(r["rating"] for r in reviews) / len(reviews) if reviews else 0
+    
+    return {
+        "id": user["id"],
+        "name": user["name"],
+        "email": user.get("email"),  # For buyer-seller contact
+        "phone": user.get("phone") if user.get("phone_verified") else None,  # Only if verified
+        "company_name": user.get("company_name"),
+        "location": user.get("location", "Nigeria"),
+        "is_verified": user.get("is_verified", False),
+        "created_at": user.get("created_at"),
+        "rating": avg_rating,
+        "review_count": len(reviews)
+    }
+
 @api_router.get("/users/{user_id}/auctions")
 async def get_user_auctions(user_id: str):
     auctions = await db.auctions.find({"seller_id": user_id}, {"_id": 0}).sort("created_at", -1).to_list(100)
