@@ -153,6 +153,28 @@ export default function Dashboard() {
     }
   };
 
+  const handleCancelOrder = async () => {
+    if (!cancelDialog.auction) return;
+    setCancellingOrder(cancelDialog.auction.id);
+    try {
+      const response = await axios.post(
+        `${API}/sellers/orders/${cancelDialog.auction.id}/cancel?reason=${encodeURIComponent(cancelReason)}`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success(response.data.refund_processed 
+        ? 'Order cancelled and refund initiated!' 
+        : 'Order cancelled successfully!');
+      setCancelDialog({ open: false, auction: null });
+      setCancelReason('');
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to cancel order');
+    } finally {
+      setCancellingOrder(null);
+    }
+  };
+
   // Check if auction can be relisted (ended/expired and not sold)
   const canRelist = (auction) => {
     const isExpired = new Date(auction.ends_at) <= new Date();
