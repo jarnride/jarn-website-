@@ -1013,6 +1013,59 @@ export default function Dashboard() {
         onOpenChange={setShowPhoneVerification}
         onVerified={fetchData}
       />
+
+      {/* Cancel Order Dialog */}
+      <Dialog open={cancelDialog.open} onOpenChange={(open) => !open && setCancelDialog({ open: false, auction: null })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancel Order</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to cancel the order for "{cancelDialog.auction?.title}"?
+              {cancelDialog.auction?.is_paid && (
+                <span className="block mt-2 text-amber-600 font-medium">
+                  ⚠️ This order has been paid. A refund will be initiated to the buyer.
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Reason for cancellation (optional)</label>
+              <Textarea
+                placeholder="Enter a reason for cancelling this order..."
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setCancelDialog({ open: false, auction: null })}
+            >
+              Keep Order
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleCancelOrder}
+              disabled={cancellingOrder === cancelDialog.auction?.id}
+            >
+              {cancellingOrder === cancelDialog.auction?.id ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  Cancelling...
+                </>
+              ) : (
+                <>
+                  <XCircle className="w-4 h-4 mr-2" />
+                  Cancel Order
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
