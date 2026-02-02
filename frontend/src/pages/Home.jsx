@@ -19,7 +19,6 @@ export default function Home() {
   const navigate = useNavigate();
   const [featuredAuctions, setFeaturedAuctions] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [stats, setStats] = useState({ total_auctions: 0, active_auctions: 0, total_users: 0, total_bids: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -28,15 +27,13 @@ export default function Home() {
         // Seed demo data first
         await axios.post(`${API}/seed`).catch(() => {});
         
-        const [auctionsRes, categoriesRes, statsRes] = await Promise.all([
+        const [auctionsRes, categoriesRes] = await Promise.all([
           axios.get(`${API}/auctions/featured?limit=6`),
-          axios.get(`${API}/auctions/categories`),
-          axios.get(`${API}/stats`)
+          axios.get(`${API}/auctions/categories`)
         ]);
         
         setFeaturedAuctions(auctionsRes.data);
         setCategories(categoriesRes.data);
-        setStats(statsRes.data);
       } catch (error) {
         console.error('Failed to fetch data:', error);
       } finally {
