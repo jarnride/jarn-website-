@@ -137,6 +137,9 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Recently Viewed Section */}
+      <RecentlyViewed />
+
       {/* Featured Auctions */}
       <section className="py-20 md:py-32" data-testid="featured-section">
         <div className="max-w-7xl mx-auto px-4 md:px-8">
