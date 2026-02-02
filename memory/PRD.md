@@ -344,6 +344,13 @@
     - Phone is automatically verified when email code is verified
     - Cannot re-verify phone after initial registration
     - Backend blocks multiple phone verification attempts
+26. ✅ **Recently Viewed Items Section**:
+    - Shows on homepage after viewing auction details
+    - Horizontal scrollable list with up to 10 items
+    - Each card shows: image, title, seller, price, time left
+    - "Add to Cart" button on each item
+    - "Clear" button to remove viewing history
+    - Persists in localStorage across sessions
 23. ✅ **Mobile Admin Dashboard**:
     - Horizontally scrollable tabs on mobile
     - Responsive table layouts with min-width columns
