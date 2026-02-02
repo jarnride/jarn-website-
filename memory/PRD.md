@@ -397,13 +397,15 @@
 ---
 
 ## Upcoming Tasks (Priority Order)
-1. **Paystack Live Integration** - Backend ready, needs API keys for NGN payments
-2. **Backend Refactoring** - Split server.py into modules (5500+ lines - CRITICAL)
-3. **Push Notifications** - Web Push API integration
-3. **Twilio SMS Full Integration** - Test live SMS sending
-4. **Delivery Tracking** - AfterShip integration
-5. **Mobile App** - React Native version
-6. **Tiered Subscriptions** - Bronze/Silver/Gold plans
+1. **Backend Refactoring** - Split server.py into modules (5700+ lines - CRITICAL)
+2. **Paystack Live Integration** - Backend ready, needs API keys for NGN payments
+3. **Seller Reviews Display** - Show seller rating under items
+4. **Quantity Selection** - Allow buyers to select quantity based on stock
+5. **Item Weight Display** - Show item weight as listed by seller
+6. **Push Notifications** - Web Push API integration
+7. **Delivery Tracking** - AfterShip integration
+8. **Mobile App** - React Native version
+9. **Tiered Subscriptions** - Bronze/Silver/Gold plans
 
 ---
 
