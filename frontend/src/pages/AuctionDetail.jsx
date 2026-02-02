@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { io } from 'socket.io-client';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
+import { useRecentlyViewed } from '@/context/RecentlyViewedContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -34,6 +35,7 @@ export default function AuctionDetail() {
   const navigate = useNavigate();
   const { user, token } = useAuth();
   const { addToCart, isInCart, openCart } = useCart();
+  const { addRecentlyViewed } = useRecentlyViewed();
   
   const [auction, setAuction] = useState(null);
   const [bids, setBids] = useState([]);
