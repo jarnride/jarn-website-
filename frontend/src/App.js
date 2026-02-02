@@ -64,6 +64,7 @@ function App() {
               </div>
               <Toaster position="top-right" richColors />
             </BrowserRouter>
+            </LocationProvider>
           </WishlistProvider>
         </RecentlyViewedProvider>
       </CartProvider>
