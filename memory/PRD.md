@@ -351,6 +351,15 @@
     - "Add to Cart" button on each item
     - "Clear" button to remove viewing history
     - Persists in localStorage across sessions
+27. ✅ **Wishlist Feature**:
+    - Heart icon on each auction card (top-left) - click to add/remove
+    - Wishlist icon in navbar with item count badge
+    - Dedicated /wishlist page with grid view
+    - "Add to Cart" and "View" buttons on wishlist items
+    - "Clear All" option to remove all items
+    - Toast notifications with "View Wishlist" action
+    - Backend API endpoints for logged-in users
+    - localStorage fallback for guests
 23. ✅ **Mobile Admin Dashboard**:
     - Horizontally scrollable tabs on mobile
     - Responsive table layouts with min-width columns
