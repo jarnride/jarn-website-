@@ -12,7 +12,9 @@ import {
 } from '@/components/ui/select';
 import AuctionCard from '@/components/AuctionCard';
 import SearchBar from '@/components/SearchBar';
-import { Search, ChevronLeft, ChevronRight, Package, MapPin } from 'lucide-react';
+import LocationSelector from '@/components/LocationSelector';
+import { useLocation } from '@/context/LocationContext';
+import { Search, ChevronLeft, ChevronRight, Package, MapPin, Navigation } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -33,7 +35,7 @@ export default function Auctions() {
   const [totalResults, setTotalResults] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [buyerLocation, setBuyerLocation] = useState(localStorage.getItem('buyer_location') || '');
+  const { userLocation, locationName, sortByDistance, formatDistance } = useLocation();
 
   // Get filters from URL
   const filters = {
@@ -43,13 +45,13 @@ export default function Auctions() {
     delivery: searchParams.get('delivery') || '',
     min_price: searchParams.get('min_price') || '',
     max_price: searchParams.get('max_price') || '',
-    sort_by: searchParams.get('sort_by') || 'nearest',
+    sort_by: searchParams.get('sort_by') || (userLocation ? 'nearest' : 'newest'),
     page: parseInt(searchParams.get('page')) || 1,
   };
 
   useEffect(() => {
     fetchAuctions();
-  }, [searchParams, buyerLocation]);
+  }, [searchParams, userLocation]);
 
   const fetchAuctions = async () => {
     setLoading(true);
