@@ -151,6 +151,21 @@ export const Navbar = () => {
 
           {/* Mobile Menu Button */}
           <div className="flex md:hidden items-center gap-2">
+            {/* Mobile Wishlist Button */}
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="relative"
+              onClick={() => navigate('/wishlist')}
+              data-testid="mobile-wishlist-btn"
+            >
+              <Heart className="w-5 h-5" />
+              {wishlistCount > 0 && (
+                <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs bg-red-500 text-white">
+                  {wishlistCount}
+                </Badge>
+              )}
+            </Button>
             {/* Mobile Cart Button */}
             <Button 
               variant="ghost" 
