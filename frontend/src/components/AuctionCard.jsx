@@ -200,9 +200,15 @@ export const AuctionCard = ({ auction }) => {
 
         <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
           <MapPin className="w-4 h-4" />
-          <span>{auction.location}</span>
+          <span className="truncate">{auction.location}</span>
+          {distanceText && (
+            <Badge variant="outline" className="text-xs gap-1 text-primary border-primary/30 shrink-0">
+              <Navigation className="w-3 h-3" />
+              {distanceText}
+            </Badge>
+          )}
           {auction.quantity > 1 && (
-            <span className="text-xs bg-muted px-2 py-0.5 rounded-full">
+            <span className="text-xs bg-muted px-2 py-0.5 rounded-full shrink-0">
               Qty: {auction.quantity}
             </span>
           )}
