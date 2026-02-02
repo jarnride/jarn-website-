@@ -332,6 +332,18 @@
     - **Add to Cart buttons on auction cards** for faster shopping
     - Toast notifications with "View Cart" action when items added
     - Visual feedback: checkmark icon on items already in cart
+24. ✅ **Quick View Modal**:
+    - Hover over auction card to see "Quick View" button
+    - Modal shows: image, title, seller info, price, time left, description
+    - "Add to Cart" button directly in modal
+    - "View Full Details" button to go to full page
+    - Trust badge with secure payment indicator
+25. ✅ **One-Time Phone Verification During Registration**:
+    - Phone number is now REQUIRED during registration
+    - Same verification code sent via SMS + Email backup
+    - Phone is automatically verified when email code is verified
+    - Cannot re-verify phone after initial registration
+    - Backend blocks multiple phone verification attempts
 23. ✅ **Mobile Admin Dashboard**:
     - Horizontally scrollable tabs on mobile
     - Responsive table layouts with min-width columns
