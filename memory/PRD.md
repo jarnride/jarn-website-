@@ -319,13 +319,27 @@
     - Live API integration with username/password auth
     - Email fallback: verification code sent to registered email if SMS fails
     - Dual delivery: both SMS and email sent for reliability
+21. ✅ **Buyer Experience Improvements**:
+    - Removed admin statistics from homepage (now shows value propositions)
+    - Item image click navigates to Seller Profile page
+    - Seller Profile shows: name, contact info (phone/email), location, stats, active listings
+    - All buyer-seller communications monitored for fraud prevention
+22. ✅ **Shopping Cart System**:
+    - Cart context with localStorage persistence
+    - Cart drawer with quantity controls (+/-)
+    - "Keep Shopping" and "Proceed to Checkout" buttons
+    - Checkout page with order summary, delivery address, payment method selection
+23. ✅ **Mobile Admin Dashboard**:
+    - Horizontally scrollable tabs on mobile
+    - Responsive table layouts with min-width columns
+    - Mobile-optimized stat cards (2-column grid)
 
 ---
 
 ## Upcoming Tasks (Priority Order)
 1. **Paystack Live Integration** - Backend ready, needs API keys for NGN payments
 2. **Backend Refactoring** - Split server.py into modules (5500+ lines - CRITICAL)
-3. **Push Notifications** - Web Push API integration (playbook retrieved)
+3. **Push Notifications** - Web Push API integration
 3. **Twilio SMS Full Integration** - Test live SMS sending
 4. **Delivery Tracking** - AfterShip integration
 5. **Mobile App** - React Native version
