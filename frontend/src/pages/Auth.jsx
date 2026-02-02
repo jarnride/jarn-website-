@@ -280,7 +280,7 @@ export default function Auth() {
                 <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
                   <ShoppingCart className="w-8 h-8 text-blue-600" />
                 </div>
-                <h3 className="text-xl font-bold mb-2">I'm a Buyer</h3>
+                <h3 className="text-xl font-bold mb-2">I&apos;m a Buyer</h3>
                 <p className="text-muted-foreground text-sm">
                   Browse fresh produce, bid on auctions, and purchase directly from farmers
                 </p>
@@ -302,7 +302,7 @@ export default function Auth() {
                 <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-100 flex items-center justify-center group-hover:bg-green-200 transition-colors">
                   <Tractor className="w-8 h-8 text-green-600" />
                 </div>
-                <h3 className="text-xl font-bold mb-2">I'm a Seller</h3>
+                <h3 className="text-xl font-bold mb-2">I&apos;m a Seller</h3>
                 <p className="text-muted-foreground text-sm">
                   List your produce, manage auctions, and connect with buyers nationwide
                 </p>
