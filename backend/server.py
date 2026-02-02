@@ -4792,10 +4792,14 @@ async def admin_extend_subscription(user_id: str, days: int = 30, admin: dict = 
 
 @api_router.post("/admin/orders/{auction_id}/cancel")
 async def admin_cancel_order(auction_id: str, reason: str = "", admin: dict = Depends(verify_admin)):
-    """Admin cancel an order/auction"""
+    """Admin cancel an order/auction with full refund handling"""
     auction = await db.auctions.find_one({"id": auction_id})
     if not auction:
         raise HTTPException(status_code=404, detail="Auction not found")
+    
+    # Get buyer and seller info for notifications
+    buyer = await db.users.find_one({"id": auction.get("winner_id")}, {"_id": 0}) if auction.get("winner_id") else None
+    seller = await db.users.find_one({"id": auction.get("seller_id")}, {"_id": 0})
     
     # Update auction status
     await db.auctions.update_one(
@@ -4803,26 +4807,276 @@ async def admin_cancel_order(auction_id: str, reason: str = "", admin: dict = De
         {"$set": {
             "is_active": False,
             "cancelled": True,
-            "cancelled_by": admin['email'],
+            "cancelled_by": "admin",
+            "cancelled_by_email": admin['email'],
             "cancelled_at": datetime.now(timezone.utc).isoformat(),
             "cancellation_reason": reason or "Cancelled by admin"
         }}
     )
     
-    # If there's an escrow, mark it for refund
+    # Handle escrow refund
     escrow = await db.escrow.find_one({"auction_id": auction_id})
-    if escrow and escrow.get('status') == 'pending':
+    refund_processed = False
+    if escrow:
+        if escrow.get('status') == 'pending' or escrow.get('status') == 'held':
+            await db.escrow.update_one(
+                {"id": escrow['id']},
+                {"$set": {
+                    "status": "refunded",
+                    "refunded_at": datetime.now(timezone.utc).isoformat(),
+                    "refunded_by": admin['email'],
+                    "refund_reason": reason or "Order cancelled by admin"
+                }}
+            )
+            refund_processed = True
+            
+            # Mark auction as refunded
+            await db.auctions.update_one(
+                {"id": auction_id},
+                {"$set": {"is_paid": False, "refunded": True}}
+            )
+    
+    # Notify buyer
+    if buyer:
+        refund_msg = f" Your payment of {escrow.get('currency', 'NGN')} {escrow['amount']:,.2f} will be refunded." if refund_processed else ""
+        await create_notification(
+            buyer["id"],
+            "order_cancelled",
+            "Order Cancelled",
+            f"Your order for '{auction['title']}' has been cancelled by admin.{refund_msg} Reason: {reason or 'No reason provided'}",
+            {"auction_id": auction_id}
+        )
+        await EmailService.send_email(
+            buyer["email"],
+            f"Order Cancelled - {auction['title']}",
+            f"""<div style="font-family: Arial, sans-serif;">
+                <h2>Order Cancelled</h2>
+                <p>Hi {buyer['name']},</p>
+                <p>Your order for "{auction['title']}" has been cancelled by the admin.</p>
+                {f'<p><strong>Refund:</strong> Your payment of {escrow.get("currency", "NGN")} {escrow["amount"]:,.2f} will be refunded within 3-5 business days.</p>' if refund_processed else ''}
+                <p><strong>Reason:</strong> {reason or 'No reason provided'}</p>
+                <p>If you have questions, please contact support.</p>
+            </div>""",
+            f"Your order for '{auction['title']}' has been cancelled."
+        )
+    
+    # Notify seller
+    if seller:
+        await create_notification(
+            seller["id"],
+            "order_cancelled",
+            "Order Cancelled by Admin",
+            f"Your listing '{auction['title']}' has been cancelled by admin. Reason: {reason or 'No reason provided'}",
+            {"auction_id": auction_id}
+        )
+        await EmailService.send_email(
+            seller["email"],
+            f"Order Cancelled by Admin - {auction['title']}",
+            f"""<div style="font-family: Arial, sans-serif;">
+                <h2>Order Cancelled by Admin</h2>
+                <p>Hi {seller['name']},</p>
+                <p>Your listing "{auction['title']}" has been cancelled by the admin.</p>
+                <p><strong>Reason:</strong> {reason or 'No reason provided'}</p>
+                <p>If you believe this is an error, please contact support.</p>
+            </div>""",
+            f"Your listing '{auction['title']}' has been cancelled by admin."
+        )
+    
+    logger.info(f"Admin {admin['email']} cancelled order {auction_id}. Reason: {reason}. Refund: {refund_processed}")
+    return {
+        "success": True, 
+        "message": "Order cancelled successfully",
+        "refund_processed": refund_processed
+    }
+
+# ================== SELLER CANCEL ORDER ==================
+
+@api_router.post("/sellers/orders/{auction_id}/cancel")
+async def seller_cancel_order(auction_id: str, reason: str = "", user: dict = Depends(get_current_user)):
+    """Seller cancel their own order - triggers refund if paid"""
+    if user.get("role") != "farmer":
+        raise HTTPException(status_code=403, detail="Only sellers can cancel their own orders")
+    
+    auction = await db.auctions.find_one({"id": auction_id})
+    if not auction:
+        raise HTTPException(status_code=404, detail="Auction not found")
+    
+    if auction.get("seller_id") != user["id"]:
+        raise HTTPException(status_code=403, detail="You can only cancel your own listings")
+    
+    # Check if already cancelled
+    if auction.get("cancelled"):
+        raise HTTPException(status_code=400, detail="Order already cancelled")
+    
+    buyer = await db.users.find_one({"id": auction.get("winner_id")}, {"_id": 0}) if auction.get("winner_id") else None
+    
+    # Update auction status
+    await db.auctions.update_one(
+        {"id": auction_id},
+        {"$set": {
+            "is_active": False,
+            "cancelled": True,
+            "cancelled_by": "seller",
+            "cancelled_by_id": user["id"],
+            "cancelled_at": datetime.now(timezone.utc).isoformat(),
+            "cancellation_reason": reason or "Cancelled by seller"
+        }}
+    )
+    
+    # Handle escrow refund if paid
+    escrow = await db.escrow.find_one({"auction_id": auction_id})
+    refund_processed = False
+    if escrow and escrow.get('status') in ['pending', 'held']:
         await db.escrow.update_one(
             {"id": escrow['id']},
             {"$set": {
                 "status": "refunded",
                 "refunded_at": datetime.now(timezone.utc).isoformat(),
-                "refund_reason": "Order cancelled by admin"
+                "refunded_by": user['email'],
+                "refund_reason": reason or "Order cancelled by seller"
             }}
         )
+        refund_processed = True
+        
+        # Mark auction as refunded
+        await db.auctions.update_one(
+            {"id": auction_id},
+            {"$set": {"is_paid": False, "refunded": True}}
+        )
     
-    logger.info(f"Admin {admin['email']} cancelled order {auction_id}. Reason: {reason}")
-    return {"success": True, "message": "Order cancelled successfully"}
+    # Notify buyer
+    if buyer:
+        refund_msg = f" Your payment of {escrow.get('currency', 'NGN')} {escrow['amount']:,.2f} will be refunded." if refund_processed else ""
+        await create_notification(
+            buyer["id"],
+            "order_cancelled",
+            "Order Cancelled by Seller",
+            f"The seller has cancelled your order for '{auction['title']}'.{refund_msg}",
+            {"auction_id": auction_id}
+        )
+        await EmailService.send_email(
+            buyer["email"],
+            f"Order Cancelled - {auction['title']}",
+            f"""<div style="font-family: Arial, sans-serif;">
+                <h2>Order Cancelled by Seller</h2>
+                <p>Hi {buyer['name']},</p>
+                <p>Unfortunately, the seller has cancelled your order for "{auction['title']}".</p>
+                {f'<p><strong>Refund:</strong> Your payment of {escrow.get("currency", "NGN")} {escrow["amount"]:,.2f} will be refunded within 3-5 business days.</p>' if refund_processed else ''}
+                <p><strong>Reason:</strong> {reason or 'No reason provided'}</p>
+                <p>We apologize for the inconvenience. Please browse other listings.</p>
+            </div>""",
+            f"Your order for '{auction['title']}' has been cancelled by the seller."
+        )
+    
+    logger.info(f"Seller {user['email']} cancelled order {auction_id}. Reason: {reason}. Refund: {refund_processed}")
+    return {
+        "success": True, 
+        "message": "Order cancelled successfully",
+        "refund_processed": refund_processed
+    }
+
+# ================== BUYER CANCEL ORDER (Updated) ==================
+
+@api_router.post("/buyers/orders/{auction_id}/cancel")
+async def buyer_cancel_order(auction_id: str, reason: str = "", user: dict = Depends(get_current_user)):
+    """Buyer cancel their order - triggers refund if paid"""
+    auction = await db.auctions.find_one({"id": auction_id})
+    if not auction:
+        raise HTTPException(status_code=404, detail="Auction not found")
+    
+    if auction.get("winner_id") != user["id"]:
+        raise HTTPException(status_code=403, detail="You can only cancel orders you've won")
+    
+    # Check if already cancelled
+    if auction.get("cancelled"):
+        raise HTTPException(status_code=400, detail="Order already cancelled")
+    
+    # Check suspension status
+    if await is_buyer_suspended(user["id"]):
+        suspension = await db.users.find_one({"id": user["id"]}, {"suspended_until": 1})
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Your account is suspended until {suspension.get('suspended_until')} due to previous cancellations."
+        )
+    
+    seller = await db.users.find_one({"id": auction.get("seller_id")}, {"_id": 0})
+    
+    # Record cancellation (for suspension tracking)
+    cancellation_result = await record_buyer_cancellation(user["id"], auction_id, reason)
+    
+    # Update auction status
+    await db.auctions.update_one(
+        {"id": auction_id},
+        {"$set": {
+            "is_active": True,  # Relist for seller
+            "cancelled": False,  # Not permanently cancelled, just buyer withdrew
+            "winner_id": None,
+            "cancelled_by_winner": True,
+            "cancelled_at": datetime.now(timezone.utc).isoformat(),
+            "cancellation_reason": reason or "Cancelled by buyer"
+        },
+        "$unset": {"sold_via": ""}}
+    )
+    
+    # Handle escrow refund if paid
+    escrow = await db.escrow.find_one({"auction_id": auction_id})
+    refund_processed = False
+    if escrow and escrow.get('status') in ['pending', 'held']:
+        await db.escrow.update_one(
+            {"id": escrow['id']},
+            {"$set": {
+                "status": "refunded",
+                "refunded_at": datetime.now(timezone.utc).isoformat(),
+                "refunded_by": user['email'],
+                "refund_reason": reason or "Order cancelled by buyer"
+            }}
+        )
+        refund_processed = True
+        
+        # Mark auction as not paid anymore
+        await db.auctions.update_one(
+            {"id": auction_id},
+            {"$set": {"is_paid": False}}
+        )
+    
+    # Notify seller
+    if seller:
+        await create_notification(
+            seller["id"],
+            "order_cancelled",
+            "Buyer Cancelled Order",
+            f"The buyer has cancelled their order for '{auction['title']}'. Your listing has been reactivated.",
+            {"auction_id": auction_id}
+        )
+        await EmailService.send_email(
+            seller["email"],
+            f"Buyer Cancelled - {auction['title']}",
+            f"""<div style="font-family: Arial, sans-serif;">
+                <h2>Buyer Cancelled Their Order</h2>
+                <p>Hi {seller['name']},</p>
+                <p>Unfortunately, the buyer has cancelled their order for "{auction['title']}".</p>
+                <p><strong>Good news:</strong> Your listing has been automatically reactivated for new buyers.</p>
+                <p><strong>Reason:</strong> {reason or 'No reason provided'}</p>
+            </div>""",
+            f"The buyer cancelled their order for '{auction['title']}'. Your listing has been reactivated."
+        )
+    
+    response = {
+        "success": True, 
+        "message": "Order cancelled. Listing reactivated for seller.",
+        "refund_processed": refund_processed,
+        "cancellation_count": cancellation_result["total_cancellations"],
+        "max_before_suspension": MAX_CANCELLATIONS_BEFORE_SUSPENSION
+    }
+    
+    if cancellation_result["suspended"]:
+        response["warning"] = f"Your account has been suspended until {cancellation_result['suspended_until']} due to multiple cancellations."
+        response["suspended"] = True
+    elif cancellation_result["total_cancellations"] == MAX_CANCELLATIONS_BEFORE_SUSPENSION - 1:
+        response["warning"] = "Warning: One more cancellation will result in account suspension."
+    
+    logger.info(f"Buyer {user['email']} cancelled order {auction_id}. Reason: {reason}. Refund: {refund_processed}")
+    return response
 
 @api_router.post("/admin/orders/{auction_id}/relist")
 async def admin_relist_order(auction_id: str, days: int = 7, admin: dict = Depends(verify_admin)):
