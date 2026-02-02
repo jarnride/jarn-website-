@@ -41,6 +41,10 @@ export default function Dashboard() {
   const [requestingPayout, setRequestingPayout] = useState(null);
   const [relistingAuction, setRelistingAuction] = useState(null);
   const [relistDays, setRelistDays] = useState(7);
+  const [cancellingOrder, setCancellingOrder] = useState(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [cancelDialog, setCancelDialog] = useState({ open: false, auction: null });
+  const [myOrders, setMyOrders] = useState([]);
 
   useEffect(() => {
     if (!user) {
