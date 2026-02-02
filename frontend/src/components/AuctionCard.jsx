@@ -102,6 +102,20 @@ export const AuctionCard = ({ auction }) => {
         />
         <Badge className="auction-card-badge">{auction.category}</Badge>
         
+        {/* Wishlist Heart Button */}
+        <button
+          onClick={handleWishlistToggle}
+          className={`absolute top-3 left-3 p-2 rounded-full transition-all duration-200 ${
+            inWishlist 
+              ? 'bg-red-500 text-white' 
+              : 'bg-white/80 text-gray-600 hover:bg-white hover:text-red-500'
+          }`}
+          data-testid={`wishlist-toggle-${auction.id}`}
+          title={inWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
+        >
+          <Heart className={`w-4 h-4 ${inWishlist ? 'fill-white' : ''}`} />
+        </button>
+        
         {/* Quick View Button - appears on hover */}
         <button
           onClick={(e) => {
