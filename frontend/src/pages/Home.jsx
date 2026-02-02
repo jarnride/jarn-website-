@@ -11,6 +11,7 @@ import {
   CarouselPrevious,
 } from '@/components/ui/carousel';
 import AuctionCard from '@/components/AuctionCard';
+import RecentlyViewed from '@/components/RecentlyViewed';
 import { ArrowRight, TrendingUp, Users, ShieldCheck, Leaf, Star, Quote } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
