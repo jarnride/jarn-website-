@@ -1,14 +1,18 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Clock, MapPin, User, Zap, Star, MessageSquare, CheckCircle, Shield } from 'lucide-react';
+import { Clock, MapPin, User, Zap, Star, MessageSquare, CheckCircle, Shield, ShoppingCart, Check } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useCart } from '@/context/CartContext';
+import { toast } from 'sonner';
 
 export const AuctionCard = ({ auction }) => {
   const navigate = useNavigate();
+  const { addToCart, isInCart } = useCart();
   const [timeLeft, setTimeLeft] = useState('');
   const [isUrgent, setIsUrgent] = useState(false);
+  const [justAdded, setJustAdded] = useState(false);
 
   useEffect(() => {
     const calculateTimeLeft = () => {
