@@ -159,20 +159,14 @@ export default function Auctions() {
           
           <div className="flex items-center gap-4 flex-wrap">
             {/* Location Selector */}
-            <div className="flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-muted-foreground" />
-              <Select value={buyerLocation || "all"} onValueChange={(v) => handleLocationChange(v === "all" ? "" : v)}>
-                <SelectTrigger className="w-[160px]" data-testid="location-select">
-                  <SelectValue placeholder="Your Location" />
-                </SelectTrigger>
-                <SelectContent className="max-h-[300px]">
-                  <SelectItem value="all">All Nigeria</SelectItem>
-                  {NIGERIAN_STATES.map(state => (
-                    <SelectItem key={state} value={state}>{state}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <LocationSelector />
+            
+            {userLocation && (
+              <Badge variant="outline" className="gap-1 text-primary border-primary/30">
+                <Navigation className="w-3 h-3" />
+                Sorted by distance
+              </Badge>
+            )}
 
             {/* Sort Selector */}
             <div className="flex items-center gap-2">
