@@ -49,6 +49,21 @@ export const AuctionCard = ({ auction }) => {
   const isSold = auction.sold_via === 'buy_now' || auction.sold_via === 'offer' || (!auction.is_active && auction.winner_id);
   const isBuyNowOnly = auction.buy_now_only;
   const acceptsOffers = auction.accepts_offers;
+  const inCart = isInCart(auction.id);
+
+  const handleAddToCart = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    addToCart(auction, 1);
+    setJustAdded(true);
+    toast.success(`${auction.title} added to cart!`, {
+      action: {
+        label: 'View Cart',
+        onClick: () => navigate('/checkout')
+      }
+    });
+    setTimeout(() => setJustAdded(false), 2000);
+  };
 
   return (
     <div className="auction-card card-hover" data-testid={`auction-card-${auction.id}`}>
