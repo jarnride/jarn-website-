@@ -360,6 +360,16 @@
     - Toast notifications with "View Wishlist" action
     - Backend API endpoints for logged-in users
     - localStorage fallback for guests
+28. ✅ **Proximity-Based Seller Sorting**:
+    - "Set Location" button in auctions page filter bar
+    - Location selector modal with:
+      - "Use my current location" (browser geolocation)
+      - Search and select from 25+ Nigerian cities
+    - Distance displayed on each auction card (e.g., "69km away", "0m away")
+    - Auctions automatically sorted by distance when location is set
+    - "Sorted by distance" badge indicator
+    - Location persists in localStorage across sessions
+    - Haversine formula for accurate distance calculation
 23. ✅ **Mobile Admin Dashboard**:
     - Horizontally scrollable tabs on mobile
     - Responsive table layouts with min-width columns
