@@ -63,13 +63,19 @@ export default function Auctions() {
       if (filters.delivery) params.set('delivery', filters.delivery);
       if (filters.min_price) params.set('min_price', filters.min_price);
       if (filters.max_price) params.set('max_price', filters.max_price);
-      if (filters.sort_by) params.set('sort_by', filters.sort_by);
-      if (buyerLocation) params.set('buyer_location', buyerLocation);
+      if (filters.sort_by && filters.sort_by !== 'nearest') params.set('sort_by', filters.sort_by);
       params.set('page', filters.page.toString());
       params.set('limit', '12');
 
       const response = await axios.get(`${API}/auctions/search?${params.toString()}`);
-      setAuctions(response.data.auctions);
+      let fetchedAuctions = response.data.auctions;
+      
+      // Apply proximity sorting if user has location and sort is 'nearest'
+      if (userLocation && filters.sort_by === 'nearest') {
+        fetchedAuctions = sortByDistance(fetchedAuctions);
+      }
+      
+      setAuctions(fetchedAuctions);
       setTotalResults(response.data.total);
       setCurrentPage(response.data.page);
       setTotalPages(response.data.total_pages);
@@ -78,8 +84,15 @@ export default function Auctions() {
       // Fallback to regular auctions endpoint
       try {
         const response = await axios.get(`${API}/auctions`);
-        setAuctions(response.data);
-        setTotalResults(response.data.length);
+        let fetchedAuctions = response.data;
+        
+        // Apply proximity sorting if user has location
+        if (userLocation && filters.sort_by === 'nearest') {
+          fetchedAuctions = sortByDistance(fetchedAuctions);
+        }
+        
+        setAuctions(fetchedAuctions);
+        setTotalResults(fetchedAuctions.length);
       } catch (e) {
         console.error('Fallback also failed:', e);
       }
