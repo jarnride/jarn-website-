@@ -115,25 +115,25 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="py-12 bg-secondary/30 border-y border-primary/10" data-testid="stats-section">
+      {/* Value Proposition Section - Replacing Stats */}
+      <section className="py-12 bg-secondary/30 border-y border-primary/10" data-testid="value-section">
         <div className="max-w-7xl mx-auto px-4 md:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             <div className="stat-card animate-fade-in-up stagger-1">
-              <div className="stat-value">{stats.active_auctions}+</div>
-              <div className="stat-label">Active Auctions</div>
+              <div className="stat-value text-primary"><ShieldCheck className="w-8 h-8 mx-auto" /></div>
+              <div className="stat-label">Secure Payments</div>
             </div>
             <div className="stat-card animate-fade-in-up stagger-2">
-              <div className="stat-value">{stats.total_users}+</div>
-              <div className="stat-label">Registered Users</div>
+              <div className="stat-value text-primary"><TrendingUp className="w-8 h-8 mx-auto" /></div>
+              <div className="stat-label">Best Prices</div>
             </div>
             <div className="stat-card animate-fade-in-up stagger-3">
-              <div className="stat-value">{stats.total_bids}+</div>
-              <div className="stat-label">Bids Placed</div>
+              <div className="stat-value text-primary"><Leaf className="w-8 h-8 mx-auto" /></div>
+              <div className="stat-label">Farm Fresh</div>
             </div>
             <div className="stat-card animate-fade-in-up stagger-4">
-              <div className="stat-value">98%</div>
-              <div className="stat-label">Satisfaction Rate</div>
+              <div className="stat-value text-primary"><Users className="w-8 h-8 mx-auto" /></div>
+              <div className="stat-label">Direct From Farmers</div>
             </div>
           </div>
         </div>
