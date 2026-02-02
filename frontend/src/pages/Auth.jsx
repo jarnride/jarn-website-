@@ -194,7 +194,7 @@ export default function Auth() {
               Check Your Email
             </h1>
             <p className="text-muted-foreground mb-4">
-              We've sent a verification code to:
+              We&apos;ve sent a verification code to:
             </p>
             <p className="font-semibold text-lg mb-6">{registeredEmail}</p>
             <p className="text-sm text-muted-foreground mb-6">
