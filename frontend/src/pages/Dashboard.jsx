@@ -392,6 +392,10 @@ export default function Dashboard() {
                 <TabsTrigger value="active" data-testid="tab-active">
                   Active ({activeAuctions.length})
                 </TabsTrigger>
+                <TabsTrigger value="orders" data-testid="tab-orders">
+                  <ShoppingCart className="w-4 h-4 mr-1" />
+                  Orders ({myOrders.length})
+                </TabsTrigger>
                 <TabsTrigger value="ended" data-testid="tab-ended">
                   Ended ({endedAuctions.length})
                 </TabsTrigger>
