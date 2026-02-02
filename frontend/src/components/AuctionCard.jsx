@@ -52,8 +52,10 @@ export const AuctionCard = ({ auction }) => {
         <img
           src={auction.image_url}
           alt={auction.title}
-          className="auction-card-image"
+          className="auction-card-image cursor-pointer hover:opacity-90 transition-opacity"
           loading="lazy"
+          onClick={() => navigate(`/seller/${auction.seller_id}`)}
+          title={`View ${auction.seller_name}'s profile`}
         />
         <Badge className="auction-card-badge">{auction.category}</Badge>
         
