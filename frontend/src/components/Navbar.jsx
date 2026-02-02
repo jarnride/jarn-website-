@@ -132,6 +132,21 @@ export const Navbar = () => {
 
           {/* Mobile Menu Button */}
           <div className="flex md:hidden items-center gap-2">
+            {/* Mobile Cart Button */}
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="relative"
+              onClick={openCart}
+              data-testid="mobile-cart-btn"
+            >
+              <ShoppingCart className="w-5 h-5" />
+              {cartCount > 0 && (
+                <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs bg-accent">
+                  {cartCount}
+                </Badge>
+              )}
+            </Button>
             {user && <NotificationBell />}
             <button
               className="p-2"
