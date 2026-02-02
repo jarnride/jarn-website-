@@ -406,7 +406,7 @@ export default function Auth() {
                 </div>
 
                 <div className="form-group">
-                  <Label htmlFor="register-phone">Phone Number (Optional)</Label>
+                  <Label htmlFor="register-phone">Phone Number <span className="text-red-500">*</span></Label>
                   <div className="relative mt-1">
                     <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input
@@ -417,10 +417,11 @@ export default function Auth() {
                       onChange={(e) => setRegisterForm({ ...registerForm, phone: e.target.value })}
                       className="pl-10"
                       data-testid="register-phone"
+                      required
                     />
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Required for bidding and selling. Can be added later.
+                    Required for account verification. Verified once during registration.
                   </p>
                 </div>
 
