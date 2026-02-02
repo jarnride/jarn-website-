@@ -1020,7 +1020,7 @@ export default function Dashboard() {
           <DialogHeader>
             <DialogTitle>Cancel Order</DialogTitle>
             <DialogDescription>
-              Are you sure you want to cancel the order for "{cancelDialog.auction?.title}"?
+              Are you sure you want to cancel the order for &quot;{cancelDialog.auction?.title}&quot;?
               {cancelDialog.auction?.is_paid && (
                 <span className="block mt-2 text-amber-600 font-medium">
                   ⚠️ This order has been paid. A refund will be initiated to the buyer.
