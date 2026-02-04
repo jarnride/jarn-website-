@@ -208,21 +208,62 @@ export default function Checkout() {
               </CardContent>
             </Card>
 
-            {/* Delivery Address */}
+            {/* Delivery Option */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Truck className="w-5 h-5" />
-                  Delivery Address
+                  Delivery Option
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <Input 
-                  placeholder="Enter your full delivery address"
-                  value={deliveryAddress}
-                  onChange={(e) => setDeliveryAddress(e.target.value)}
-                  className="w-full"
-                />
+              <CardContent className="space-y-4">
+                <Select value={deliveryOption} onValueChange={setDeliveryOption}>
+                  <SelectTrigger data-testid="delivery-option-select">
+                    <SelectValue placeholder="Select delivery option" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {deliveryOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        <div className="flex items-center gap-2">
+                          <option.icon className="w-4 h-4" />
+                          <div>
+                            <span className="font-medium">{option.label}</span>
+                            <span className="text-muted-foreground ml-2 text-sm">
+                              {option.fee === 0 ? 'FREE' : `₦${option.fee.toLocaleString()}`}
+                            </span>
+                          </div>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                {selectedDelivery && (
+                  <div className="p-3 bg-muted/50 rounded-lg flex items-center gap-3">
+                    <selectedDelivery.icon className="w-5 h-5 text-primary" />
+                    <div>
+                      <p className="font-medium">{selectedDelivery.label}</p>
+                      <p className="text-sm text-muted-foreground">{selectedDelivery.description}</p>
+                    </div>
+                    <div className="ml-auto font-mono font-bold">
+                      {selectedDelivery.fee === 0 ? 'FREE' : `₦${selectedDelivery.fee.toLocaleString()}`}
+                    </div>
+                  </div>
+                )}
+
+                {/* Delivery Address - only show if not pickup */}
+                {deliveryOption && deliveryOption !== 'pickup' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="delivery-address">Delivery Address</Label>
+                    <Input 
+                      id="delivery-address"
+                      placeholder="Enter your full delivery address"
+                      value={deliveryAddress}
+                      onChange={(e) => setDeliveryAddress(e.target.value)}
+                      className="w-full"
+                    />
+                  </div>
+                )}
               </CardContent>
             </Card>
 
