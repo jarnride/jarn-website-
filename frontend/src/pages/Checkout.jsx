@@ -62,7 +62,12 @@ export default function Checkout() {
       return;
     }
 
-    if (!deliveryAddress.trim()) {
+    if (!deliveryOption) {
+      toast.error('Please select a delivery option');
+      return;
+    }
+
+    if (deliveryOption !== 'pickup' && !deliveryAddress.trim()) {
       toast.error('Please enter a delivery address');
       return;
     }
