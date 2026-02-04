@@ -793,9 +793,13 @@ export default function AdminDashboard() {
           </div>
         ) : (
           <>
-            {/* Stats Grid */}
+            {/* Stats Grid - Clickable */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-              <Card>
+              <Card 
+                className="cursor-pointer hover:shadow-md hover:border-blue-300 transition-all"
+                onClick={() => setActiveTab('users')}
+                data-testid="stat-total-users"
+              >
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-4">
                     <div className="p-3 bg-blue-100 rounded-xl">
@@ -808,7 +812,11 @@ export default function AdminDashboard() {
                   </div>
                 </CardContent>
               </Card>
-              <Card>
+              <Card 
+                className="cursor-pointer hover:shadow-md hover:border-green-300 transition-all"
+                onClick={() => setActiveTab('auctions')}
+                data-testid="stat-total-auctions"
+              >
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-4">
                     <div className="p-3 bg-green-100 rounded-xl">
@@ -821,7 +829,11 @@ export default function AdminDashboard() {
                   </div>
                 </CardContent>
               </Card>
-              <Card>
+              <Card 
+                className="cursor-pointer hover:shadow-md hover:border-amber-300 transition-all"
+                onClick={() => setActiveTab('escrows')}
+                data-testid="stat-in-escrow"
+              >
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-4">
                     <div className="p-3 bg-amber-100 rounded-xl">
@@ -836,7 +848,11 @@ export default function AdminDashboard() {
                   </div>
                 </CardContent>
               </Card>
-              <Card>
+              <Card 
+                className="cursor-pointer hover:shadow-md hover:border-purple-300 transition-all"
+                onClick={() => setActiveTab('payouts')}
+                data-testid="stat-pending-payouts"
+              >
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-4">
                     <div className="p-3 bg-purple-100 rounded-xl">
