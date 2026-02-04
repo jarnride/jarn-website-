@@ -861,7 +861,7 @@ export default function AdminDashboard() {
             </div>
 
             {/* Tabs */}
-            <Tabs defaultValue="approvals">
+            <Tabs defaultValue="approvals" value={activeTab} onValueChange={setActiveTab}>
               <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
                 <TabsList className="flex w-max md:w-auto md:flex-wrap gap-1 mb-2">
                   <TabsTrigger value="approvals" className={`text-xs md:text-sm whitespace-nowrap ${pendingApprovals.length > 0 ? "bg-orange-100 text-orange-800" : ""}`}>
@@ -888,6 +888,10 @@ export default function AdminDashboard() {
                   <TabsTrigger value="payouts" className="text-xs md:text-sm whitespace-nowrap">
                     <DollarSign className="w-4 h-4 mr-1 md:mr-2" />
                     <span className="hidden sm:inline">Payouts</span> ({payouts.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="admins" className="text-xs md:text-sm whitespace-nowrap">
+                    <ShieldCheck className="w-4 h-4 mr-1 md:mr-2" />
+                    <span className="hidden sm:inline">Admins</span>
                   </TabsTrigger>
                   <TabsTrigger value="marketing" className="text-xs md:text-sm whitespace-nowrap">
                     <Mail className="w-4 h-4 mr-1 md:mr-2" />
