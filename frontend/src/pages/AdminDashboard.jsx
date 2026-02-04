@@ -123,6 +123,9 @@ export default function AdminDashboard() {
   // User filter state
   const [userFilter, setUserFilter] = useState('all'); // all, buyers, sellers, approved, pending
   
+  // Active tab state for navigation from stats
+  const [activeTab, setActiveTab] = useState('approvals');
+  
   // Subscription extension state
   const [extendDays, setExtendDays] = useState(30);
 
