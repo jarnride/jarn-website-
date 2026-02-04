@@ -105,7 +105,8 @@ export default function Checkout() {
   }
 
   const subtotal = getCartTotal();
-  const deliveryFee = 0; // Can be calculated based on items
+  const selectedDelivery = deliveryOptions.find(d => d.value === deliveryOption);
+  const deliveryFee = selectedDelivery?.fee || 0;
   const total = subtotal + deliveryFee;
 
   return (
