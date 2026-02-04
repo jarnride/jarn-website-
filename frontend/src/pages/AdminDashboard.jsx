@@ -2323,6 +2323,200 @@ export default function AdminDashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Create Admin Dialog */}
+      <Dialog open={createAdminDialog} onOpenChange={setCreateAdminDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-blue-600" />
+              Create New Admin
+            </DialogTitle>
+            <DialogDescription>
+              Add a new admin or sub-admin to help manage the platform
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="admin-name">Name *</Label>
+                <Input
+                  id="admin-name"
+                  placeholder="Admin name"
+                  value={newAdminForm.name}
+                  onChange={(e) => setNewAdminForm({ ...newAdminForm, name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="admin-email">Email *</Label>
+                <Input
+                  id="admin-email"
+                  type="email"
+                  placeholder="admin@example.com"
+                  value={newAdminForm.email}
+                  onChange={(e) => setNewAdminForm({ ...newAdminForm, email: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="admin-password">Password *</Label>
+              <Input
+                id="admin-password"
+                type="password"
+                placeholder="Enter password"
+                value={newAdminForm.password}
+                onChange={(e) => setNewAdminForm({ ...newAdminForm, password: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Admin Type</Label>
+              <div className="flex gap-4">
+                <label className={`flex-1 p-4 border rounded-lg cursor-pointer transition-all ${newAdminForm.role === 'sub_admin' ? 'border-blue-500 bg-blue-50' : ''}`}>
+                  <input
+                    type="radio"
+                    name="admin-role"
+                    value="sub_admin"
+                    checked={newAdminForm.role === 'sub_admin'}
+                    onChange={() => setNewAdminForm({ 
+                      ...newAdminForm, 
+                      role: 'sub_admin',
+                      privileges: {
+                        view_users: true,
+                        approve_users: true,
+                        delete_users: false,
+                        view_orders: true,
+                        cancel_orders: false,
+                        view_auctions: true,
+                        manage_auctions: false,
+                        view_payouts: true,
+                        process_payouts: false,
+                        view_escrows: true,
+                        manage_escrows: false,
+                        send_marketing: false,
+                        manage_admins: false
+                      }
+                    })}
+                    className="sr-only"
+                  />
+                  <div className="text-center">
+                    <Badge className="bg-blue-100 text-blue-800 mb-2">Sub-Admin</Badge>
+                    <p className="text-xs text-muted-foreground">View + Approve only</p>
+                  </div>
+                </label>
+                <label className={`flex-1 p-4 border rounded-lg cursor-pointer transition-all ${newAdminForm.role === 'admin' ? 'border-red-500 bg-red-50' : ''}`}>
+                  <input
+                    type="radio"
+                    name="admin-role"
+                    value="admin"
+                    checked={newAdminForm.role === 'admin'}
+                    onChange={() => setNewAdminForm({ 
+                      ...newAdminForm, 
+                      role: 'admin',
+                      privileges: {
+                        view_users: true,
+                        approve_users: true,
+                        delete_users: true,
+                        view_orders: true,
+                        cancel_orders: true,
+                        view_auctions: true,
+                        manage_auctions: true,
+                        view_payouts: true,
+                        process_payouts: true,
+                        view_escrows: true,
+                        manage_escrows: true,
+                        send_marketing: true,
+                        manage_admins: true
+                      }
+                    })}
+                    className="sr-only"
+                  />
+                  <div className="text-center">
+                    <Badge className="bg-red-100 text-red-800 mb-2">Super Admin</Badge>
+                    <p className="text-xs text-muted-foreground">Full access</p>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            {/* Custom Privileges for Sub-Admin */}
+            {newAdminForm.role === 'sub_admin' && (
+              <div className="space-y-2 p-4 bg-muted/50 rounded-lg">
+                <Label className="text-sm font-semibold">Sub-Admin Privileges (View + Approve)</Label>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <span>View users</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <span>Approve users</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <span>View orders</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <span>View auctions</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <XCircle className="w-4 h-4 text-red-400" />
+                    <span className="text-muted-foreground">Delete users</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <XCircle className="w-4 h-4 text-red-400" />
+                    <span className="text-muted-foreground">Cancel orders</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateAdminDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreateAdmin}>
+              Create {newAdminForm.role === 'admin' ? 'Admin' : 'Sub-Admin'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Admin Privileges Dialog */}
+      <Dialog open={!!editingAdmin} onOpenChange={(open) => !open && setEditingAdmin(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <KeyRound className="w-5 h-5" />
+              Edit Privileges for {editingAdmin?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-3">
+              {editingAdmin && Object.entries(editingAdmin.privileges || {}).map(([key, value]) => (
+                <div key={key} className="flex items-center justify-between">
+                  <span className="text-sm capitalize">{key.replace(/_/g, ' ')}</span>
+                  <Checkbox
+                    checked={value}
+                    onCheckedChange={(checked) => setEditingAdmin({
+                      ...editingAdmin,
+                      privileges: { ...editingAdmin.privileges, [key]: checked }
+                    })}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingAdmin(null)}>
+              Cancel
+            </Button>
+            <Button onClick={() => handleUpdateAdminPrivileges(editingAdmin?.id, editingAdmin?.privileges)}>
+              Save Privileges
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
