@@ -316,7 +316,9 @@ export default function Checkout() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Delivery</span>
-                  <span className="font-mono">{deliveryFee === 0 ? 'Calculated at checkout' : `$${deliveryFee}`}</span>
+                  <span className="font-mono">
+                    {!deliveryOption ? 'Select option' : deliveryFee === 0 ? 'FREE' : `₦${deliveryFee.toLocaleString()}`}
+                  </span>
                 </div>
                 <Separator />
                 <div className="flex justify-between text-lg font-bold">
