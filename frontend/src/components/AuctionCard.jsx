@@ -190,13 +190,25 @@ export const AuctionCard = ({ auction }) => {
               </Tooltip>
             </TooltipProvider>
           )}
-          {auction.seller_rating > 0 && (
-            <span className="flex items-center gap-1 text-harvest">
-              <Star className="w-3 h-3 fill-harvest" />
-              {auction.seller_rating.toFixed(1)}
-            </span>
-          )}
         </div>
+        
+        {/* Seller Rating Display */}
+        {auction.seller_rating > 0 ? (
+          <div className="flex items-center gap-2 mb-3 text-sm">
+            <div className="flex items-center gap-1 text-amber-500">
+              <Star className="w-4 h-4 fill-amber-400" />
+              <span className="font-semibold">{auction.seller_rating.toFixed(1)}</span>
+            </div>
+            <span className="text-muted-foreground">
+              ({auction.seller_rating_count || 0} {auction.seller_rating_count === 1 ? 'review' : 'reviews'})
+            </span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 mb-3 text-sm text-muted-foreground">
+            <Star className="w-4 h-4" />
+            <span>No reviews yet</span>
+          </div>
+        )}
 
         <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
           <MapPin className="w-4 h-4" />
