@@ -9,6 +9,13 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { 
   ShoppingCart, 
   CreditCard, 
@@ -17,7 +24,9 @@ import {
   Plus, 
   Minus,
   MapPin,
-  Truck
+  Truck,
+  Home,
+  Package
 } from 'lucide-react';
 
 export default function Checkout() {
@@ -25,8 +34,15 @@ export default function Checkout() {
   const { user, token } = useAuth();
   const { cartItems, removeFromCart, updateQuantity, getCartTotal, clearCart } = useCart();
   const [paymentMethod, setPaymentMethod] = useState('stripe');
+  const [deliveryOption, setDeliveryOption] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [processing, setProcessing] = useState(false);
+
+  const deliveryOptions = [
+    { value: 'pickup', label: 'Pickup', description: 'Pick up from seller location', icon: Home, fee: 0 },
+    { value: 'standard', label: 'Standard Delivery', description: '5-7 business days', icon: Package, fee: 2500 },
+    { value: 'express', label: 'Express Delivery', description: '1-2 business days', icon: Truck, fee: 5000 }
+  ];
 
   const handleKeepShopping = () => {
     navigate('/auctions');
