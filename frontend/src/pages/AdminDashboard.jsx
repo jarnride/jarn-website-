@@ -180,7 +180,7 @@ export default function AdminDashboard() {
     try {
       const headers = { Authorization: `Bearer ${token}` };
       
-      const [statsRes, usersRes, auctionsRes, payoutsRes, ordersRes, escrowsRes, campaignsRes, campaignStatsRes, autoSchedulesRes, pendingApprovalsRes] = await Promise.all([
+      const [statsRes, usersRes, auctionsRes, payoutsRes, ordersRes, escrowsRes, campaignsRes, campaignStatsRes, autoSchedulesRes, pendingApprovalsRes, adminUsersRes] = await Promise.all([
         axios.get(`${API}/admin/stats`, { headers }),
         axios.get(`${API}/admin/users`, { headers }),
         axios.get(`${API}/admin/auctions`, { headers }),
@@ -190,7 +190,8 @@ export default function AdminDashboard() {
         axios.get(`${API}/admin/campaigns`, { headers }).catch(() => ({ data: [] })),
         axios.get(`${API}/admin/campaigns/stats`, { headers }).catch(() => ({ data: {} })),
         axios.get(`${API}/admin/campaigns/auto-schedules`, { headers }).catch(() => ({ data: [] })),
-        axios.get(`${API}/admin/users/pending-approval`, { headers }).catch(() => ({ data: [] }))
+        axios.get(`${API}/admin/users/pending-approval`, { headers }).catch(() => ({ data: [] })),
+        axios.get(`${API}/admin/admins`, { headers }).catch(() => ({ data: [] }))
       ]);
       
       setStats(statsRes.data);
@@ -203,6 +204,7 @@ export default function AdminDashboard() {
       setCampaignStats(campaignStatsRes.data);
       setAutoSchedules(autoSchedulesRes.data);
       setPendingApprovals(pendingApprovalsRes.data);
+      setAdminUsers(adminUsersRes.data);
       setPayouts(payoutsRes.data);
     } catch (error) {
       console.error('Failed to fetch admin data:', error);
