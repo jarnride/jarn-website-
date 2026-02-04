@@ -5005,11 +5005,11 @@ async def buyer_cancel_order(auction_id: str, reason: str = "", user: dict = Dep
         raise HTTPException(status_code=400, detail="Order already cancelled")
     
     # Check suspension status
-    if await is_buyer_suspended(user["id"]):
-        suspension = await db.users.find_one({"id": user["id"]}, {"suspended_until": 1})
+    is_suspended, suspended_until = await check_buyer_suspended(user["id"])
+    if is_suspended:
         raise HTTPException(
             status_code=403, 
-            detail=f"Your account is suspended until {suspension.get('suspended_until')} due to previous cancellations."
+            detail=f"Your account is suspended until {suspended_until} due to previous cancellations."
         )
     
     seller = await db.users.find_one({"id": auction.get("seller_id")}, {"_id": 0})
