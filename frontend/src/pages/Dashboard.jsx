@@ -1056,7 +1056,11 @@ export default function Dashboard() {
             <DialogTitle>Cancel Order</DialogTitle>
             <DialogDescription>
               Are you sure you want to cancel the order for &quot;{cancelDialog.auction?.title}&quot;?
-              {cancelDialog.auction?.is_paid && (
+              {cancelDialog.isBuyer ? (
+                <span className="block mt-2 text-amber-600 font-medium">
+                  ⚠️ Frequent cancellations may result in account restrictions.
+                </span>
+              ) : cancelDialog.auction?.is_paid && (
                 <span className="block mt-2 text-amber-600 font-medium">
                   ⚠️ This order has been paid. A refund will be initiated to the buyer.
                 </span>
@@ -1083,7 +1087,7 @@ export default function Dashboard() {
             </Button>
             <Button
               variant="destructive"
-              onClick={handleCancelOrder}
+              onClick={cancelDialog.isBuyer ? handleBuyerCancelOrder : handleCancelOrder}
               disabled={cancellingOrder === cancelDialog.auction?.id}
             >
               {cancellingOrder === cancelDialog.auction?.id ? (
