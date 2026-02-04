@@ -167,7 +167,8 @@ export default function AdminDashboard() {
     }
     const isAdmin = user.email === 'admin@jarnnmarket.com' || 
                     user.email === 'info@jarnnmarket.com' ||
-                    user.role === 'admin';
+                    user.role === 'admin' ||
+                    user.role === 'sub_admin';
     if (!isAdmin) {
       toast.error('Access denied. Admin only.');
       navigate('/dashboard');
