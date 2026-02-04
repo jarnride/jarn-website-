@@ -2000,6 +2000,126 @@ export default function AdminDashboard() {
                   </Card>
                 </div>
               </TabsContent>
+
+              {/* Admins Tab */}
+              <TabsContent value="admins" className="mt-6">
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="flex items-center gap-2">
+                          <ShieldCheck className="w-5 h-5 text-blue-600" />
+                          Admin & Sub-Admin Management
+                        </CardTitle>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Create and manage admin users with different privilege levels
+                        </p>
+                      </div>
+                      <Button onClick={() => setCreateAdminDialog(true)} data-testid="create-admin-btn">
+                        <Users className="w-4 h-4 mr-2" />
+                        Create Admin
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {/* Privilege Legend */}
+                    <div className="mb-6 p-4 bg-muted/50 rounded-lg">
+                      <h4 className="font-semibold mb-2">Privilege Levels</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                        <div className="flex items-center gap-2">
+                          <Badge className="bg-red-100 text-red-800">Super Admin</Badge>
+                          <span className="text-muted-foreground">Full access to all features</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge className="bg-blue-100 text-blue-800">Sub-Admin</Badge>
+                          <span className="text-muted-foreground">View + Approve only (no delete/cancel)</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {adminUsers.length > 0 ? (
+                      <div className="overflow-x-auto -mx-6 px-6">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="min-w-[150px]">Admin</TableHead>
+                              <TableHead className="min-w-[80px]">Role</TableHead>
+                              <TableHead className="min-w-[200px]">Privileges</TableHead>
+                              <TableHead className="min-w-[100px]">Created</TableHead>
+                              <TableHead className="min-w-[80px]">Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {adminUsers.map(admin => (
+                              <TableRow key={admin.id}>
+                                <TableCell>
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                      <ShieldCheck className="w-4 h-4 text-blue-600" />
+                                    </div>
+                                    <div>
+                                      <p className="font-medium">{admin.name}</p>
+                                      <p className="text-xs text-muted-foreground">{admin.email}</p>
+                                    </div>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge className={admin.role === 'admin' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}>
+                                    {admin.role === 'admin' ? 'Super Admin' : 'Sub-Admin'}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex flex-wrap gap-1">
+                                    {admin.privileges?.view_users && <Badge variant="outline" className="text-xs">View Users</Badge>}
+                                    {admin.privileges?.approve_users && <Badge variant="outline" className="text-xs">Approve</Badge>}
+                                    {admin.privileges?.delete_users && <Badge variant="outline" className="text-xs bg-red-50">Delete</Badge>}
+                                    {admin.privileges?.cancel_orders && <Badge variant="outline" className="text-xs bg-red-50">Cancel Orders</Badge>}
+                                    {admin.privileges?.manage_admins && <Badge variant="outline" className="text-xs bg-amber-50">Manage Admins</Badge>}
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-sm text-muted-foreground">
+                                  {new Date(admin.created_at).toLocaleDateString()}
+                                </TableCell>
+                                <TableCell>
+                                  {admin.email !== 'admin@jarnnmarket.com' && (
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="sm">
+                                          <MoreHorizontal className="w-4 h-4" />
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent>
+                                        <DropdownMenuItem onClick={() => setEditingAdmin(admin)}>
+                                          <KeyRound className="w-4 h-4 mr-2" />
+                                          Edit Privileges
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem 
+                                          onClick={() => handleRemoveAdmin(admin.id, admin.name)}
+                                          className="text-red-600"
+                                        >
+                                          <Trash2 className="w-4 h-4 mr-2" />
+                                          Remove Admin
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    ) : (
+                      <div className="text-center py-12 text-muted-foreground">
+                        <ShieldCheck className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                        <p className="text-lg font-medium">No additional admins</p>
+                        <p className="text-sm">Create a sub-admin to help manage the platform</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
             </Tabs>
           </>
         )}
