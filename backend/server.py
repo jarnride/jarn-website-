@@ -4268,9 +4268,22 @@ async def get_stats():
 ADMIN_EMAILS = ['admin@jarnnmarket.com', 'info@jarnnmarket.com']
 
 async def verify_admin(user: dict = Depends(get_current_user)):
-    if user['email'] not in ADMIN_EMAILS and user.get('role') != 'admin':
+    """Verify user is an admin or sub-admin"""
+    is_super_admin = user['email'] in ADMIN_EMAILS or user.get('role') == 'admin'
+    is_sub_admin = user.get('role') == 'sub_admin'
+    
+    if not is_super_admin and not is_sub_admin:
         raise HTTPException(status_code=403, detail="Admin access required")
+    
+    # Attach admin type for privilege checking
+    user['is_super_admin'] = is_super_admin
     return user
+
+def check_privilege(user: dict, privilege: str) -> bool:
+    """Check if admin has a specific privilege"""
+    if user.get('is_super_admin'):
+        return True
+    return user.get('privileges', {}).get(privilege, False)
 
 @api_router.get("/admin/stats")
 async def admin_get_stats(admin: dict = Depends(verify_admin)):
