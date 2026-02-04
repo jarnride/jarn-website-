@@ -4948,13 +4948,7 @@ async def seller_cancel_order(auction_id: str, reason: str = "", user: dict = De
     # Notify buyer
     if buyer:
         refund_msg = f" Your payment of {escrow.get('currency', 'NGN')} {escrow['amount']:,.2f} will be refunded." if refund_processed else ""
-        await create_notification(
-            buyer["id"],
-            "order_cancelled",
-            "Order Cancelled by Seller",
-            f"The seller has cancelled your order for '{auction['title']}'.{refund_msg}",
-            {"auction_id": auction_id}
-        )
+        # Send email notification to buyer
         await EmailService.send_email(
             buyer["email"],
             f"Order Cancelled - {auction['title']}",
