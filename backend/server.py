@@ -4852,13 +4852,7 @@ async def admin_cancel_order(auction_id: str, reason: str = "", admin: dict = De
     # Notify buyer
     if buyer:
         refund_msg = f" Your payment of {escrow.get('currency', 'NGN')} {escrow['amount']:,.2f} will be refunded." if refund_processed else ""
-        await create_notification(
-            buyer["id"],
-            "order_cancelled",
-            "Order Cancelled",
-            f"Your order for '{auction['title']}' has been cancelled by admin.{refund_msg} Reason: {reason or 'No reason provided'}",
-            {"auction_id": auction_id}
-        )
+        # Send email notification to buyer
         await EmailService.send_email(
             buyer["email"],
             f"Order Cancelled - {auction['title']}",
@@ -4875,13 +4869,7 @@ async def admin_cancel_order(auction_id: str, reason: str = "", admin: dict = De
     
     # Notify seller
     if seller:
-        await create_notification(
-            seller["id"],
-            "order_cancelled",
-            "Order Cancelled by Admin",
-            f"Your listing '{auction['title']}' has been cancelled by admin. Reason: {reason or 'No reason provided'}",
-            {"auction_id": auction_id}
-        )
+        # Send email notification to seller
         await EmailService.send_email(
             seller["email"],
             f"Order Cancelled by Admin - {auction['title']}",
