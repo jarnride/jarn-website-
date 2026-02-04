@@ -393,6 +393,28 @@
     - Fixed sequential API calls causing 10+ second load times
     - Offer fetching now uses Promise.all() for parallel requests
     - Dashboard loads significantly faster
+32. ✅ **Clickable Admin Stats**:
+    - Total Users, Total Auctions, In Escrow, Pending Payouts cards are clickable
+    - Navigate to respective tabs (Users, Auctions, Escrows, Payouts)
+    - Visual hover feedback on stats cards
+33. ✅ **Delivery Options Dropdown**:
+    - New Select dropdown in Checkout page
+    - Options: Pickup (FREE), Standard Delivery (₦2,500), Express Delivery (₦5,000)
+    - Delivery address field shows only for non-pickup options
+    - Order summary dynamically updates with delivery fee
+34. ✅ **Sub-Admin System**:
+    - New "Admins" tab in Admin Dashboard
+    - Create Admin dialog with Sub-Admin and Super Admin options
+    - Sub-Admin privileges: View + Approve only (no Delete/Cancel)
+    - Super Admin: Full access to all features
+    - Privilege levels legend for clarity
+    - Backend endpoints: GET/POST/PUT/DELETE `/api/admin/admins`
+35. ✅ **Seller Password Change Approval**:
+    - When seller changes password, account flagged for review
+    - `approval_status` set to "pending_review"
+    - Admin notified via email
+    - Seller can still login but marked for review
+    - Backend endpoint: POST `/api/auth/change-password`
 
 ---
 
