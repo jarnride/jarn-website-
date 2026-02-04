@@ -5450,6 +5450,189 @@ async def delete_auto_schedule(schedule_id: str, admin: dict = Depends(verify_ad
         raise HTTPException(status_code=404, detail="Schedule not found")
     return {"success": True, "message": "Schedule deleted"}
 
+# ================== ADMIN MANAGEMENT ROUTES ==================
+
+class CreateAdminRequest(BaseModel):
+    name: str
+    email: str
+    password: str
+    role: str = "sub_admin"  # admin or sub_admin
+    privileges: dict = Field(default_factory=lambda: {
+        "view_users": True,
+        "approve_users": True,
+        "delete_users": False,
+        "view_orders": True,
+        "cancel_orders": False,
+        "view_auctions": True,
+        "manage_auctions": False,
+        "view_payouts": True,
+        "process_payouts": False,
+        "view_escrows": True,
+        "manage_escrows": False,
+        "send_marketing": False,
+        "manage_admins": False
+    })
+
+class UpdatePrivilegesRequest(BaseModel):
+    privileges: dict
+
+@api_router.get("/admin/admins")
+async def get_admin_users(admin: dict = Depends(verify_admin)):
+    """Get all admin and sub-admin users"""
+    # Only super admins can view other admins
+    if admin.get('role') != 'admin' and admin['email'] not in ADMIN_EMAILS:
+        # Sub-admins can only see themselves
+        admins = await db.users.find(
+            {"id": admin['id']},
+            {"_id": 0, "password_hash": 0}
+        ).to_list(None)
+    else:
+        admins = await db.users.find(
+            {"$or": [{"role": "admin"}, {"role": "sub_admin"}]},
+            {"_id": 0, "password_hash": 0}
+        ).to_list(None)
+    return admins
+
+@api_router.post("/admin/admins")
+async def create_admin_user(data: CreateAdminRequest, admin: dict = Depends(verify_admin)):
+    """Create a new admin or sub-admin user"""
+    # Only super admins can create other admins
+    if admin.get('role') != 'admin' and admin['email'] not in ADMIN_EMAILS:
+        if not admin.get('privileges', {}).get('manage_admins'):
+            raise HTTPException(status_code=403, detail="Not authorized to create admins")
+    
+    # Check if email already exists
+    existing = await db.users.find_one({"email": data.email})
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    
+    user_id = str(uuid.uuid4())
+    password_hash = bcrypt.hashpw(data.password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    
+    admin_user = {
+        "id": user_id,
+        "name": data.name,
+        "email": data.email,
+        "password_hash": password_hash,
+        "role": data.role,
+        "privileges": data.privileges,
+        "is_approved": True,  # Admins are auto-approved
+        "email_verified": True,
+        "phone_verified": True,
+        "is_active": True,
+        "approval_status": "approved",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_by": admin['id']
+    }
+    
+    await db.users.insert_one(admin_user)
+    
+    logger.info(f"Admin created {data.role}: {data.email} by {admin['email']}")
+    
+    return {"success": True, "message": f"{data.role.replace('_', ' ').title()} created successfully", "id": user_id}
+
+@api_router.put("/admin/admins/{admin_id}/privileges")
+async def update_admin_privileges(admin_id: str, data: UpdatePrivilegesRequest, admin: dict = Depends(verify_admin)):
+    """Update an admin's privileges"""
+    # Only super admins can modify privileges
+    if admin.get('role') != 'admin' and admin['email'] not in ADMIN_EMAILS:
+        raise HTTPException(status_code=403, detail="Not authorized to modify privileges")
+    
+    # Cannot modify the main admin
+    target_admin = await db.users.find_one({"id": admin_id})
+    if not target_admin:
+        raise HTTPException(status_code=404, detail="Admin not found")
+    
+    if target_admin['email'] == 'admin@jarnnmarket.com':
+        raise HTTPException(status_code=400, detail="Cannot modify main admin privileges")
+    
+    await db.users.update_one(
+        {"id": admin_id},
+        {"$set": {"privileges": data.privileges}}
+    )
+    
+    logger.info(f"Privileges updated for {target_admin['email']} by {admin['email']}")
+    
+    return {"success": True, "message": "Privileges updated"}
+
+@api_router.delete("/admin/admins/{admin_id}")
+async def remove_admin(admin_id: str, admin: dict = Depends(verify_admin)):
+    """Remove admin privileges from a user"""
+    # Only super admins can remove admins
+    if admin.get('role') != 'admin' and admin['email'] not in ADMIN_EMAILS:
+        raise HTTPException(status_code=403, detail="Not authorized to remove admins")
+    
+    target_admin = await db.users.find_one({"id": admin_id})
+    if not target_admin:
+        raise HTTPException(status_code=404, detail="Admin not found")
+    
+    if target_admin['email'] == 'admin@jarnnmarket.com':
+        raise HTTPException(status_code=400, detail="Cannot remove main admin")
+    
+    # Either delete the user or downgrade to regular user
+    await db.users.delete_one({"id": admin_id})
+    
+    logger.info(f"Admin removed: {target_admin['email']} by {admin['email']}")
+    
+    return {"success": True, "message": "Admin removed"}
+
+# ================== SELLER PASSWORD CHANGE APPROVAL ==================
+
+@api_router.post("/auth/change-password")
+async def change_password(
+    current_password: str = Body(...),
+    new_password: str = Body(...),
+    user: dict = Depends(get_current_user)
+):
+    """Change user password - sellers require re-approval"""
+    # Verify current password
+    db_user = await db.users.find_one({"id": user['id']})
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if not bcrypt.checkpw(current_password.encode('utf-8'), db_user['password_hash'].encode('utf-8')):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    
+    # Hash new password
+    new_password_hash = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    
+    update_data = {
+        "password_hash": new_password_hash,
+        "password_changed_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # If seller, require re-approval
+    if db_user.get('role') == 'farmer':
+        update_data["approval_status"] = "pending_review"
+        update_data["password_change_pending_review"] = True
+        
+        # Notify admins
+        try:
+            await EmailService.send_admin_notification(
+                subject=f"Seller Password Change - Review Required: {db_user['name']}",
+                content=f"""
+                <p>A seller has changed their password and requires review:</p>
+                <ul>
+                    <li><strong>Name:</strong> {db_user['name']}</li>
+                    <li><strong>Email:</strong> {db_user['email']}</li>
+                    <li><strong>Changed at:</strong> {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}</li>
+                </ul>
+                <p>Please review the account in the Admin Dashboard.</p>
+                """
+            )
+        except Exception as e:
+            logger.error(f"Failed to send admin notification: {e}")
+    
+    await db.users.update_one({"id": user['id']}, {"$set": update_data})
+    
+    response_message = "Password changed successfully"
+    if db_user.get('role') == 'farmer':
+        response_message = "Password changed. Your account is pending admin review for security."
+    
+    logger.info(f"Password changed for {db_user['email']}, role: {db_user.get('role')}")
+    
+    return {"success": True, "message": response_message, "requires_review": db_user.get('role') == 'farmer'}
+
 # Internal endpoint for cron job to run automated campaigns
 @api_router.post("/internal/run-auto-campaigns")
 async def run_auto_campaigns():
