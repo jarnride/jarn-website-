@@ -739,6 +739,68 @@ export default function AdminDashboard() {
     o.seller?.email?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Admin management functions
+  const handleCreateAdmin = async () => {
+    if (!newAdminForm.name || !newAdminForm.email || !newAdminForm.password) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+    try {
+      const headers = { Authorization: `Bearer ${token}` };
+      await axios.post(`${API}/admin/admins`, newAdminForm, { headers });
+      toast.success(`${newAdminForm.role === 'admin' ? 'Admin' : 'Sub-Admin'} created successfully`);
+      setCreateAdminDialog(false);
+      setNewAdminForm({
+        name: '',
+        email: '',
+        password: '',
+        role: 'sub_admin',
+        privileges: {
+          view_users: true,
+          approve_users: true,
+          delete_users: false,
+          view_orders: true,
+          cancel_orders: false,
+          view_auctions: true,
+          manage_auctions: false,
+          view_payouts: true,
+          process_payouts: false,
+          view_escrows: true,
+          manage_escrows: false,
+          send_marketing: false,
+          manage_admins: false
+        }
+      });
+      fetchAdminData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to create admin');
+    }
+  };
+
+  const handleUpdateAdminPrivileges = async (adminId, privileges) => {
+    try {
+      const headers = { Authorization: `Bearer ${token}` };
+      await axios.put(`${API}/admin/admins/${adminId}/privileges`, { privileges }, { headers });
+      toast.success('Privileges updated successfully');
+      setEditingAdmin(null);
+      fetchAdminData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to update privileges');
+    }
+  };
+
+  const handleRemoveAdmin = async (adminId, adminName) => {
+    if (!confirm(`Are you sure you want to remove admin privileges from ${adminName}?`)) return;
+    try {
+      const headers = { Authorization: `Bearer ${token}` };
+      await axios.delete(`${API}/admin/admins/${adminId}`, { headers });
+      toast.success('Admin removed successfully');
+      fetchAdminData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to remove admin');
+    }
+  };
+
   const filteredEscrows = escrows.filter(e => 
     e.buyer?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     e.seller?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
