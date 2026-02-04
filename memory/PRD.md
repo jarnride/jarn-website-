@@ -415,6 +415,18 @@
     - Admin notified via email
     - Seller can still login but marked for review
     - Backend endpoint: POST `/api/auth/change-password`
+36. ✅ **Seller Reviews/Rating Display**:
+    - Star icon with rating value displayed below seller name on auction cards
+    - Shows "No reviews yet" for sellers without reviews
+    - Shows rating count in parentheses (e.g., "4.5 (12 reviews)")
+    - Prominently visible on all auction cards
+37. ✅ **Buyer Cancel Order (Fixed)**:
+    - Cancel Order buttons in Won Auctions section for unpaid orders
+    - Cancel dialog with reason field and warning about account restrictions
+    - Backend validates winner before cancellation
+    - Tracks cancellations for suspension system
+    - Handles escrow refunds if paid
+    - Notifies seller via email
 
 ---
 
