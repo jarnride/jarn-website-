@@ -885,9 +885,9 @@ export default function Dashboard() {
                 </h2>
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {wonAuctions.map(auction => (
-                    <Link key={auction.id} to={`/auctions/${auction.id}`}>
-                      <Card className="hover:shadow-md transition-shadow">
-                        <CardContent className="p-4">
+                    <Card key={auction.id} className="hover:shadow-md transition-shadow">
+                      <CardContent className="p-4">
+                        <Link to={`/auctions/${auction.id}`}>
                           <div className="flex gap-4">
                             <img 
                               src={auction.image_url} 
@@ -897,16 +897,31 @@ export default function Dashboard() {
                             <div className="flex-1 min-w-0">
                               <h3 className="font-semibold truncate">{auction.title}</h3>
                               <p className="text-lg font-bold font-mono text-primary">
-                                ${auction.current_bid.toFixed(2)}
+                                {auction.currency === 'NGN' ? '₦' : '$'}{auction.current_bid?.toLocaleString()}
                               </p>
                               <Badge variant={auction.is_paid ? 'success' : 'warning'}>
                                 {auction.is_paid ? 'Paid' : 'Payment Pending'}
                               </Badge>
                             </div>
                           </div>
-                        </CardContent>
-                      </Card>
-                    </Link>
+                        </Link>
+                        {/* Cancel button for unpaid orders */}
+                        {!auction.is_paid && !auction.cancelled && (
+                          <div className="mt-3 pt-3 border-t">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="w-full border-red-300 text-red-600 hover:bg-red-50"
+                              onClick={() => setCancelDialog({ open: true, auction, isBuyer: true })}
+                              data-testid={`buyer-cancel-${auction.id}`}
+                            >
+                              <XCircle className="w-4 h-4 mr-1" />
+                              Cancel Order
+                            </Button>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
                   ))}
                 </div>
               </div>
