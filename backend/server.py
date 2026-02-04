@@ -5054,13 +5054,7 @@ async def buyer_cancel_order(auction_id: str, reason: str = "", user: dict = Dep
     
     # Notify seller
     if seller:
-        await create_notification(
-            seller["id"],
-            "order_cancelled",
-            "Buyer Cancelled Order",
-            f"The buyer has cancelled their order for '{auction['title']}'. Your listing has been reactivated.",
-            {"auction_id": auction_id}
-        )
+        # Send email notification
         await EmailService.send_email(
             seller["email"],
             f"Buyer Cancelled - {auction['title']}",
