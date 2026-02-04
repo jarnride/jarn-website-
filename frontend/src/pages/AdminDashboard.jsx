@@ -128,6 +128,32 @@ export default function AdminDashboard() {
   
   // Subscription extension state
   const [extendDays, setExtendDays] = useState(30);
+  
+  // Admin management states
+  const [adminUsers, setAdminUsers] = useState([]);
+  const [createAdminDialog, setCreateAdminDialog] = useState(false);
+  const [newAdminForm, setNewAdminForm] = useState({ 
+    name: '', 
+    email: '', 
+    password: '', 
+    role: 'sub_admin',
+    privileges: {
+      view_users: true,
+      approve_users: true,
+      delete_users: false,
+      view_orders: true,
+      cancel_orders: false,
+      view_auctions: true,
+      manage_auctions: false,
+      view_payouts: true,
+      process_payouts: false,
+      view_escrows: true,
+      manage_escrows: false,
+      send_marketing: false,
+      manage_admins: false
+    }
+  });
+  const [editingAdmin, setEditingAdmin] = useState(null);
 
   useEffect(() => {
     // Wait for auth to finish loading
