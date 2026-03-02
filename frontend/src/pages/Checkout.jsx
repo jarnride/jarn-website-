@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import axios from 'axios';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 import { Button } from '@/components/ui/button';
@@ -28,6 +29,8 @@ import {
   Home,
   Package
 } from 'lucide-react';
+
+const API = process.env.REACT_APP_BACKEND_URL || '';
 
 export default function Checkout() {
   const navigate = useNavigate();
