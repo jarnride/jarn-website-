@@ -260,7 +260,7 @@ class TestCancelPurchaseFlow:
                 headers={"Authorization": f"Bearer {buyer_token}"},
                 json={
                     "origin_url": "https://test.com",
-                    "payment_method": "stripe"
+                    "payment_method": "paystack"
                 }
             )
             assert buy_response.status_code == 200

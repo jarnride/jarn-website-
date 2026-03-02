@@ -2025,15 +2025,28 @@ export default function AdminDashboard() {
                   <CardContent>
                     {/* Privilege Legend */}
                     <div className="mb-6 p-4 bg-muted/50 rounded-lg">
-                      <h4 className="font-semibold mb-2">Privilege Levels</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                        <div className="flex items-center gap-2">
-                          <Badge className="bg-red-100 text-red-800">Super Admin</Badge>
-                          <span className="text-muted-foreground">Full access to all features</span>
+                      <h4 className="font-semibold mb-3">Privilege Levels & Permissions</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Badge className="bg-red-100 text-red-800">Super Admin</Badge>
+                            <span className="text-sm text-muted-foreground">Full access to all features</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge className="bg-blue-100 text-blue-800">Sub-Admin</Badge>
+                            <span className="text-sm text-muted-foreground">Custom permissions (configurable)</span>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Badge className="bg-blue-100 text-blue-800">Sub-Admin</Badge>
-                          <span className="text-muted-foreground">View + Approve only (no delete/cancel)</span>
+                        <div className="space-y-1 text-xs text-muted-foreground">
+                          <p className="font-medium text-foreground">Available Permissions:</p>
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                            <span>• View/Approve/Delete Users</span>
+                            <span>• View/Cancel Orders</span>
+                            <span>• View/Manage Auctions</span>
+                            <span>• View/Process Payouts</span>
+                            <span>• View/Manage Escrows</span>
+                            <span>• Send Marketing Emails</span>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -2070,12 +2083,26 @@ export default function AdminDashboard() {
                                   </Badge>
                                 </TableCell>
                                 <TableCell>
-                                  <div className="flex flex-wrap gap-1">
-                                    {admin.privileges?.view_users && <Badge variant="outline" className="text-xs">View Users</Badge>}
-                                    {admin.privileges?.approve_users && <Badge variant="outline" className="text-xs">Approve</Badge>}
-                                    {admin.privileges?.delete_users && <Badge variant="outline" className="text-xs bg-red-50">Delete</Badge>}
-                                    {admin.privileges?.cancel_orders && <Badge variant="outline" className="text-xs bg-red-50">Cancel Orders</Badge>}
-                                    {admin.privileges?.manage_admins && <Badge variant="outline" className="text-xs bg-amber-50">Manage Admins</Badge>}
+                                  <div className="flex flex-wrap gap-1 max-w-[250px]">
+                                    {admin.role === 'admin' || admin.email === 'admin@jarnnmarket.com' ? (
+                                      <Badge className="bg-gradient-to-r from-red-500 to-amber-500 text-white text-xs">All Privileges</Badge>
+                                    ) : (
+                                      <>
+                                        {admin.privileges?.view_users && <Badge variant="outline" className="text-xs bg-blue-50">View Users</Badge>}
+                                        {admin.privileges?.approve_users && <Badge variant="outline" className="text-xs bg-green-50">Approve</Badge>}
+                                        {admin.privileges?.delete_users && <Badge variant="outline" className="text-xs bg-red-50 text-red-700">Delete</Badge>}
+                                        {admin.privileges?.view_orders && <Badge variant="outline" className="text-xs bg-blue-50">View Orders</Badge>}
+                                        {admin.privileges?.cancel_orders && <Badge variant="outline" className="text-xs bg-red-50 text-red-700">Cancel Orders</Badge>}
+                                        {admin.privileges?.view_auctions && <Badge variant="outline" className="text-xs bg-blue-50">View Auctions</Badge>}
+                                        {admin.privileges?.manage_auctions && <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700">Manage Auctions</Badge>}
+                                        {admin.privileges?.view_payouts && <Badge variant="outline" className="text-xs bg-blue-50">View Payouts</Badge>}
+                                        {admin.privileges?.process_payouts && <Badge variant="outline" className="text-xs bg-green-50 text-green-700">Process Payouts</Badge>}
+                                        {admin.privileges?.view_escrows && <Badge variant="outline" className="text-xs bg-blue-50">View Escrows</Badge>}
+                                        {admin.privileges?.manage_escrows && <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700">Manage Escrows</Badge>}
+                                        {admin.privileges?.send_marketing && <Badge variant="outline" className="text-xs bg-indigo-50 text-indigo-700">Marketing</Badge>}
+                                        {admin.privileges?.manage_admins && <Badge variant="outline" className="text-xs bg-amber-100 text-amber-800 font-semibold">Manage Admins</Badge>}
+                                      </>
+                                    )}
                                   </div>
                                 </TableCell>
                                 <TableCell className="text-sm text-muted-foreground">
@@ -2441,32 +2468,211 @@ export default function AdminDashboard() {
 
             {/* Custom Privileges for Sub-Admin */}
             {newAdminForm.role === 'sub_admin' && (
-              <div className="space-y-2 p-4 bg-muted/50 rounded-lg">
-                <Label className="text-sm font-semibold">Sub-Admin Privileges (View + Approve)</Label>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-green-500" />
-                    <span>View users</span>
+              <div className="space-y-3 p-4 bg-muted/50 rounded-lg">
+                <Label className="text-sm font-semibold">Customize Sub-Admin Privileges</Label>
+                <p className="text-xs text-muted-foreground mb-3">Toggle individual permissions for this sub-admin</p>
+                
+                {/* User Management */}
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">User Management</p>
+                  <div className="grid grid-cols-1 gap-2">
+                    <div className="flex items-center justify-between p-2 bg-background rounded border">
+                      <div className="flex items-center gap-2">
+                        <Eye className="w-4 h-4 text-blue-500" />
+                        <span className="text-sm">View Users</span>
+                      </div>
+                      <Checkbox
+                        checked={newAdminForm.privileges.view_users}
+                        onCheckedChange={(checked) => setNewAdminForm({
+                          ...newAdminForm,
+                          privileges: { ...newAdminForm.privileges, view_users: checked }
+                        })}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between p-2 bg-background rounded border">
+                      <div className="flex items-center gap-2">
+                        <UserCheck className="w-4 h-4 text-green-500" />
+                        <span className="text-sm">Approve Users</span>
+                      </div>
+                      <Checkbox
+                        checked={newAdminForm.privileges.approve_users}
+                        onCheckedChange={(checked) => setNewAdminForm({
+                          ...newAdminForm,
+                          privileges: { ...newAdminForm.privileges, approve_users: checked }
+                        })}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between p-2 bg-background rounded border">
+                      <div className="flex items-center gap-2">
+                        <Trash2 className="w-4 h-4 text-red-500" />
+                        <span className="text-sm">Delete Users</span>
+                      </div>
+                      <Checkbox
+                        checked={newAdminForm.privileges.delete_users}
+                        onCheckedChange={(checked) => setNewAdminForm({
+                          ...newAdminForm,
+                          privileges: { ...newAdminForm.privileges, delete_users: checked }
+                        })}
+                      />
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-green-500" />
-                    <span>Approve users</span>
+                </div>
+
+                {/* Order Management */}
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Order Management</p>
+                  <div className="grid grid-cols-1 gap-2">
+                    <div className="flex items-center justify-between p-2 bg-background rounded border">
+                      <div className="flex items-center gap-2">
+                        <Eye className="w-4 h-4 text-blue-500" />
+                        <span className="text-sm">View Orders</span>
+                      </div>
+                      <Checkbox
+                        checked={newAdminForm.privileges.view_orders}
+                        onCheckedChange={(checked) => setNewAdminForm({
+                          ...newAdminForm,
+                          privileges: { ...newAdminForm.privileges, view_orders: checked }
+                        })}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between p-2 bg-background rounded border">
+                      <div className="flex items-center gap-2">
+                        <XCircle className="w-4 h-4 text-red-500" />
+                        <span className="text-sm">Cancel Orders</span>
+                      </div>
+                      <Checkbox
+                        checked={newAdminForm.privileges.cancel_orders}
+                        onCheckedChange={(checked) => setNewAdminForm({
+                          ...newAdminForm,
+                          privileges: { ...newAdminForm.privileges, cancel_orders: checked }
+                        })}
+                      />
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-green-500" />
-                    <span>View orders</span>
+                </div>
+
+                {/* Auction Management */}
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Auction Management</p>
+                  <div className="grid grid-cols-1 gap-2">
+                    <div className="flex items-center justify-between p-2 bg-background rounded border">
+                      <div className="flex items-center gap-2">
+                        <Eye className="w-4 h-4 text-blue-500" />
+                        <span className="text-sm">View Auctions</span>
+                      </div>
+                      <Checkbox
+                        checked={newAdminForm.privileges.view_auctions}
+                        onCheckedChange={(checked) => setNewAdminForm({
+                          ...newAdminForm,
+                          privileges: { ...newAdminForm.privileges, view_auctions: checked }
+                        })}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between p-2 bg-background rounded border">
+                      <div className="flex items-center gap-2">
+                        <Gavel className="w-4 h-4 text-purple-500" />
+                        <span className="text-sm">Manage Auctions</span>
+                      </div>
+                      <Checkbox
+                        checked={newAdminForm.privileges.manage_auctions}
+                        onCheckedChange={(checked) => setNewAdminForm({
+                          ...newAdminForm,
+                          privileges: { ...newAdminForm.privileges, manage_auctions: checked }
+                        })}
+                      />
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-green-500" />
-                    <span>View auctions</span>
+                </div>
+
+                {/* Financial Management */}
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Financial Management</p>
+                  <div className="grid grid-cols-1 gap-2">
+                    <div className="flex items-center justify-between p-2 bg-background rounded border">
+                      <div className="flex items-center gap-2">
+                        <Eye className="w-4 h-4 text-blue-500" />
+                        <span className="text-sm">View Payouts</span>
+                      </div>
+                      <Checkbox
+                        checked={newAdminForm.privileges.view_payouts}
+                        onCheckedChange={(checked) => setNewAdminForm({
+                          ...newAdminForm,
+                          privileges: { ...newAdminForm.privileges, view_payouts: checked }
+                        })}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between p-2 bg-background rounded border">
+                      <div className="flex items-center gap-2">
+                        <DollarSign className="w-4 h-4 text-green-500" />
+                        <span className="text-sm">Process Payouts</span>
+                      </div>
+                      <Checkbox
+                        checked={newAdminForm.privileges.process_payouts}
+                        onCheckedChange={(checked) => setNewAdminForm({
+                          ...newAdminForm,
+                          privileges: { ...newAdminForm.privileges, process_payouts: checked }
+                        })}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between p-2 bg-background rounded border">
+                      <div className="flex items-center gap-2">
+                        <Eye className="w-4 h-4 text-blue-500" />
+                        <span className="text-sm">View Escrows</span>
+                      </div>
+                      <Checkbox
+                        checked={newAdminForm.privileges.view_escrows}
+                        onCheckedChange={(checked) => setNewAdminForm({
+                          ...newAdminForm,
+                          privileges: { ...newAdminForm.privileges, view_escrows: checked }
+                        })}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between p-2 bg-background rounded border">
+                      <div className="flex items-center gap-2">
+                        <Receipt className="w-4 h-4 text-amber-500" />
+                        <span className="text-sm">Manage Escrows</span>
+                      </div>
+                      <Checkbox
+                        checked={newAdminForm.privileges.manage_escrows}
+                        onCheckedChange={(checked) => setNewAdminForm({
+                          ...newAdminForm,
+                          privileges: { ...newAdminForm.privileges, manage_escrows: checked }
+                        })}
+                      />
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <XCircle className="w-4 h-4 text-red-400" />
-                    <span className="text-muted-foreground">Delete users</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <XCircle className="w-4 h-4 text-red-400" />
-                    <span className="text-muted-foreground">Cancel orders</span>
+                </div>
+
+                {/* Admin & Marketing */}
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Admin & Marketing</p>
+                  <div className="grid grid-cols-1 gap-2">
+                    <div className="flex items-center justify-between p-2 bg-background rounded border">
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-4 h-4 text-blue-500" />
+                        <span className="text-sm">Send Marketing Emails</span>
+                      </div>
+                      <Checkbox
+                        checked={newAdminForm.privileges.send_marketing}
+                        onCheckedChange={(checked) => setNewAdminForm({
+                          ...newAdminForm,
+                          privileges: { ...newAdminForm.privileges, send_marketing: checked }
+                        })}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between p-2 bg-background rounded border">
+                      <div className="flex items-center gap-2">
+                        <ShieldCheck className="w-4 h-4 text-amber-500" />
+                        <span className="text-sm">Manage Other Admins</span>
+                      </div>
+                      <Checkbox
+                        checked={newAdminForm.privileges.manage_admins}
+                        onCheckedChange={(checked) => setNewAdminForm({
+                          ...newAdminForm,
+                          privileges: { ...newAdminForm.privileges, manage_admins: checked }
+                        })}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2485,28 +2691,224 @@ export default function AdminDashboard() {
 
       {/* Edit Admin Privileges Dialog */}
       <Dialog open={!!editingAdmin} onOpenChange={(open) => !open && setEditingAdmin(null)}>
-        <DialogContent>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <KeyRound className="w-5 h-5" />
               Edit Privileges for {editingAdmin?.name}
             </DialogTitle>
+            <DialogDescription>
+              Toggle individual permissions for this admin user
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="space-y-3">
-              {editingAdmin && Object.entries(editingAdmin.privileges || {}).map(([key, value]) => (
-                <div key={key} className="flex items-center justify-between">
-                  <span className="text-sm capitalize">{key.replace(/_/g, ' ')}</span>
-                  <Checkbox
-                    checked={value}
-                    onCheckedChange={(checked) => setEditingAdmin({
-                      ...editingAdmin,
-                      privileges: { ...editingAdmin.privileges, [key]: checked }
-                    })}
-                  />
+            {editingAdmin && (
+              <>
+                {/* User Management */}
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">User Management</p>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between p-2 bg-muted/50 rounded border">
+                      <div className="flex items-center gap-2">
+                        <Eye className="w-4 h-4 text-blue-500" />
+                        <span className="text-sm">View Users</span>
+                      </div>
+                      <Checkbox
+                        checked={editingAdmin.privileges?.view_users}
+                        onCheckedChange={(checked) => setEditingAdmin({
+                          ...editingAdmin,
+                          privileges: { ...editingAdmin.privileges, view_users: checked }
+                        })}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between p-2 bg-muted/50 rounded border">
+                      <div className="flex items-center gap-2">
+                        <UserCheck className="w-4 h-4 text-green-500" />
+                        <span className="text-sm">Approve Users</span>
+                      </div>
+                      <Checkbox
+                        checked={editingAdmin.privileges?.approve_users}
+                        onCheckedChange={(checked) => setEditingAdmin({
+                          ...editingAdmin,
+                          privileges: { ...editingAdmin.privileges, approve_users: checked }
+                        })}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between p-2 bg-muted/50 rounded border">
+                      <div className="flex items-center gap-2">
+                        <Trash2 className="w-4 h-4 text-red-500" />
+                        <span className="text-sm">Delete Users</span>
+                      </div>
+                      <Checkbox
+                        checked={editingAdmin.privileges?.delete_users}
+                        onCheckedChange={(checked) => setEditingAdmin({
+                          ...editingAdmin,
+                          privileges: { ...editingAdmin.privileges, delete_users: checked }
+                        })}
+                      />
+                    </div>
+                  </div>
                 </div>
-              ))}
-            </div>
+
+                {/* Order Management */}
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Order Management</p>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between p-2 bg-muted/50 rounded border">
+                      <div className="flex items-center gap-2">
+                        <Eye className="w-4 h-4 text-blue-500" />
+                        <span className="text-sm">View Orders</span>
+                      </div>
+                      <Checkbox
+                        checked={editingAdmin.privileges?.view_orders}
+                        onCheckedChange={(checked) => setEditingAdmin({
+                          ...editingAdmin,
+                          privileges: { ...editingAdmin.privileges, view_orders: checked }
+                        })}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between p-2 bg-muted/50 rounded border">
+                      <div className="flex items-center gap-2">
+                        <XCircle className="w-4 h-4 text-red-500" />
+                        <span className="text-sm">Cancel Orders</span>
+                      </div>
+                      <Checkbox
+                        checked={editingAdmin.privileges?.cancel_orders}
+                        onCheckedChange={(checked) => setEditingAdmin({
+                          ...editingAdmin,
+                          privileges: { ...editingAdmin.privileges, cancel_orders: checked }
+                        })}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Auction Management */}
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Auction Management</p>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between p-2 bg-muted/50 rounded border">
+                      <div className="flex items-center gap-2">
+                        <Eye className="w-4 h-4 text-blue-500" />
+                        <span className="text-sm">View Auctions</span>
+                      </div>
+                      <Checkbox
+                        checked={editingAdmin.privileges?.view_auctions}
+                        onCheckedChange={(checked) => setEditingAdmin({
+                          ...editingAdmin,
+                          privileges: { ...editingAdmin.privileges, view_auctions: checked }
+                        })}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between p-2 bg-muted/50 rounded border">
+                      <div className="flex items-center gap-2">
+                        <Gavel className="w-4 h-4 text-purple-500" />
+                        <span className="text-sm">Manage Auctions</span>
+                      </div>
+                      <Checkbox
+                        checked={editingAdmin.privileges?.manage_auctions}
+                        onCheckedChange={(checked) => setEditingAdmin({
+                          ...editingAdmin,
+                          privileges: { ...editingAdmin.privileges, manage_auctions: checked }
+                        })}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Financial Management */}
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Financial Management</p>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between p-2 bg-muted/50 rounded border">
+                      <div className="flex items-center gap-2">
+                        <Eye className="w-4 h-4 text-blue-500" />
+                        <span className="text-sm">View Payouts</span>
+                      </div>
+                      <Checkbox
+                        checked={editingAdmin.privileges?.view_payouts}
+                        onCheckedChange={(checked) => setEditingAdmin({
+                          ...editingAdmin,
+                          privileges: { ...editingAdmin.privileges, view_payouts: checked }
+                        })}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between p-2 bg-muted/50 rounded border">
+                      <div className="flex items-center gap-2">
+                        <DollarSign className="w-4 h-4 text-green-500" />
+                        <span className="text-sm">Process Payouts</span>
+                      </div>
+                      <Checkbox
+                        checked={editingAdmin.privileges?.process_payouts}
+                        onCheckedChange={(checked) => setEditingAdmin({
+                          ...editingAdmin,
+                          privileges: { ...editingAdmin.privileges, process_payouts: checked }
+                        })}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between p-2 bg-muted/50 rounded border">
+                      <div className="flex items-center gap-2">
+                        <Eye className="w-4 h-4 text-blue-500" />
+                        <span className="text-sm">View Escrows</span>
+                      </div>
+                      <Checkbox
+                        checked={editingAdmin.privileges?.view_escrows}
+                        onCheckedChange={(checked) => setEditingAdmin({
+                          ...editingAdmin,
+                          privileges: { ...editingAdmin.privileges, view_escrows: checked }
+                        })}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between p-2 bg-muted/50 rounded border">
+                      <div className="flex items-center gap-2">
+                        <Receipt className="w-4 h-4 text-amber-500" />
+                        <span className="text-sm">Manage Escrows</span>
+                      </div>
+                      <Checkbox
+                        checked={editingAdmin.privileges?.manage_escrows}
+                        onCheckedChange={(checked) => setEditingAdmin({
+                          ...editingAdmin,
+                          privileges: { ...editingAdmin.privileges, manage_escrows: checked }
+                        })}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Admin & Marketing */}
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Admin & Marketing</p>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between p-2 bg-muted/50 rounded border">
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-4 h-4 text-blue-500" />
+                        <span className="text-sm">Send Marketing Emails</span>
+                      </div>
+                      <Checkbox
+                        checked={editingAdmin.privileges?.send_marketing}
+                        onCheckedChange={(checked) => setEditingAdmin({
+                          ...editingAdmin,
+                          privileges: { ...editingAdmin.privileges, send_marketing: checked }
+                        })}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between p-2 bg-muted/50 rounded border">
+                      <div className="flex items-center gap-2">
+                        <ShieldCheck className="w-4 h-4 text-amber-500" />
+                        <span className="text-sm">Manage Other Admins</span>
+                      </div>
+                      <Checkbox
+                        checked={editingAdmin.privileges?.manage_admins}
+                        onCheckedChange={(checked) => setEditingAdmin({
+                          ...editingAdmin,
+                          privileges: { ...editingAdmin.privileges, manage_admins: checked }
+                        })}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingAdmin(null)}>
