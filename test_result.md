@@ -181,10 +181,10 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Paystack Checkout Flow Integration"
     - "Cart Persistence Issue"
   stuck_tasks:
     - "Paystack Checkout Flow Integration"
+    - "Cart Persistence Issue"
   test_all: false
   test_priority: "high_first"
 
