@@ -733,6 +733,11 @@ class HarvestBidAPITester:
         self.test_escrow_endpoints()
         self.test_escrow_confirm_delivery()
         
+        # Paystack Payment Tests (Live Mode)
+        self.test_paystack_config_status()
+        self.test_paystack_initialize_payment()
+        self.test_paystack_verify_payment()
+        
         # Print summary
         print("\n" + "=" * 50)
         print(f"📊 Test Results: {self.tests_passed}/{self.tests_run} passed")
