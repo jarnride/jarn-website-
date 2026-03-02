@@ -154,6 +154,9 @@ export default function AdminDashboard() {
     }
   });
   const [editingAdmin, setEditingAdmin] = useState(null);
+  const [isAdminLoginMode, setIsAdminLoginMode] = useState(false);
+  const [adminLoginForm, setAdminLoginForm] = useState({ email: '', password: '' });
+  const [adminLoginLoading, setAdminLoginLoading] = useState(false);
 
   useEffect(() => {
     // Wait for auth to finish loading
@@ -162,7 +165,8 @@ export default function AdminDashboard() {
     }
     
     if (!user) {
-      navigate('/auth');
+      // Show admin login form instead of redirecting
+      setIsAdminLoginMode(true);
       return;
     }
     const isAdmin = user.email === 'admin@jarnnmarket.com' || 
@@ -174,8 +178,22 @@ export default function AdminDashboard() {
       navigate('/dashboard');
       return;
     }
+    setIsAdminLoginMode(false);
     fetchAdminData();
   }, [user, navigate, authLoading]);
+
+  const handleAdminLogin = async (e) => {
+    e.preventDefault();
+    setAdminLoginLoading(true);
+    try {
+      await login(adminLoginForm.email, adminLoginForm.password);
+      toast.success('Login successful!');
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Invalid credentials');
+    } finally {
+      setAdminLoginLoading(false);
+    }
+  };
 
   const fetchAdminData = async () => {
     try {
@@ -807,6 +825,88 @@ export default function AdminDashboard() {
     e.seller?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     e.auction?.title?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Show admin login form if not logged in
+  if (isAdminLoginMode || (!user && !authLoading)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 py-12 px-4">
+        <div className="max-w-md w-full">
+          <div className="bg-card rounded-2xl border shadow-2xl p-8">
+            <div className="text-center mb-8">
+              <div className="w-16 h-16 bg-gradient-to-r from-primary to-harvest rounded-full flex items-center justify-center mx-auto mb-4">
+                <Shield className="w-8 h-8 text-white" />
+              </div>
+              <h1 className="text-2xl font-bold" style={{ fontFamily: 'Playfair Display, serif' }}>
+                Admin Portal
+              </h1>
+              <p className="text-muted-foreground mt-2">
+                Sign in to access the Jarnnmarket admin dashboard
+              </p>
+            </div>
+            
+            <form onSubmit={handleAdminLogin} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="admin-email">Email Address</Label>
+                <Input
+                  id="admin-email"
+                  type="email"
+                  placeholder="admin@jarnnmarket.com"
+                  value={adminLoginForm.email}
+                  onChange={(e) => setAdminLoginForm({ ...adminLoginForm, email: e.target.value })}
+                  required
+                  className="h-12"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="admin-password">Password</Label>
+                <Input
+                  id="admin-password"
+                  type="password"
+                  placeholder="Enter your password"
+                  value={adminLoginForm.password}
+                  onChange={(e) => setAdminLoginForm({ ...adminLoginForm, password: e.target.value })}
+                  required
+                  className="h-12"
+                />
+              </div>
+              
+              <Button 
+                type="submit" 
+                className="w-full h-12 bg-gradient-to-r from-primary to-harvest hover:opacity-90"
+                disabled={adminLoginLoading}
+              >
+                {adminLoginLoading ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Signing in...
+                  </>
+                ) : (
+                  <>
+                    <Shield className="w-4 h-4 mr-2" />
+                    Sign In to Admin Panel
+                  </>
+                )}
+              </Button>
+            </form>
+            
+            <div className="mt-6 text-center">
+              <p className="text-sm text-muted-foreground">
+                Not an admin?{' '}
+                <a href="/" className="text-primary hover:underline">
+                  Return to homepage
+                </a>
+              </p>
+            </div>
+          </div>
+          
+          <p className="text-center text-white/50 text-sm mt-6">
+            © {new Date().getFullYear()} Jarnnmarket. Admin access only.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (!user) return null;
 
