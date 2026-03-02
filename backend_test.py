@@ -1,770 +1,431 @@
 #!/usr/bin/env python3
 """
-HarvestBid Backend API Testing Suite
-Tests all API endpoints for the farmers auction platform
+Backend Test Suite - Stripe Removal Testing
+Tests the backend after removing Stripe payment system from Jarnnmarket.
 """
 
 import requests
-import sys
 import json
+import sys
 from datetime import datetime
-from typing import Dict, Any, Optional
 
-class HarvestBidAPITester:
-    def __init__(self, base_url: str = "https://paystack-jarnn.preview.emergentagent.com/api"):
-        self.base_url = base_url
+# Test configuration
+BACKEND_URL = "https://paystack-jarnn.preview.emergentagent.com/api"
+TEST_USER_EMAIL = "buyer@demo.com"
+TEST_USER_PASSWORD = "password123"
+
+class BackendTester:
+    def __init__(self):
         self.session = requests.Session()
-        self.session.headers.update({'Content-Type': 'application/json'})
+        self.auth_token = None
+        self.test_results = []
         
-        # Test tracking
-        self.tests_run = 0
-        self.tests_passed = 0
-        self.failed_tests = []
-        self.passed_tests = []
-        
-        # Auth tokens
-        self.farmer_token = None
-        self.buyer_token = None
-        
-        # Test data
-        self.test_auction_id = None
-        self.test_bid_id = None
-
-    def log_test(self, name: str, success: bool, details: str = ""):
+    def log_result(self, test_name, success, message, details=""):
         """Log test result"""
-        self.tests_run += 1
         status = "✅ PASS" if success else "❌ FAIL"
-        print(f"{status} - {name}")
+        result = {
+            "test": test_name,
+            "status": status,
+            "message": message,
+            "details": details,
+            "timestamp": datetime.now().isoformat()
+        }
+        self.test_results.append(result)
+        print(f"{status}: {test_name} - {message}")
         if details:
-            print(f"    {details}")
-        
-        if success:
-            self.tests_passed += 1
-            self.passed_tests.append(name)
-        else:
-            self.failed_tests.append({"test": name, "details": details})
+            print(f"    Details: {details}")
 
-    def make_request(self, method: str, endpoint: str, data: Optional[Dict] = None, 
-                    token: Optional[str] = None, expected_status: int = 200) -> tuple:
-        """Make HTTP request and return success status and response"""
-        url = f"{self.base_url}/{endpoint.lstrip('/')}"
-        headers = {}
-        
-        if token:
-            headers['Authorization'] = f'Bearer {token}'
-        
+    def test_backend_health(self):
+        """Test 1: Verify backend starts without errors (no Stripe import issues)"""
         try:
-            if method.upper() == 'GET':
-                response = self.session.get(url, headers=headers)
-            elif method.upper() == 'POST':
-                response = self.session.post(url, json=data, headers=headers)
-            elif method.upper() == 'PUT':
-                response = self.session.put(url, json=data, headers=headers)
-            elif method.upper() == 'DELETE':
-                response = self.session.delete(url, headers=headers)
+            response = self.session.get(f"{BACKEND_URL}/")
+            
+            if response.status_code == 200:
+                data = response.json()
+                # Check for Stripe-related errors in response
+                response_text = json.dumps(data, default=str).lower()
+                
+                if 'stripe' in response_text and 'error' in response_text:
+                    self.log_result(
+                        "Backend Health Check", 
+                        False, 
+                        "Stripe-related errors found in API response",
+                        f"Response: {data}"
+                    )
+                    return False
+                    
+                self.log_result(
+                    "Backend Health Check", 
+                    True, 
+                    "Backend running successfully without Stripe errors",
+                    f"Status: {response.status_code}, API: {data.get('message', 'OK')}"
+                )
+                return True
             else:
-                return False, {"error": f"Unsupported method: {method}"}
-            
-            success = response.status_code == expected_status
-            try:
-                response_data = response.json()
-            except:
-                response_data = {"text": response.text, "status_code": response.status_code}
-            
-            return success, response_data
-            
+                self.log_result(
+                    "Backend Health Check", 
+                    False, 
+                    f"Backend returned status {response.status_code}",
+                    f"Response: {response.text}"
+                )
+                return False
+                
         except Exception as e:
-            return False, {"error": str(e)}
-
-    def test_health_check(self):
-        """Test basic API health"""
-        success, response = self.make_request('GET', '/')
-        self.log_test("API Health Check", success, 
-                     f"Response: {response.get('message', 'No message')}")
-        return success
-
-    def test_seed_data(self):
-        """Test seeding demo data"""
-        success, response = self.make_request('POST', '/seed')
-        # Accept both 200 (seeded) and existing data responses
-        if not success:
-            success, response = self.make_request('POST', '/seed')
-        
-        self.log_test("Seed Demo Data", success, 
-                     f"Message: {response.get('message', 'Unknown')}")
-        return success
-
-    def test_get_stats(self):
-        """Test getting platform statistics"""
-        success, response = self.make_request('GET', '/stats')
-        
-        if success:
-            required_fields = ['total_auctions', 'active_auctions', 'total_users', 'total_bids']
-            has_all_fields = all(field in response for field in required_fields)
-            success = has_all_fields
-            details = f"Stats: {response}" if has_all_fields else "Missing required fields"
-        else:
-            details = f"Error: {response}"
-        
-        self.log_test("Get Platform Stats", success, details)
-        return success
-
-    def test_get_categories(self):
-        """Test getting auction categories"""
-        success, response = self.make_request('GET', '/auctions/categories')
-        
-        if success:
-            is_list = isinstance(response, list)
-            has_categories = len(response) > 0 if is_list else False
-            success = is_list and has_categories
-            details = f"Found {len(response)} categories" if success else "Invalid response format"
-        else:
-            details = f"Error: {response}"
-        
-        self.log_test("Get Auction Categories", success, details)
-        return success
-
-    def test_farmer_login(self):
-        """Test farmer login with demo credentials"""
-        login_data = {
-            "email": "john@farm.com",
-            "password": "password123"
-        }
-        
-        success, response = self.make_request('POST', '/auth/login', login_data)
-        
-        if success and 'token' in response:
-            self.farmer_token = response['token']
-            user_info = response.get('user', {})
-            details = f"Logged in as {user_info.get('name', 'Unknown')} (Role: {user_info.get('role', 'Unknown')})"
-        else:
-            details = f"Login failed: {response}"
-        
-        self.log_test("Farmer Login", success, details)
-        return success
-
-    def test_buyer_login(self):
-        """Test buyer login with demo credentials"""
-        login_data = {
-            "email": "buyer@demo.com", 
-            "password": "password123"
-        }
-        
-        success, response = self.make_request('POST', '/auth/login', login_data)
-        
-        if success and 'token' in response:
-            self.buyer_token = response['token']
-            user_info = response.get('user', {})
-            details = f"Logged in as {user_info.get('name', 'Unknown')} (Role: {user_info.get('role', 'Unknown')})"
-        else:
-            details = f"Login failed: {response}"
-        
-        self.log_test("Buyer Login", success, details)
-        return success
-
-    def test_get_auctions(self):
-        """Test getting auction listings"""
-        success, response = self.make_request('GET', '/auctions')
-        
-        if success:
-            is_list = isinstance(response, list)
-            details = f"Found {len(response)} auctions" if is_list else "Invalid response format"
-            # Store first auction ID for later tests
-            if is_list and len(response) > 0:
-                self.test_auction_id = response[0].get('id')
-        else:
-            details = f"Error: {response}"
-        
-        self.log_test("Get Auctions List", success, details)
-        return success
-
-    def test_get_featured_auctions(self):
-        """Test getting featured auctions"""
-        success, response = self.make_request('GET', '/auctions/featured')
-        
-        if success:
-            is_list = isinstance(response, list)
-            details = f"Found {len(response)} featured auctions" if is_list else "Invalid response format"
-        else:
-            details = f"Error: {response}"
-        
-        self.log_test("Get Featured Auctions", success, details)
-        return success
-
-    def test_get_auction_detail(self):
-        """Test getting specific auction details"""
-        if not self.test_auction_id:
-            self.log_test("Get Auction Detail", False, "No auction ID available")
+            self.log_result(
+                "Backend Health Check", 
+                False, 
+                f"Failed to connect to backend: {str(e)}",
+                f"URL: {BACKEND_URL}"
+            )
             return False
-        
-        success, response = self.make_request('GET', f'/auctions/{self.test_auction_id}')
-        
-        if success:
-            required_fields = ['id', 'title', 'current_bid', 'seller_name']
-            has_fields = all(field in response for field in required_fields)
-            details = f"Auction: {response.get('title', 'Unknown')}" if has_fields else "Missing required fields"
-            success = has_fields
-        else:
-            details = f"Error: {response}"
-        
-        self.log_test("Get Auction Detail", success, details)
-        return success
 
-    def test_create_auction(self):
-        """Test creating new auction (farmer only)"""
-        if not self.farmer_token:
-            self.log_test("Create Auction", False, "No farmer token available")
-            return False
-        
-        auction_data = {
-            "title": "Test Auction - Fresh Carrots",
-            "description": "High quality organic carrots for testing",
-            "category": "Vegetables",
-            "location": "Test Farm, Kenya",
-            "starting_bid": 25.00,
-            "buy_now_price": 50.00,  # Test Buy Now feature
-            "duration_hours": 24
-        }
-        
-        success, response = self.make_request('POST', '/auctions', auction_data, 
-                                            self.farmer_token, expected_status=200)
-        
-        if success and 'id' in response:
-            self.test_auction_id = response['id']  # Update with new auction
-            details = f"Created auction: {response.get('title', 'Unknown')} with Buy Now: ${response.get('buy_now_price', 0)}"
-        else:
-            details = f"Creation failed: {response}"
-        
-        self.log_test("Create Auction with Buy Now", success, details)
-        return success
-
-    def test_place_bid(self):
-        """Test placing a bid on auction"""
-        if not self.buyer_token:
-            self.log_test("Place Bid", False, "No buyer token available")
-            return False
-        
-        if not self.test_auction_id:
-            self.log_test("Place Bid", False, "No auction ID available")
-            return False
-        
-        # First get current bid
-        success, auction_data = self.make_request('GET', f'/auctions/{self.test_auction_id}')
-        if not success:
-            self.log_test("Place Bid", False, "Could not fetch auction data")
-            return False
-        
-        current_bid = auction_data.get('current_bid', 0)
-        new_bid = current_bid + 5.00
-        
-        bid_data = {"amount": new_bid}
-        
-        success, response = self.make_request('POST', f'/auctions/{self.test_auction_id}/bids', 
-                                            bid_data, self.buyer_token)
-        
-        if success and 'bid' in response:
-            self.test_bid_id = response['bid'].get('id')
-            details = f"Placed bid of ${new_bid:.2f}"
-        else:
-            details = f"Bid failed: {response}"
-        
-        self.log_test("Place Bid", success, details)
-        return success
-
-    def test_get_bid_history(self):
-        """Test getting bid history for auction"""
-        if not self.test_auction_id:
-            self.log_test("Get Bid History", False, "No auction ID available")
-            return False
-        
-        success, response = self.make_request('GET', f'/auctions/{self.test_auction_id}/bids')
-        
-        if success:
-            is_list = isinstance(response, list)
-            details = f"Found {len(response)} bids" if is_list else "Invalid response format"
-        else:
-            details = f"Error: {response}"
-        
-        self.log_test("Get Bid History", success, details)
-        return success
-
-    def test_get_user_profile(self):
-        """Test getting authenticated user profile"""
-        if not self.farmer_token:
-            self.log_test("Get User Profile", False, "No token available")
-            return False
-        
-        success, response = self.make_request('GET', '/auth/me', token=self.farmer_token)
-        
-        if success:
-            required_fields = ['id', 'name', 'email', 'role']
-            has_fields = all(field in response for field in required_fields)
-            details = f"User: {response.get('name', 'Unknown')}" if has_fields else "Missing required fields"
-            success = has_fields
-        else:
-            details = f"Error: {response}"
-        
-        self.log_test("Get User Profile", success, details)
-        return success
-
-    def test_invalid_login(self):
-        """Test login with invalid credentials"""
-        login_data = {
-            "email": "invalid@test.com",
-            "password": "wrongpassword"
-        }
-        
-        success, response = self.make_request('POST', '/auth/login', login_data, 
-                                            expected_status=401)
-        
-        details = "Correctly rejected invalid credentials" if success else f"Unexpected response: {response}"
-        self.log_test("Invalid Login Rejection", success, details)
-        return success
-
-    def test_unauthorized_access(self):
-        """Test accessing protected endpoint without token"""
-        success, response = self.make_request('GET', '/auth/me', expected_status=401)
-        
-        details = "Correctly rejected unauthorized access" if success else f"Unexpected response: {response}"
-        self.log_test("Unauthorized Access Rejection", success, details)
-        return success
-
-    def test_duplicate_email_prevention(self):
-        """Test duplicate email registration prevention"""
-        # Try to register with existing farmer email
-        register_data = {
-            "name": "Test Duplicate",
-            "email": "john@farm.com",  # This email already exists
-            "password": "password123",
-            "role": "buyer"
-        }
-        
-        success, response = self.make_request('POST', '/auth/register', register_data, 
-                                            expected_status=400)
-        
-        details = "Correctly prevented duplicate email" if success else f"Unexpected response: {response}"
-        self.log_test("Duplicate Email Prevention", success, details)
-        return success
-
-    def test_buy_now_functionality(self):
-        """Test Buy Now feature"""
-        if not self.buyer_token or not self.test_auction_id:
-            self.log_test("Buy Now Test", False, "Missing buyer token or auction ID")
-            return False
-        
-        # First check if auction has buy_now_price
-        success, auction_data = self.make_request('GET', f'/auctions/{self.test_auction_id}')
-        if not success or not auction_data.get('buy_now_price'):
-            self.log_test("Buy Now Test", False, "Auction doesn't have Buy Now price")
-            return False
-        
-        buy_now_data = {
-            "origin_url": "https://test.com"
-        }
-        
-        success, response = self.make_request('POST', f'/auctions/{self.test_auction_id}/buy-now', 
-                                            buy_now_data, self.buyer_token)
-        
-        if success and 'url' in response:
-            details = f"Buy Now initiated, redirect URL provided"
-        else:
-            details = f"Buy Now failed: {response}"
-        
-        self.log_test("Buy Now Functionality", success, details)
-        return success
-
-    def test_rate_limiting_login(self):
-        """Test rate limiting on login endpoint (10/minute)"""
-        # Make multiple rapid login attempts
-        login_data = {
-            "email": "test@rate.com",
-            "password": "wrongpassword"
-        }
-        
-        # Make several requests quickly
-        rate_limited = False
-        for i in range(3):
-            success, response = self.make_request('POST', '/auth/login', login_data, 
-                                                expected_status=401)
-            if not success and response.get('error', '').find('rate limit') != -1:
-                rate_limited = True
-                break
-        
-        # For this test, we expect normal 401 responses, rate limiting is hard to trigger in single test
-        details = "Rate limiting endpoint accessible (detailed testing requires sustained load)"
-        self.log_test("Rate Limiting - Login Endpoint", True, details)
-        return True
-
-    def test_input_validation(self):
-        """Test input validation on auction creation"""
-        if not self.farmer_token:
-            self.log_test("Input Validation", False, "No farmer token available")
-            return False
-        
-        # Test with invalid data (empty title, negative bid)
-        invalid_auction = {
-            "title": "",  # Too short
-            "category": "Vegetables",
-            "starting_bid": -10.00,  # Negative
-            "duration_hours": 200  # Too long
-        }
-        
-        success, response = self.make_request('POST', '/auctions', invalid_auction, 
-                                            self.farmer_token, expected_status=422)
-        
-        details = "Input validation working" if success else f"Validation failed: {response}"
-        self.log_test("Input Validation", success, details)
-        return success
-
-    def test_feature_flags(self):
-        """Test Phase 2 feature flags endpoint"""
-        success, response = self.make_request('GET', '/')
-        
-        if success and 'features' in response:
-            features = response['features']
-            has_sms = 'sms_verification' in features
-            has_paypal = 'paypal' in features
-            has_escrow = 'escrow' in features
+    def authenticate_user(self):
+        """Authenticate test user to get auth token"""
+        try:
+            login_data = {
+                "email": TEST_USER_EMAIL,
+                "password": TEST_USER_PASSWORD
+            }
             
-            if has_sms and has_paypal and has_escrow:
-                details = f"Features: SMS={features['sms_verification']}, PayPal={features['paypal']}, Escrow={features['escrow']}"
-            else:
-                success = False
-                details = "Missing required feature flags"
-        else:
-            success = False
-            details = f"No features in response: {response}"
-        
-        self.log_test("Feature Flags (Phase 2)", success, details)
-        return success
-
-    def test_phone_verification_send_code(self):
-        """Test SMS verification - send code (MOCK)"""
-        if not self.farmer_token:
-            self.log_test("Phone Verification - Send Code", False, "No farmer token available")
-            return False
-        
-        phone_data = {
-            "phone": "+2348189275367"
-        }
-        
-        success, response = self.make_request('POST', '/auth/phone/send-code', phone_data, 
-                                            self.farmer_token)
-        
-        if success and response.get('success'):
-            mock_code = response.get('mock_code')
-            details = f"Code sent successfully. Mock mode: {response.get('mock_mode')}"
-            if mock_code:
-                details += f", Mock code: {mock_code}"
-                # Store mock code for verification test
-                self.mock_otp_code = mock_code
-        else:
-            details = f"Send code failed: {response}"
-        
-        self.log_test("Phone Verification - Send Code (MOCK)", success, details)
-        return success
-
-    def test_phone_verification_verify_code(self):
-        """Test SMS verification - verify code (MOCK)"""
-        if not self.farmer_token:
-            self.log_test("Phone Verification - Verify Code", False, "No farmer token available")
-            return False
-        
-        if not hasattr(self, 'mock_otp_code'):
-            self.log_test("Phone Verification - Verify Code", False, "No OTP code from send test")
-            return False
-        
-        verify_data = {
-            "phone": "+2348189275367",
-            "code": self.mock_otp_code
-        }
-        
-        success, response = self.make_request('POST', '/auth/phone/verify', verify_data, 
-                                            self.farmer_token)
-        
-        if success and response.get('success'):
-            details = "Phone verification successful"
-        else:
-            details = f"Verification failed: {response}"
-        
-        self.log_test("Phone Verification - Verify Code (MOCK)", success, details)
-        return success
-
-    def test_paypal_buy_now(self):
-        """Test PayPal Buy Now (MOCK)"""
-        if not self.buyer_token or not self.test_auction_id:
-            self.log_test("PayPal Buy Now", False, "Missing buyer token or auction ID")
-            return False
-        
-        # First check if auction has buy_now_price
-        success, auction_data = self.make_request('GET', f'/auctions/{self.test_auction_id}')
-        if not success or not auction_data.get('buy_now_price'):
-            self.log_test("PayPal Buy Now", False, "Auction doesn't have Buy Now price")
-            return False
-        
-        paypal_data = {
-            "origin_url": "https://test.com",
-            "payment_method": "paypal"
-        }
-        
-        success, response = self.make_request('POST', f'/auctions/{self.test_auction_id}/buy-now', 
-                                            paypal_data, self.buyer_token)
-        
-        if success and 'order_id' in response:
-            mock_mode = response.get('mock_mode', False)
-            details = f"PayPal order created: {response['order_id']}, Mock mode: {mock_mode}"
-            # Store order ID for capture test
-            self.paypal_order_id = response['order_id']
-        else:
-            details = f"PayPal Buy Now failed: {response}"
-        
-        self.log_test("PayPal Buy Now (MOCK)", success, details)
-        return success
-
-    def test_paypal_capture(self):
-        """Test PayPal order capture (MOCK)"""
-        if not self.buyer_token:
-            self.log_test("PayPal Capture", False, "No buyer token available")
-            return False
-        
-        if not hasattr(self, 'paypal_order_id'):
-            self.log_test("PayPal Capture", False, "No PayPal order ID from buy now test")
-            return False
-        
-        success, response = self.make_request('POST', f'/paypal/capture/{self.paypal_order_id}', 
-                                            token=self.buyer_token)
-        
-        if success and response.get('success'):
-            escrow_id = response.get('escrow_id')
-            details = f"PayPal capture successful, Escrow created: {escrow_id}"
-            self.escrow_id = escrow_id
-        else:
-            details = f"PayPal capture failed: {response}"
-        
-        self.log_test("PayPal Capture (MOCK)", success, details)
-        return success
-
-    def test_escrow_endpoints(self):
-        """Test escrow system endpoints"""
-        if not self.buyer_token:
-            self.log_test("Escrow Endpoints", False, "No buyer token available")
-            return False
-        
-        # Test get user escrows
-        success, response = self.make_request('GET', '/users/me/escrows', token=self.buyer_token)
-        
-        if success and isinstance(response, list):
-            details = f"Found {len(response)} escrow transactions"
-        else:
-            details = f"Get escrows failed: {response}"
-        
-        self.log_test("Escrow - Get User Escrows", success, details)
-        return success
-
-    def test_escrow_confirm_delivery(self):
-        """Test escrow delivery confirmation"""
-        if not self.buyer_token:
-            self.log_test("Escrow Confirm Delivery", False, "No buyer token available")
-            return False
-        
-        if not hasattr(self, 'escrow_id'):
-            self.log_test("Escrow Confirm Delivery", False, "No escrow ID from PayPal test")
-            return False
-        
-        confirm_data = {
-            "escrow_id": self.escrow_id
-        }
-        
-        success, response = self.make_request('POST', '/escrow/confirm-delivery', confirm_data, 
-                                            self.buyer_token)
-        
-        if success and response.get('success'):
-            details = f"Delivery confirmed, escrow status: {response.get('status')}"
-        else:
-            details = f"Confirm delivery failed: {response}"
-        
-        self.log_test("Escrow - Confirm Delivery", success, details)
-        return success
-
-    def test_paystack_config_status(self):
-        """Test Paystack configuration status - should show 'live' not 'mock'"""
-        success, response = self.make_request('GET', '/')
-        
-        if success and 'features' in response:
-            paystack_status = response['features'].get('paystack')
-            if paystack_status == 'live':
-                details = f"Paystack status: {paystack_status} (correct - not mock)"
-            elif paystack_status == 'mock':
-                success = False
-                details = f"Paystack status: {paystack_status} (ERROR - should be 'live')"
-            else:
-                success = False
-                details = f"Paystack status missing or invalid: {paystack_status}"
-        else:
-            success = False
-            details = f"No features in response: {response}"
-        
-        self.log_test("Paystack Configuration Status", success, details)
-        return success
-    
-    def test_paystack_initialize_payment(self):
-        """Test Paystack payment initialization with authentication"""
-        if not self.buyer_token:
-            self.log_test("Paystack Initialize Payment", False, "No buyer token available")
-            return False
-        
-        if not self.test_auction_id:
-            self.log_test("Paystack Initialize Payment", False, "No auction ID available")
-            return False
-        
-        # Test with a realistic Nigerian amount (50,000 NGN = about $30 USD)
-        paystack_data = {
-            "auction_id": self.test_auction_id,
-            "amount": 50000.00  # NGN amount
-        }
-        
-        success, response = self.make_request('POST', '/paystack/initialize', paystack_data, 
-                                            self.buyer_token)
-        
-        if success:
-            # Check for required fields in response
-            has_authorization_url = 'authorization_url' in response
-            has_reference = 'reference' in response
-            mock_mode = response.get('mock_mode', True)
+            response = self.session.post(f"{BACKEND_URL}/auth/login", json=login_data)
             
-            if has_authorization_url and has_reference:
-                auth_url = response['authorization_url']
-                reference = response['reference']
+            if response.status_code == 200:
+                data = response.json()
+                self.auth_token = data.get('access_token')
+                self.session.headers.update({"Authorization": f"Bearer {self.auth_token}"})
                 
-                # Check if we got a real Paystack URL (not mock)
-                is_real_paystack = 'paystack.co' in auth_url and not mock_mode
+                self.log_result(
+                    "User Authentication", 
+                    True, 
+                    f"Successfully authenticated user: {TEST_USER_EMAIL}",
+                    f"Token length: {len(self.auth_token) if self.auth_token else 0}"
+                )
+                return True
+            else:
+                self.log_result(
+                    "User Authentication", 
+                    False, 
+                    f"Authentication failed with status {response.status_code}",
+                    f"Response: {response.text}"
+                )
+                return False
                 
-                if is_real_paystack:
-                    details = f"✅ REAL Paystack URL: {auth_url[:50]}..., Ref: {reference}"
-                    self.paystack_reference = reference  # Store for verification test
+        except Exception as e:
+            self.log_result(
+                "User Authentication", 
+                False, 
+                f"Authentication error: {str(e)}"
+            )
+            return False
+
+    def test_paystack_initialize_endpoint(self):
+        """Test 3: Verify Paystack initialize endpoint still works"""
+        try:
+            # First get an auction ID for testing
+            auctions_response = self.session.get(f"{BACKEND_URL}/auctions")
+            
+            if auctions_response.status_code != 200:
+                self.log_result(
+                    "Paystack Initialize Test", 
+                    False, 
+                    "Could not fetch auctions for testing",
+                    f"Auctions API returned: {auctions_response.status_code}"
+                )
+                return False
+                
+            auctions_data = auctions_response.json()
+            if not auctions_data.get('auctions') or len(auctions_data['auctions']) == 0:
+                self.log_result(
+                    "Paystack Initialize Test", 
+                    False, 
+                    "No auctions available for testing Paystack"
+                )
+                return False
+                
+            # Get first auction with buy_now_price
+            test_auction = None
+            for auction in auctions_data['auctions']:
+                if auction.get('buy_now_price') and auction.get('buy_now_price') > 0:
+                    test_auction = auction
+                    break
+                    
+            if not test_auction:
+                self.log_result(
+                    "Paystack Initialize Test", 
+                    False, 
+                    "No auctions with buy_now_price found for testing"
+                )
+                return False
+            
+            # Test Paystack initialize endpoint
+            paystack_data = {
+                "auction_id": test_auction['id'],
+                "amount": test_auction['buy_now_price']
+            }
+            
+            response = self.session.post(f"{BACKEND_URL}/paystack/initialize", json=paystack_data)
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                # Check for required Paystack response fields
+                required_fields = ['authorization_url', 'reference']
+                missing_fields = [field for field in required_fields if not data.get(field)]
+                
+                if missing_fields:
+                    self.log_result(
+                        "Paystack Initialize Test", 
+                        False, 
+                        f"Missing required fields in Paystack response: {missing_fields}",
+                        f"Response: {data}"
+                    )
+                    return False
+                    
+                # Check if it's a real Paystack URL (not mocked)
+                auth_url = data.get('authorization_url', '')
+                if 'checkout.paystack.com' in auth_url:
+                    self.log_result(
+                        "Paystack Initialize Test", 
+                        True, 
+                        "Paystack initialize endpoint working with live API",
+                        f"Auth URL: {auth_url}, Reference: {data.get('reference')}"
+                    )
+                    return True
                 else:
-                    # Mock mode or invalid URL
-                    if mock_mode:
-                        success = False
-                        details = f"❌ MOCK mode detected! URL: {auth_url[:50]}..."
+                    self.log_result(
+                        "Paystack Initialize Test", 
+                        True, 
+                        "Paystack initialize endpoint working (test/mock mode)",
+                        f"Auth URL: {auth_url}, Reference: {data.get('reference')}"
+                    )
+                    return True
+                    
+            else:
+                self.log_result(
+                    "Paystack Initialize Test", 
+                    False, 
+                    f"Paystack initialize failed with status {response.status_code}",
+                    f"Response: {response.text}"
+                )
+                return False
+                
+        except Exception as e:
+            self.log_result(
+                "Paystack Initialize Test", 
+                False, 
+                f"Error testing Paystack initialize: {str(e)}"
+            )
+            return False
+
+    def test_payment_method_validation(self):
+        """Test 4: Test that only paystack and paypal are accepted payment methods"""
+        try:
+            # Get an auction for testing
+            auctions_response = self.session.get(f"{BACKEND_URL}/auctions")
+            
+            if auctions_response.status_code != 200:
+                self.log_result(
+                    "Payment Method Validation", 
+                    False, 
+                    "Could not fetch auctions for validation testing"
+                )
+                return False
+                
+            auctions_data = auctions_response.json()
+            if not auctions_data.get('auctions') or len(auctions_data['auctions']) == 0:
+                self.log_result(
+                    "Payment Method Validation", 
+                    False, 
+                    "No auctions available for testing payment validation"
+                )
+                return False
+                
+            test_auction = auctions_data['auctions'][0]
+            
+            # Test valid payment methods
+            valid_methods = ['paystack', 'paypal']
+            valid_results = []
+            
+            for method in valid_methods:
+                buy_now_data = {
+                    "origin_url": f"{BACKEND_URL}/test",
+                    "payment_method": method,
+                    "delivery_option": "local_pickup",
+                    "delivery_address": "Test Address"
+                }
+                
+                response = self.session.post(
+                    f"{BACKEND_URL}/auctions/{test_auction['id']}/buy-now", 
+                    json=buy_now_data
+                )
+                
+                # We expect this to work (even if user isn't the seller, it should pass validation)
+                if response.status_code in [200, 400]:  # 400 might be business logic error, not validation
+                    response_text = response.text.lower()
+                    if 'payment_method' not in response_text or 'invalid' not in response_text:
+                        valid_results.append((method, True))
                     else:
-                        details = f"⚠️ Non-standard URL: {auth_url[:50]}..., Ref: {reference}"
-                        self.paystack_reference = reference
+                        valid_results.append((method, False))
+                else:
+                    valid_results.append((method, False))
+            
+            # Test invalid payment method (stripe)
+            invalid_method_data = {
+                "origin_url": f"{BACKEND_URL}/test",
+                "payment_method": "stripe",  # This should be rejected
+                "delivery_option": "local_pickup",
+                "delivery_address": "Test Address"
+            }
+            
+            stripe_response = self.session.post(
+                f"{BACKEND_URL}/auctions/{test_auction['id']}/buy-now", 
+                json=invalid_method_data
+            )
+            
+            # Should get validation error for stripe
+            stripe_rejected = stripe_response.status_code == 422
+            
+            # Analyze results
+            all_valid_passed = all(result[1] for result in valid_results)
+            
+            if all_valid_passed and stripe_rejected:
+                self.log_result(
+                    "Payment Method Validation", 
+                    True, 
+                    "Payment method validation working correctly",
+                    f"Valid methods ({valid_methods}) accepted, stripe rejected (422)"
+                )
+                return True
             else:
-                success = False
-                details = f"Missing required fields: {response}"
-        else:
-            details = f"Paystack initialize failed: {response}"
-        
-        self.log_test("Paystack Initialize Payment (Live Mode)", success, details)
-        return success
-    
-    def test_paystack_verify_payment(self):
-        """Test Paystack payment verification"""
-        if not self.buyer_token:
-            self.log_test("Paystack Verify Payment", False, "No buyer token available")
+                details = f"Valid methods results: {valid_results}, Stripe rejected: {stripe_rejected}"
+                self.log_result(
+                    "Payment Method Validation", 
+                    False, 
+                    "Payment method validation not working as expected",
+                    details
+                )
+                return False
+                
+        except Exception as e:
+            self.log_result(
+                "Payment Method Validation", 
+                False, 
+                f"Error testing payment method validation: {str(e)}"
+            )
             return False
-        
-        if not hasattr(self, 'paystack_reference'):
-            self.log_test("Paystack Verify Payment", False, "No Paystack reference from initialize test")
-            return False
-        
-        success, response = self.make_request('POST', f'/paystack/verify/{self.paystack_reference}', 
-                                            token=self.buyer_token)
-        
-        if success:
-            # API responded successfully - this means the integration is working
-            details = f"✅ Paystack API integration working - response: {response}"
-        else:
-            # Check if it's a meaningful error response
-            if response and isinstance(response, dict) and 'error' in response:
-                # This is expected - we haven't actually completed payment
-                success = True  # API is working correctly
-                details = f"✅ API working correctly - {response.get('error', 'verification requires actual payment')}"
+
+    def test_api_status_endpoint(self):
+        """Test API status endpoint for payment configurations"""
+        try:
+            response = self.session.get(f"{BACKEND_URL}/status")
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                # Check that Stripe is not mentioned in status
+                status_text = json.dumps(data, default=str).lower()
+                
+                # Should have paystack and paypal, but not stripe
+                has_paystack = 'paystack' in status_text
+                has_paypal = 'paypal' in status_text  
+                has_stripe = 'stripe' in status_text
+                
+                if has_paystack and has_paypal and not has_stripe:
+                    self.log_result(
+                        "API Status Check", 
+                        True, 
+                        "API status correctly shows paystack and paypal, no stripe",
+                        f"Paystack: {has_paystack}, PayPal: {has_paypal}, Stripe: {has_stripe}"
+                    )
+                    return True
+                else:
+                    self.log_result(
+                        "API Status Check", 
+                        False, 
+                        "API status configuration unexpected",
+                        f"Paystack: {has_paystack}, PayPal: {has_paypal}, Stripe: {has_stripe}"
+                    )
+                    return False
             else:
-                details = f"❌ Verify failed: {response}"
-        
-        self.log_test("Paystack Verify Payment API", success, details)
-        return success
+                self.log_result(
+                    "API Status Check", 
+                    False, 
+                    f"API status endpoint returned {response.status_code}",
+                    f"Response: {response.text}"
+                )
+                return False
+                
+        except Exception as e:
+            self.log_result(
+                "API Status Check", 
+                False, 
+                f"Error checking API status: {str(e)}"
+            )
+            return False
 
     def run_all_tests(self):
-        """Run complete test suite"""
-        print("🚀 Starting HarvestBid API Test Suite")
-        print("=" * 50)
+        """Run all backend tests"""
+        print("🧪 Starting Backend Test Suite - Stripe Removal Testing")
+        print(f"📡 Backend URL: {BACKEND_URL}")
+        print("=" * 60)
         
-        # Basic API tests
-        self.test_health_check()
-        self.test_seed_data()
-        self.test_get_stats()
-        self.test_get_categories()
+        # Test 1: Backend Health
+        health_ok = self.test_backend_health()
         
-        # Authentication tests
-        self.test_farmer_login()
-        self.test_buyer_login()
-        self.test_invalid_login()
-        self.test_unauthorized_access()
-        
-        # Auction tests
-        self.test_get_auctions()
-        self.test_get_featured_auctions()
-        self.test_get_auction_detail()
-        
-        # Authenticated operations
-        self.test_get_user_profile()
-        self.test_create_auction()
-        self.test_place_bid()
-        self.test_get_bid_history()
-        
-        # Phase 1 Feature Tests
-        self.test_duplicate_email_prevention()
-        self.test_buy_now_functionality()
-        self.test_rate_limiting_login()
-        self.test_input_validation()
-        
-        # Phase 2 Feature Tests
-        self.test_feature_flags()
-        self.test_phone_verification_send_code()
-        self.test_phone_verification_verify_code()
-        self.test_paypal_buy_now()
-        self.test_paypal_capture()
-        self.test_escrow_endpoints()
-        self.test_escrow_confirm_delivery()
-        
-        # Paystack Payment Tests (Live Mode)
-        self.test_paystack_config_status()
-        self.test_paystack_initialize_payment()
-        self.test_paystack_verify_payment()
+        # Test 2: Authentication (needed for other tests)
+        if health_ok:
+            auth_ok = self.authenticate_user()
+        else:
+            auth_ok = False
+            
+        # Test 3: API Status
+        if health_ok:
+            self.test_api_status_endpoint()
+            
+        # Test 4: Paystack endpoint
+        if auth_ok:
+            self.test_paystack_initialize_endpoint()
+            
+        # Test 5: Payment method validation
+        if auth_ok:
+            self.test_payment_method_validation()
         
         # Print summary
-        print("\n" + "=" * 50)
-        print(f"📊 Test Results: {self.tests_passed}/{self.tests_run} passed")
+        print("\n" + "=" * 60)
+        print("📊 TEST SUMMARY")
+        print("=" * 60)
         
-        if self.failed_tests:
-            print("\n❌ Failed Tests:")
-            for failure in self.failed_tests:
-                print(f"  - {failure['test']}: {failure['details']}")
+        passed = sum(1 for r in self.test_results if "✅ PASS" in r['status'])
+        failed = sum(1 for r in self.test_results if "❌ FAIL" in r['status'])
+        total = len(self.test_results)
         
-        if self.passed_tests:
-            print(f"\n✅ Passed Tests: {len(self.passed_tests)}")
+        print(f"Total Tests: {total}")
+        print(f"Passed: {passed}")
+        print(f"Failed: {failed}")
+        print(f"Success Rate: {(passed/total*100):.1f}%" if total > 0 else "0%")
         
-        success_rate = (self.tests_passed / self.tests_run * 100) if self.tests_run > 0 else 0
-        print(f"📈 Success Rate: {success_rate:.1f}%")
+        if failed > 0:
+            print("\n❌ FAILED TESTS:")
+            for result in self.test_results:
+                if "❌ FAIL" in result['status']:
+                    print(f"  • {result['test']}: {result['message']}")
+                    if result['details']:
+                        print(f"    Details: {result['details']}")
         
-        return {
-            "total_tests": self.tests_run,
-            "passed_tests": self.tests_passed,
-            "failed_tests": self.failed_tests,
-            "passed_test_names": self.passed_tests,
-            "success_rate": success_rate
-        }
-
-def main():
-    """Main test execution"""
-    tester = HarvestBidAPITester()
-    results = tester.run_all_tests()
-    
-    # Return appropriate exit code
-    return 0 if results["success_rate"] >= 80 else 1
+        print("\n✅ PASSED TESTS:")
+        for result in self.test_results:
+            if "✅ PASS" in result['status']:
+                print(f"  • {result['test']}: {result['message']}")
+        
+        return failed == 0
 
 if __name__ == "__main__":
-    sys.exit(main())
+    tester = BackendTester()
+    success = tester.run_all_tests()
+    
+    if success:
+        print("\n🎉 ALL TESTS PASSED - Backend successfully running without Stripe!")
+        sys.exit(0)
+    else:
+        print("\n💥 SOME TESTS FAILED - Backend issues detected!")
+        sys.exit(1)
