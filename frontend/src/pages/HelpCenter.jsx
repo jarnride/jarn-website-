@@ -88,7 +88,7 @@ const FAQ_CATEGORIES = [
     faqs: [
       {
         question: 'What payment methods are accepted?',
-        answer: 'We accept payments through Stripe (credit/debit cards) and PayPal. All transactions are secured with industry-standard encryption.'
+        answer: 'We accept payments through Paystack (Nigerian cards, bank transfer, USSD) and PayPal. All transactions are secured with industry-standard encryption.'
       },
       {
         question: 'What currencies are supported?',
