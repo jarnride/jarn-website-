@@ -101,3 +101,35 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: "Update Paystack on Jarnnmarket payment system - Configure live Paystack API keys for NGN payments"
+
+backend:
+  - task: "Paystack Live Configuration"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/.env"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Added PAYSTACK_PUBLIC_KEY and PAYSTACK_SECRET_KEY to .env file. API status endpoint now shows paystack: 'live' instead of 'mock'"
+
+metadata:
+  created_by: "main_agent"
+  version: "1.0"
+  test_sequence: 1
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "Paystack Live Configuration"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+  - agent: "main"
+    message: "Configured live Paystack API keys. Please test the /api/paystack/initialize endpoint with a test user and auction to verify payments work correctly."
