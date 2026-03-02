@@ -3994,188 +3994,22 @@ async def cancel_subscription(user: dict = Depends(get_current_user)):
 
 # ================== PAYMENT ROUTES ==================
 
-@api_router.post("/payments/create-checkout")
-@limiter.limit("10/minute")
-async def create_checkout(request: Request, data: PaymentCreate, user: dict = Depends(get_current_user)):
-    auction = await db.auctions.find_one({"id": data.auction_id}, {"_id": 0})
-    if not auction:
-        raise HTTPException(status_code=404, detail="Auction not found")
-    
-    if auction.get("winner_id") != user["id"]:
-        raise HTTPException(status_code=403, detail="Only the auction winner can pay")
-    
-    if datetime.fromisoformat(auction["ends_at"]) > datetime.now(timezone.utc) and auction.get("sold_via") != "buy_now":
-        raise HTTPException(status_code=400, detail="Auction has not ended yet")
-    
-    existing_payment = await db.payment_transactions.find_one({
-        "auction_id": data.auction_id,
-        "payment_status": "paid"
-    })
-    if existing_payment:
-        raise HTTPException(status_code=400, detail="Already paid for this auction")
-    
-    host_url = str(request.base_url).rstrip('/')
-    webhook_url = f"{host_url}/api/webhook/stripe"
-    
-    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
-    
-    success_url = f"{data.origin_url}/payment/success?session_id={{CHECKOUT_SESSION_ID}}"
-    cancel_url = f"{data.origin_url}/payment/cancel"
-    
-    checkout_request = CheckoutSessionRequest(
-        amount=float(auction["current_bid"]),
-        currency="usd",
-        success_url=success_url,
-        cancel_url=cancel_url,
-        metadata={
-            "auction_id": data.auction_id,
-            "user_id": user["id"],
-            "auction_title": auction["title"]
-        }
-    )
-    
-    session = await stripe_checkout.create_checkout_session(checkout_request)
-    
-    payment_id = str(uuid.uuid4())
-    payment_doc = {
-        "id": payment_id,
-        "session_id": session.session_id,
-        "auction_id": data.auction_id,
-        "user_id": user["id"],
-        "amount": float(auction["current_bid"]),
-        "currency": "usd",
-        "payment_method": "stripe",
-        "payment_status": "pending",
-        "metadata": {"auction_title": auction["title"]},
-        "created_at": datetime.now(timezone.utc).isoformat()
-    }
-    await db.payment_transactions.insert_one(payment_doc)
-    
-    return {"url": session.url, "session_id": session.session_id}
-
 @api_router.get("/payments/status/{session_id}")
 async def get_payment_status(session_id: str, request: Request, user: dict = Depends(get_current_user)):
+    """Get payment status - works with Paystack references"""
     payment = await db.payment_transactions.find_one({"session_id": session_id}, {"_id": 0})
+    if not payment:
+        # Try finding by paystack reference
+        payment = await db.payment_transactions.find_one({"paystack_reference": session_id}, {"_id": 0})
     if not payment:
         raise HTTPException(status_code=404, detail="Payment not found")
     
-    host_url = str(request.base_url).rstrip('/')
-    webhook_url = f"{host_url}/api/webhook/stripe"
-    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
-    
-    try:
-        status = await stripe_checkout.get_checkout_status(session_id)
-        
-        if status.payment_status != payment.get("payment_status"):
-            await db.payment_transactions.update_one(
-                {"session_id": session_id},
-                {"$set": {
-                    "payment_status": status.payment_status,
-                    "stripe_status": status.status,
-                    "updated_at": datetime.now(timezone.utc).isoformat()
-                }}
-            )
-            
-            if status.payment_status == "paid":
-                auction = await db.auctions.find_one({"id": payment["auction_id"]}, {"_id": 0})
-                
-                escrow = await EscrowService.create_escrow(
-                    auction_id=payment["auction_id"],
-                    buyer_id=user["id"],
-                    seller_id=auction["seller_id"],
-                    amount=payment["amount"],
-                    payment_method="stripe",
-                    payment_id=session_id
-                )
-                
-                await db.auctions.update_one(
-                    {"id": payment["auction_id"]},
-                    {"$set": {"is_paid": True, "escrow_id": escrow["id"]}}
-                )
-                
-                # Send notifications
-                seller = await db.users.find_one({"id": auction["seller_id"]}, {"_id": 0})
-                if seller:
-                    await EmailService.send_payment_received_notification(
-                        seller["email"],
-                        seller["name"],
-                        auction["title"],
-                        payment["amount"],
-                        user["name"]
-                    )
-                    if seller.get("phone") and seller.get("phone_verified"):
-                        await SMSService.send_sms(
-                            seller["phone"],
-                            f"Payment received for '{auction['title']}'! Amount: ${payment['amount']:.2f}. Funds in escrow."
-                        )
-                
-                # Notify winner
-                await EmailService.send_auction_won_notification(
-                    user["email"],
-                    user["name"],
-                    auction["title"],
-                    payment["amount"]
-                )
-        
-        return {
-            "status": status.status,
-            "payment_status": status.payment_status,
-            "amount": status.amount_total / 100,
-            "auction_id": payment["auction_id"]
-        }
-    except Exception as e:
-        logger.error(f"Stripe status check failed: {e}")
-        return {
-            "status": payment.get("stripe_status", "pending"),
-            "payment_status": payment.get("payment_status", "pending"),
-            "amount": payment["amount"],
-            "auction_id": payment["auction_id"]
-        }
-
-@api_router.post("/webhook/stripe")
-async def stripe_webhook(request: Request):
-    body = await request.body()
-    signature = request.headers.get("Stripe-Signature")
-    
-    host_url = str(request.base_url).rstrip('/')
-    webhook_url = f"{host_url}/api/webhook/stripe"
-    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
-    
-    try:
-        event = await stripe_checkout.handle_webhook(body, signature)
-        
-        if event.payment_status == "paid":
-            payment = await db.payment_transactions.find_one({"session_id": event.session_id})
-            if payment:
-                await db.payment_transactions.update_one(
-                    {"session_id": event.session_id},
-                    {"$set": {
-                        "payment_status": "paid",
-                        "event_id": event.event_id,
-                        "updated_at": datetime.now(timezone.utc).isoformat()
-                    }}
-                )
-                
-                auction = await db.auctions.find_one({"id": payment["auction_id"]})
-                if auction and not auction.get("escrow_id"):
-                    escrow = await EscrowService.create_escrow(
-                        auction_id=payment["auction_id"],
-                        buyer_id=payment["user_id"],
-                        seller_id=auction["seller_id"],
-                        amount=payment["amount"],
-                        payment_method="stripe",
-                        payment_id=event.session_id
-                    )
-                    
-                    await db.auctions.update_one(
-                        {"id": payment["auction_id"]},
-                        {"$set": {"is_paid": True, "escrow_id": escrow["id"]}}
-                    )
-        
-        return {"received": True}
-    except Exception as e:
-        logger.error(f"Webhook error: {e}")
-        return {"received": True}
+    return {
+        "status": payment.get("payment_status", "pending"),
+        "payment_status": payment.get("payment_status", "pending"),
+        "amount": payment["amount"],
+        "auction_id": payment["auction_id"]
+    }
 
 # ================== STATS ROUTES ==================
 
