@@ -46,7 +46,7 @@ export default function AuctionDetail() {
   const [buyingNow, setBuyingNow] = useState(false);
   const [isExpired, setIsExpired] = useState(false);
   const [isSold, setIsSold] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState('stripe');
+  const [paymentMethod, setPaymentMethod] = useState('paystack');
   const [showPhoneVerification, setShowPhoneVerification] = useState(false);
   const [confirmingDelivery, setConfirmingDelivery] = useState(false);
   const [showOfferModal, setShowOfferModal] = useState(false);
