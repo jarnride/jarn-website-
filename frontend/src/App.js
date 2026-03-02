@@ -26,6 +26,7 @@ import AdminDashboard from "@/pages/AdminDashboard";
 import Checkout from "@/pages/Checkout";
 import SellerProfile from "@/pages/SellerProfile";
 import Wishlist from "@/pages/Wishlist";
+import PaystackCallback from "@/pages/PaystackCallback";
 
 function App() {
   return (
