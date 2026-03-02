@@ -91,7 +91,7 @@ class BackendTester:
             
             if response.status_code == 200:
                 data = response.json()
-                self.auth_token = data.get('access_token')
+                self.auth_token = data.get('token')  # Fix: token field, not access_token
                 self.session.headers.update({"Authorization": f"Bearer {self.auth_token}"})
                 
                 self.log_result(
