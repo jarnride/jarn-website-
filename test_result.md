@@ -170,13 +170,15 @@ frontend:
 metadata:
   created_by: "main_agent"
   version: "1.0"
-  test_sequence: 3
+  test_sequence: 4
   run_ui: true
 
 test_plan:
   current_focus:
     - "Paystack Checkout Flow Integration"
-  stuck_tasks: []
+    - "Cart Persistence Issue"
+  stuck_tasks:
+    - "Paystack Checkout Flow Integration"
   test_all: false
   test_priority: "high_first"
 
@@ -187,3 +189,5 @@ agent_communication:
     message: "✅ PAYSTACK INTEGRATION FULLY TESTED AND WORKING: 1. API status correctly shows paystack: 'live' 2. Authentication successful with both test accounts (buyer@demo.com and john@farm.com) 3. Paystack initialize endpoint returns real Paystack URLs (checkout.paystack.com) not mock URLs 4. Backend logs confirm successful HTTP 200 responses from api.paystack.co 5. Reference generation working correctly 6. Verify endpoint accessible. Integration ready for live NGN payments!"
   - agent: "testing"
     message: "❌ CRITICAL FINDING: Frontend checkout page (/checkout) is NOT integrated with Paystack backend. The Checkout.jsx handleCheckout function has a TODO and does not call any payment API. When users select Paystack and click Place Order, it just clears cart and redirects to dashboard - no actual payment is initiated. Backend Paystack API is confirmed working (tested via curl, returns real checkout.paystack.com URLs). Frontend needs to be integrated with /api/paystack/initialize endpoint to complete the payment flow."
+  - agent: "testing"
+    message: "❌ TWO CRITICAL BUGS FOUND: 1) API PARAMETER MISMATCH - Frontend missing 'amount' parameter in Paystack API call. Backend requires both auction_id AND amount (server.py:2969), but frontend only sends auction_id, delivery_option, delivery_address, delivery_fee. The 'total' variable exists (Checkout.jsx:203) but not sent. Backend confirmed working via curl when amount provided - returns real checkout.paystack.com URL. FIX: Add 'amount: total' to request payload. 2) CART PERSISTENCE BUG - Cart empties when navigating to /checkout, blocking full flow testing. Items add successfully but localStorage clears to '[]' on navigation. Cannot test E2E until cart persists."
