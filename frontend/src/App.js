@@ -57,6 +57,7 @@ function App() {
                     <Route path="/checkout" element={<Checkout />} />
                     <Route path="/seller/:sellerId" element={<SellerProfile />} />
                     <Route path="/wishlist" element={<Wishlist />} />
+                    <Route path="/payment/paystack-callback" element={<PaystackCallback />} />
                   </Routes>
                 </main>
                 <Footer />
