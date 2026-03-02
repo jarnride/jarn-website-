@@ -566,7 +566,7 @@ export default function Policies() {
                   <section className="mb-8">
                     <h3 className="text-lg font-semibold mb-3">4. Payment & Escrow</h3>
                     <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-                      <li>Secure payment processing via Stripe or PayPal</li>
+                      <li>Secure payment processing via Paystack or PayPal</li>
                       <li>Funds held in escrow until delivery confirmation</li>
                       <li>Only release payment when satisfied with the product</li>
                       <li>Report issues before confirming delivery</li>
