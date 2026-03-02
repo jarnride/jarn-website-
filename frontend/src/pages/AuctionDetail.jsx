@@ -727,10 +727,10 @@ export default function AuctionDetail() {
                       <Label className="text-sm font-medium">Payment Method</Label>
                       <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="flex gap-4">
                         <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="stripe" id="stripe" />
-                          <Label htmlFor="stripe" className="cursor-pointer flex items-center gap-2">
+                          <RadioGroupItem value="paystack" id="paystack" />
+                          <Label htmlFor="paystack" className="cursor-pointer flex items-center gap-2">
                             <CreditCard className="w-4 h-4" />
-                            Card (Stripe)
+                            Paystack (NGN)
                           </Label>
                         </div>
                         <div className="flex items-center space-x-2">
