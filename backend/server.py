@@ -2086,6 +2086,42 @@ async def get_image(image_id: str):
     content = base64.b64decode(image["data"])
     return Response(content=content, media_type=image["content_type"])
 
+# ================== HELPER FUNCTIONS ==================
+
+async def batch_add_seller_info(auctions: list) -> list:
+    """Batch fetch seller information to avoid N+1 queries"""
+    if not auctions:
+        return auctions
+    
+    # Collect unique seller IDs
+    seller_ids = list(set([auction["seller_id"] for auction in auctions if auction.get("seller_id")]))
+    
+    if not seller_ids:
+        return auctions
+    
+    # Batch fetch all sellers in one query
+    sellers = await db.users.find(
+        {"id": {"$in": seller_ids}},
+        {"_id": 0, "id": 1, "rating_avg": 1, "rating_count": 1, "is_verified": 1, "name": 1}
+    ).to_list(None)
+    
+    # Create lookup map
+    sellers_map = {s["id"]: s for s in sellers}
+    
+    # Populate auction data from the map
+    for auction in auctions:
+        seller = sellers_map.get(auction.get("seller_id"), {})
+        auction["seller_rating"] = seller.get("rating_avg", 0)
+        auction["seller_rating_count"] = seller.get("rating_count", 0)
+        auction["seller_verified"] = seller.get("is_verified", False)
+        # Ensure new fields have default values for legacy auctions
+        auction.setdefault("buy_now_only", False)
+        auction.setdefault("accepts_offers", False)
+        auction.setdefault("currency", "USD")
+        auction.setdefault("quantity", 1)
+    
+    return auctions
+
 # ================== AUCTION ROUTES ==================
 
 @api_router.get("/auctions")
@@ -2175,15 +2211,8 @@ async def get_auctions(
         for auction in auctions:
             auction.pop("_proximity", None)
     
-    # Add seller ratings to auctions
-    for auction in auctions:
-        seller = await db.users.find_one({"id": auction["seller_id"]}, {"_id": 0, "rating_avg": 1, "rating_count": 1, "is_verified": 1})
-        auction["seller_rating"] = seller.get("rating_avg", 0) if seller else 0
-        auction["seller_rating_count"] = seller.get("rating_count", 0) if seller else 0
-        auction["seller_verified"] = seller.get("is_verified", False) if seller else False
-        # Ensure new fields have default values for legacy auctions
-        auction.setdefault("buy_now_only", False)
-        auction.setdefault("accepts_offers", False)
+    # Batch add seller ratings to auctions (optimized - single query instead of N queries)
+    auctions = await batch_add_seller_info(auctions)
     
     return auctions
 
@@ -2195,14 +2224,8 @@ async def get_featured_auctions(limit: int = 6):
     }
     auctions = await db.auctions.find(query, {"_id": 0}).sort("bid_count", -1).limit(limit).to_list(limit)
     
-    for auction in auctions:
-        seller = await db.users.find_one({"id": auction["seller_id"]}, {"_id": 0, "rating_avg": 1, "rating_count": 1, "is_verified": 1})
-        auction["seller_rating"] = seller.get("rating_avg", 0) if seller else 0
-        auction["seller_rating_count"] = seller.get("rating_count", 0) if seller else 0
-        auction["seller_verified"] = seller.get("is_verified", False) if seller else False
-        # Ensure new fields have default values for legacy auctions
-        auction.setdefault("buy_now_only", False)
-        auction.setdefault("accepts_offers", False)
+    # Batch add seller info (optimized - single query instead of N queries)
+    auctions = await batch_add_seller_info(auctions)
     
     return auctions
 
@@ -2399,16 +2422,8 @@ async def search_auctions(
     else:
         auctions = await db.auctions.find(query, {"_id": 0}).sort(sort).skip(skip).limit(limit).to_list(limit)
     
-    # Add seller ratings and verification status
-    for auction in auctions:
-        seller = await db.users.find_one({"id": auction["seller_id"]}, {"_id": 0, "rating_avg": 1, "rating_count": 1, "is_verified": 1})
-        auction["seller_rating"] = seller.get("rating_avg", 0) if seller else 0
-        auction["seller_rating_count"] = seller.get("rating_count", 0) if seller else 0
-        auction["seller_verified"] = seller.get("is_verified", False) if seller else False
-        auction.setdefault("buy_now_only", False)
-        auction.setdefault("accepts_offers", False)
-        auction.setdefault("currency", "USD")
-        auction.setdefault("quantity", 1)
+    # Add seller ratings and verification status (optimized - single query instead of N queries)
+    auctions = await batch_add_seller_info(auctions)
     
     return {
         "auctions": auctions,
