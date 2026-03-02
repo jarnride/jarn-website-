@@ -119,29 +119,6 @@ export default function Checkout() {
         } else {
           toast.error('Failed to initialize payment');
         }
-      } else if (paymentMethod === 'stripe') {
-        // Stripe payment flow
-        const auctionId = cartItems[0]?.auction?.id;
-        const response = await axios.post(
-          `${API}/api/create-checkout-session`,
-          { 
-            auction_id: auctionId,
-            delivery_option: deliveryOption,
-            delivery_address: deliveryOption !== 'pickup' ? deliveryAddress : null
-          },
-          {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          }
-        );
-        
-        if (response.data.url) {
-          window.location.href = response.data.url;
-        } else {
-          toast.error('Failed to create checkout session');
-        }
       } else if (paymentMethod === 'paypal') {
         // PayPal payment flow
         const auctionId = cartItems[0]?.auction?.id;
