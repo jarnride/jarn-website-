@@ -121,7 +121,7 @@ export default function Checkout() {
         }
       } else if (paymentMethod === 'stripe') {
         // Stripe payment flow
-        const auctionId = cartItems[0]?.id;
+        const auctionId = cartItems[0]?.auction?.id;
         const response = await axios.post(
           `${API}/api/create-checkout-session`,
           { 
@@ -144,7 +144,7 @@ export default function Checkout() {
         }
       } else if (paymentMethod === 'paypal') {
         // PayPal payment flow
-        const auctionId = cartItems[0]?.id;
+        const auctionId = cartItems[0]?.auction?.id;
         const response = await axios.post(
           `${API}/api/paypal/create-order`,
           { 
