@@ -3,20 +3,17 @@ import { createContext, useContext, useState, useEffect } from 'react';
 const CartContext = createContext(null);
 
 export const CartProvider = ({ children }) => {
-  const [cartItems, setCartItems] = useState([]);
-  const [isCartOpen, setIsCartOpen] = useState(false);
-
-  // Load cart from localStorage on mount
-  useEffect(() => {
-    const savedCart = localStorage.getItem('jarnnmarket_cart');
-    if (savedCart) {
-      try {
-        setCartItems(JSON.parse(savedCart));
-      } catch (e) {
-        console.error('Failed to load cart:', e);
-      }
+  // Initialize cart from localStorage synchronously to prevent race condition
+  const [cartItems, setCartItems] = useState(() => {
+    try {
+      const saved = localStorage.getItem('jarnnmarket_cart');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      console.error('Failed to load cart:', e);
+      return [];
     }
-  }, []);
+  });
+  const [isCartOpen, setIsCartOpen] = useState(false);
 
   // Save cart to localStorage whenever it changes
   useEffect(() => {
