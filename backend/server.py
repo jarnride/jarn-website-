@@ -2779,65 +2779,7 @@ async def buy_now(request: Request, auction_id: str, data: BuyNowRequest, user: 
         "currency": currency.upper()
     }
     
-    if data.payment_method == "stripe":
-        host_url = str(request.base_url).rstrip('/')
-        webhook_url = f"{host_url}/api/webhook/stripe"
-        
-        stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
-        
-        success_url = f"{data.origin_url}/payment/success?session_id={{CHECKOUT_SESSION_ID}}"
-        cancel_url = f"{data.origin_url}/payment/cancel"
-        
-        checkout_request = CheckoutSessionRequest(
-            amount=total_amount,
-            currency=currency,
-            success_url=success_url,
-            cancel_url=cancel_url,
-            metadata={
-                "auction_id": auction_id,
-                "user_id": user["id"],
-                "auction_title": auction["title"],
-                "type": "buy_now",
-                "delivery_option": selected_delivery or "",
-                "delivery_cost": str(delivery_cost)
-            }
-        )
-        
-        session = await stripe_checkout.create_checkout_session(checkout_request)
-        
-        payment_id = str(uuid.uuid4())
-        payment_doc = {
-            "id": payment_id,
-            "session_id": session.session_id,
-            "auction_id": auction_id,
-            "user_id": user["id"],
-            "amount": total_amount,
-            "currency": currency.upper(),
-            "payment_method": "stripe",
-            "payment_status": "pending",
-            "payment_type": "buy_now",
-            "order_details": order_details,
-            "metadata": {"auction_title": auction["title"]},
-            "created_at": datetime.now(timezone.utc).isoformat()
-        }
-        await db.payment_transactions.insert_one(payment_doc)
-        
-        await db.auctions.update_one(
-            {"id": auction_id},
-            {"$set": {
-                "is_active": False,
-                "winner_id": user["id"],
-                "current_bid": buy_now_price,
-                "sold_via": "buy_now",
-                "order_details": order_details
-            }}
-        )
-        
-        await broadcast_auction_sold(auction_id, auction, user["name"])
-        
-        return {"url": session.url, "session_id": session.session_id, "payment_method": "stripe"}
-    
-    elif data.payment_method == "paypal":
+    if data.payment_method == "paypal":
         paypal_order = await PayPalService.create_order(
             amount=total_amount,
             currency=currency.upper(),
