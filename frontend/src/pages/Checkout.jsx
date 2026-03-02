@@ -349,10 +349,10 @@ export default function Checkout() {
               <CardContent>
                 <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
                   <div className="flex items-center space-x-2 p-3 border rounded-lg">
-                    <RadioGroupItem value="stripe" id="stripe" />
-                    <Label htmlFor="stripe" className="flex-1 cursor-pointer">
-                      <span className="font-medium">Credit/Debit Card</span>
-                      <span className="text-sm text-muted-foreground block">Pay securely with Stripe</span>
+                    <RadioGroupItem value="paystack" id="paystack" />
+                    <Label htmlFor="paystack" className="flex-1 cursor-pointer">
+                      <span className="font-medium">Paystack (NGN)</span>
+                      <span className="text-sm text-muted-foreground block">Pay with Nigerian cards, bank transfer, or USSD</span>
                     </Label>
                   </div>
                   <div className="flex items-center space-x-2 p-3 border rounded-lg mt-2">
@@ -360,13 +360,6 @@ export default function Checkout() {
                     <Label htmlFor="paypal" className="flex-1 cursor-pointer">
                       <span className="font-medium">PayPal</span>
                       <span className="text-sm text-muted-foreground block">Pay with your PayPal account</span>
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2 p-3 border rounded-lg mt-2">
-                    <RadioGroupItem value="paystack" id="paystack" />
-                    <Label htmlFor="paystack" className="flex-1 cursor-pointer">
-                      <span className="font-medium">Paystack (NGN)</span>
-                      <span className="text-sm text-muted-foreground block">Pay with Nigerian cards</span>
                     </Label>
                   </div>
                 </RadioGroup>
