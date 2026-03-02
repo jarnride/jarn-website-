@@ -138,16 +138,19 @@ frontend:
 
 frontend:
   - task: "Paystack Checkout Flow Integration"
-    implemented: false
-    working: false
+    implemented: true
+    working: "NA"
     file: "/app/frontend/src/pages/Checkout.jsx"
     stuck_count: 0
     priority: "critical"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
       - working: false
         agent: "testing"
         comment: "❌ CRITICAL: Frontend checkout is NOT integrated with Paystack backend API. The handleCheckout function (lines 58-86 in Checkout.jsx) contains TODO comment and does not call /api/paystack/initialize. When user clicks 'Place Order' with Paystack selected, it just shows success toast and redirects to dashboard - NO API call is made. Backend API is working perfectly (verified with curl), but frontend needs to: 1) Call /api/paystack/initialize with cart items when Paystack is selected 2) Redirect to authorization_url returned by API 3) Handle payment callbacks. Currently payment method selection is UI-only with no backend integration."
+      - working: "NA"
+        agent: "main"
+        comment: "FIXED: Updated handleCheckout function to call /api/paystack/initialize when Paystack is selected. Added axios import and API calls for Paystack, Stripe, and PayPal. Created PaystackCallback.jsx page for payment verification. Added /payment/paystack-callback route. Ready for testing."
 
 metadata:
   created_by: "main_agent"
