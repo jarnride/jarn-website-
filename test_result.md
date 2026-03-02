@@ -139,9 +139,9 @@ frontend:
 frontend:
   - task: "Paystack Checkout Flow Integration"
     implemented: true
-    working: "NA"
+    working: false
     file: "/app/frontend/src/pages/Checkout.jsx"
-    stuck_count: 0
+    stuck_count: 1
     priority: "critical"
     needs_retesting: true
     status_history:
@@ -151,6 +151,21 @@ frontend:
       - working: "NA"
         agent: "main"
         comment: "FIXED: Updated handleCheckout function to call /api/paystack/initialize when Paystack is selected. Added axios import and API calls for Paystack, Stripe, and PayPal. Created PaystackCallback.jsx page for payment verification. Added /payment/paystack-callback route. Ready for testing."
+      - working: false
+        agent: "testing"
+        comment: "❌ CRITICAL BUG: Frontend/Backend API mismatch. Backend /api/paystack/initialize requires 'amount' parameter (line 2967 in server.py) but frontend Checkout.jsx (lines 89-96) does NOT send it. Frontend sends: auction_id, delivery_option, delivery_address, delivery_fee. Missing: amount. The 'total' variable exists at line 203 but is not included in API request. Backend returns error: 'auction_id and amount are required'. Fix: Add 'amount: total' to the request payload at line 93. Backend API verified working via curl - returns real Paystack URL when amount is provided. ALSO: Cart persistence bug - items added to cart are cleared when navigating to /checkout, preventing full E2E testing."
+
+  - task: "Cart Persistence Issue"
+    implemented: true
+    working: false
+    file: "/app/frontend/src/context/CartContext.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: false
+        agent: "testing"
+        comment: "❌ CRITICAL: Cart items do not persist when navigating to checkout page. Items can be added to cart (localStorage shows data initially), but localStorage shows '[]' after navigating to /checkout. CartContext saves to localStorage (line 23) but cart is being cleared somewhere during navigation or page load. This blocks testing the full Paystack checkout flow. User cannot complete checkout because cart is always empty."
 
 metadata:
   created_by: "main_agent"
