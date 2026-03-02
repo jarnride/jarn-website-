@@ -432,7 +432,7 @@
 
 ## Upcoming Tasks (Priority Order)
 1. **Backend Refactoring** - Split server.py into modules (5700+ lines - CRITICAL)
-2. **Paystack Live Integration** - Backend ready, needs API keys for NGN payments
+2. ~~**Paystack Live Integration**~~ ✅ COMPLETED - Live NGN payments now enabled
 3. **Seller Reviews Display** - Show seller rating under items
 4. **Quantity Selection** - Allow buyers to select quantity based on stock
 5. **Item Weight Display** - Show item weight as listed by seller
