@@ -232,7 +232,7 @@ class BackendTester:
                 return False
                 
             auctions_data = auctions_response.json()
-            if not auctions_data.get('auctions') or len(auctions_data['auctions']) == 0:
+            if not isinstance(auctions_data, list) or len(auctions_data) == 0:
                 self.log_result(
                     "Payment Method Validation", 
                     False, 
@@ -240,7 +240,7 @@ class BackendTester:
                 )
                 return False
                 
-            test_auction = auctions_data['auctions'][0]
+            test_auction = auctions_data[0]
             
             # Test valid payment methods
             valid_methods = ['paystack', 'paypal']
