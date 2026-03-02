@@ -269,7 +269,7 @@ export default function Home() {
                 Secure Payments
               </h3>
               <p className="text-muted-foreground">
-                Safe, fast payments through Stripe. Your money is protected every step of the way.
+                Safe, fast payments through Paystack. Your money is protected every step of the way.
               </p>
             </div>
           </div>
