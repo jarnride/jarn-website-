@@ -90,6 +90,7 @@ export default function Checkout() {
           `${API}/api/paystack/initialize`,
           { 
             auction_id: auctionId,
+            amount: total,
             delivery_option: deliveryOption,
             delivery_address: deliveryOption !== 'pickup' ? deliveryAddress : null,
             delivery_fee: deliveryFee
