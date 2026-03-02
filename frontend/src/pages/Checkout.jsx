@@ -79,7 +79,7 @@ export default function Checkout() {
     try {
       if (paymentMethod === 'paystack') {
         // Get the first auction ID from cart for Paystack payment
-        const auctionId = cartItems[0]?.id;
+        const auctionId = cartItems[0]?.auction?.id;
         if (!auctionId) {
           toast.error('No items in cart');
           return;
