@@ -241,8 +241,12 @@ export default function AuctionDetail() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       
-      if (checkoutData.payment_method === 'stripe') {
-        window.location.href = response.data.url;
+      if (checkoutData.payment_method === 'paystack') {
+        if (response.data.authorization_url) {
+          window.location.href = response.data.authorization_url;
+        } else {
+          toast.error('Failed to initialize Paystack payment');
+        }
       } else if (checkoutData.payment_method === 'paypal') {
         // For PayPal mock mode, show instructions
         if (response.data.mock_mode) {
