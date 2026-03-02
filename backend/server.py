@@ -1214,7 +1214,7 @@ class PaymentCreate(BaseModel):
 
 class BuyNowRequest(BaseModel):
     origin_url: str
-    payment_method: str = Field(default="stripe", pattern="^(stripe|paypal)$")
+    payment_method: str = Field(default="paystack", pattern="^(paystack|paypal)$")
     delivery_option: Optional[str] = Field(default=None)  # local_pickup, city_delivery, international
     delivery_address: Optional[str] = Field(default=None, max_length=500)
 
