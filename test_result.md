@@ -162,13 +162,16 @@ frontend:
     implemented: true
     working: false
     file: "/app/frontend/src/context/CartContext.js"
-    stuck_count: 0
-    priority: "high"
+    stuck_count: 1
+    priority: "critical"
     needs_retesting: false
     status_history:
       - working: false
         agent: "testing"
         comment: "❌ CRITICAL: Cart items do not persist when navigating to checkout page. Items can be added to cart (localStorage shows data initially), but localStorage shows '[]' after navigating to /checkout. CartContext saves to localStorage (line 23) but cart is being cleared somewhere during navigation or page load. This blocks testing the full Paystack checkout flow. User cannot complete checkout because cart is always empty."
+      - working: false
+        agent: "testing"
+        comment: "❌ ROOT CAUSE IDENTIFIED: Race condition in CartContext.js useEffect hooks. Lines 21-24: useEffect saves cartItems to localStorage whenever cartItems changes. Lines 9-19: useEffect loads cart from localStorage on mount. PROBLEM: When component mounts, initial state is useState([]) empty array. The save useEffect (lines 21-24) runs IMMEDIATELY on mount with empty array, overwriting localStorage BEFORE the load useEffect (lines 9-19) can retrieve the data. This causes cart to be cleared on every page navigation. FIX NEEDED: Initialize useState directly from localStorage, OR add dependency/flag to prevent save useEffect from running on initial mount."
 
 metadata:
   created_by: "main_agent"
