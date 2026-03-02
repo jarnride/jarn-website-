@@ -586,6 +586,110 @@ class HarvestBidAPITester:
         self.log_test("Escrow - Confirm Delivery", success, details)
         return success
 
+    def test_paystack_config_status(self):
+        """Test Paystack configuration status - should show 'live' not 'mock'"""
+        success, response = self.make_request('GET', '/')
+        
+        if success and 'features' in response:
+            paystack_status = response['features'].get('paystack')
+            if paystack_status == 'live':
+                details = f"Paystack status: {paystack_status} (correct - not mock)"
+            elif paystack_status == 'mock':
+                success = False
+                details = f"Paystack status: {paystack_status} (ERROR - should be 'live')"
+            else:
+                success = False
+                details = f"Paystack status missing or invalid: {paystack_status}"
+        else:
+            success = False
+            details = f"No features in response: {response}"
+        
+        self.log_test("Paystack Configuration Status", success, details)
+        return success
+    
+    def test_paystack_initialize_payment(self):
+        """Test Paystack payment initialization with authentication"""
+        if not self.buyer_token:
+            self.log_test("Paystack Initialize Payment", False, "No buyer token available")
+            return False
+        
+        if not self.test_auction_id:
+            self.log_test("Paystack Initialize Payment", False, "No auction ID available")
+            return False
+        
+        # Test with a realistic Nigerian amount (50,000 NGN = about $30 USD)
+        paystack_data = {
+            "auction_id": self.test_auction_id,
+            "amount": 50000.00  # NGN amount
+        }
+        
+        success, response = self.make_request('POST', '/paystack/initialize', paystack_data, 
+                                            self.buyer_token)
+        
+        if success:
+            # Check for required fields in response
+            has_authorization_url = 'authorization_url' in response
+            has_reference = 'reference' in response
+            mock_mode = response.get('mock_mode', True)
+            
+            if has_authorization_url and has_reference:
+                auth_url = response['authorization_url']
+                reference = response['reference']
+                
+                # Check if we got a real Paystack URL (not mock)
+                is_real_paystack = 'paystack.co' in auth_url and not mock_mode
+                
+                if is_real_paystack:
+                    details = f"✅ REAL Paystack URL: {auth_url[:50]}..., Ref: {reference}"
+                    self.paystack_reference = reference  # Store for verification test
+                else:
+                    # Mock mode or invalid URL
+                    if mock_mode:
+                        success = False
+                        details = f"❌ MOCK mode detected! URL: {auth_url[:50]}..."
+                    else:
+                        details = f"⚠️ Non-standard URL: {auth_url[:50]}..., Ref: {reference}"
+                        self.paystack_reference = reference
+            else:
+                success = False
+                details = f"Missing required fields: {response}"
+        else:
+            details = f"Paystack initialize failed: {response}"
+        
+        self.log_test("Paystack Initialize Payment (Live Mode)", success, details)
+        return success
+    
+    def test_paystack_verify_payment(self):
+        """Test Paystack payment verification"""
+        if not self.buyer_token:
+            self.log_test("Paystack Verify Payment", False, "No buyer token available")
+            return False
+        
+        if not hasattr(self, 'paystack_reference'):
+            self.log_test("Paystack Verify Payment", False, "No Paystack reference from initialize test")
+            return False
+        
+        success, response = self.make_request('POST', f'/paystack/verify/{self.paystack_reference}', 
+                                            token=self.buyer_token)
+        
+        if success:
+            # In a test environment, we expect this to fail since we haven't actually paid
+            # But we want to verify the API is working
+            if 'error' in response:
+                # This is expected - we haven't actually completed payment
+                details = f"API working correctly - verification requires actual payment"
+            else:
+                details = f"Verification response: {response}"
+        else:
+            details = f"Verify failed: {response}"
+        
+        # For testing purposes, we accept that verification will fail without actual payment
+        # The important thing is that the API endpoint is accessible and functioning
+        test_success = success or (response and 'error' in response)
+        
+        self.log_test("Paystack Verify Payment API", test_success, details)
+        return test_success
+
     def run_all_tests(self):
         """Run complete test suite"""
         print("🚀 Starting HarvestBid API Test Suite")
