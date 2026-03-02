@@ -450,5 +450,5 @@
 - **Email (Brevo):** ✅ LIVE - Sending real transactional & marketing emails
 - **SMS (NigeriaBulkSMS):** ✅ LIVE - Phone verification with email fallback
 - **Payments (PayPal):** ✅ LIVE mode enabled
-- **Payments (Paystack):** ⚠️ Backend ready, awaiting API keys for NGN payments
+- **Payments (Paystack):** ✅ LIVE - NGN payments enabled with real API keys
 - **Payments (Stripe):** ✅ Test mode active
