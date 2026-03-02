@@ -15,7 +15,7 @@ import os
 import uuid
 import time
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://backend-revival-14.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://paystack-jarnn.preview.emergentagent.com')
 
 # Test credentials
 FARMER_EMAIL = "john@farm.com"
