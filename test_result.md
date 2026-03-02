@@ -102,23 +102,51 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Update Paystack on Jarnnmarket payment system - Configure live Paystack API keys for NGN payments"
+user_problem_statement: "Remove Stripe payment system from Jarnnmarket"
 
 backend:
-  - task: "Paystack Live Configuration"
+  - task: "Remove Stripe Integration"
     implemented: true
-    working: true
-    file: "/app/backend/.env"
+    working: "NA"
+    file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
       - working: "NA"
         agent: "main"
-        comment: "Added PAYSTACK_PUBLIC_KEY and PAYSTACK_SECRET_KEY to .env file. API status endpoint now shows paystack: 'live' instead of 'mock'"
-      - working: true
-        agent: "testing"
-        comment: "TESTED SUCCESSFULLY: ✅ /api/ endpoint shows paystack: 'live' (not mock) ✅ Paystack initialize endpoint working with real API keys ✅ Returns genuine Paystack URLs (https://checkout.paystack.com/) ✅ Tested with both buyer@demo.com and john@farm.com accounts ✅ Real Paystack API integration confirmed - HTTP 200 responses from api.paystack.co ✅ Verify endpoint accessible and functional. Paystack integration is LIVE and ready for NGN payments."
+        comment: "Removed Stripe import, config, and all Stripe-related routes. Removed STRIPE_API_KEY from .env. Updated BuyNowRequest default payment method to paystack."
+
+frontend:
+  - task: "Remove Stripe from UI"
+    implemented: true
+    working: "NA"
+    file: "multiple frontend files"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Removed Stripe payment option from Checkout.jsx, CheckoutModal.jsx, AuctionDetail.jsx. Updated default payment method to paystack. Updated text references in Home.jsx, HelpCenter.jsx, Policies.jsx."
+
+metadata:
+  created_by: "main_agent"
+  version: "1.0"
+  test_sequence: 1
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "Remove Stripe Integration"
+    - "Remove Stripe from UI"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+  - agent: "main"
+    message: "Removed Stripe payment system completely. Backend and frontend now only offer Paystack and PayPal as payment options. Please test the checkout flow to verify Paystack works correctly."
 
 frontend:
   - task: "Paystack Frontend Integration"
