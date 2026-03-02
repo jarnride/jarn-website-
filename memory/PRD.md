@@ -11,7 +11,7 @@
 | Backend | FastAPI (Python) |
 | Frontend | React + TailwindCSS + Shadcn/UI |
 | Database | MongoDB |
-| Payments | Stripe, PayPal (sandbox) |
+| Payments | Paystack (NGN), PayPal |
 | Email | Brevo (was SendGrid) |
 | SMS | Twilio |
 | Real-time | WebSockets (Socket.IO) |
