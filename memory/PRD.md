@@ -246,8 +246,8 @@
 ## Integration Status
 | Service | Status | Notes |
 |---------|--------|-------|
-| Stripe | ✅ Active | Test mode |
-| PayPal | ✅ Configured | Sandbox mode |
+| Paystack | ✅ LIVE | NGN payments enabled |
+| PayPal | ✅ LIVE | International payments |
 | Twilio SMS | ✅ Configured | API keys set |
 | Brevo Email | ✅ LIVE | Replaced SendGrid (Jan 30, 2026) |
 
