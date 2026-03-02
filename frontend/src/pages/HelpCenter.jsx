@@ -161,7 +161,7 @@ const FAQ_CATEGORIES = [
     faqs: [
       {
         question: 'Is my payment information safe?',
-        answer: 'Yes! We use Stripe and PayPal for payment processing. We never store your full card details on our servers. All transactions use SSL encryption.'
+        answer: 'Yes! We use Paystack and PayPal for payment processing. We never store your full card details on our servers. All transactions use SSL encryption.'
       },
       {
         question: 'How does the review system work?',
