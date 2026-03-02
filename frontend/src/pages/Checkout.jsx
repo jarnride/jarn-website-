@@ -77,12 +77,102 @@ export default function Checkout() {
 
     setProcessing(true);
     try {
-      // TODO: Implement actual checkout logic with payment processing
-      toast.success('Order placed successfully!');
-      clearCart();
-      navigate('/dashboard');
+      if (paymentMethod === 'paystack') {
+        // Get the first auction ID from cart for Paystack payment
+        const auctionId = cartItems[0]?.id;
+        if (!auctionId) {
+          toast.error('No items in cart');
+          return;
+        }
+
+        // Initialize Paystack payment
+        const response = await axios.post(
+          `${API}/api/paystack/initialize`,
+          { 
+            auction_id: auctionId,
+            delivery_option: deliveryOption,
+            delivery_address: deliveryOption !== 'pickup' ? deliveryAddress : null,
+            delivery_fee: deliveryFee
+          },
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
+        if (response.data.authorization_url) {
+          // Store cart info for after payment
+          localStorage.setItem('pending_order', JSON.stringify({
+            cartItems,
+            deliveryOption,
+            deliveryAddress,
+            deliveryFee,
+            total,
+            reference: response.data.reference
+          }));
+          
+          // Redirect to Paystack checkout
+          window.location.href = response.data.authorization_url;
+        } else {
+          toast.error('Failed to initialize payment');
+        }
+      } else if (paymentMethod === 'stripe') {
+        // Stripe payment flow
+        const auctionId = cartItems[0]?.id;
+        const response = await axios.post(
+          `${API}/api/create-checkout-session`,
+          { 
+            auction_id: auctionId,
+            delivery_option: deliveryOption,
+            delivery_address: deliveryOption !== 'pickup' ? deliveryAddress : null
+          },
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        
+        if (response.data.url) {
+          window.location.href = response.data.url;
+        } else {
+          toast.error('Failed to create checkout session');
+        }
+      } else if (paymentMethod === 'paypal') {
+        // PayPal payment flow
+        const auctionId = cartItems[0]?.id;
+        const response = await axios.post(
+          `${API}/api/paypal/create-order`,
+          { 
+            auction_id: auctionId,
+            delivery_option: deliveryOption,
+            delivery_address: deliveryOption !== 'pickup' ? deliveryAddress : null
+          },
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        
+        // Find the approval URL in PayPal links
+        const approvalLink = response.data.links?.find(link => link.rel === 'approve');
+        if (approvalLink) {
+          window.location.href = approvalLink.href;
+        } else {
+          toast.error('Failed to create PayPal order');
+        }
+      } else {
+        toast.error('Please select a payment method');
+      }
     } catch (error) {
-      toast.error('Checkout failed. Please try again.');
+      console.error('Checkout error:', error);
+      const errorMessage = error.response?.data?.detail || 'Checkout failed. Please try again.';
+      toast.error(errorMessage);
     } finally {
       setProcessing(false);
     }
