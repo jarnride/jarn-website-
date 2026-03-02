@@ -222,7 +222,7 @@ export default function Policies() {
                     <h3 className="text-lg font-semibold mb-3">3. Information Sharing</h3>
                     <p className="text-muted-foreground mb-4">We do not sell your personal information. We may share data with:</p>
                     <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-                      <li>Payment processors (Stripe, PayPal) for transactions</li>
+                      <li>Payment processors (Paystack, PayPal) for transactions</li>
                       <li>SMS providers for verification</li>
                       <li>Other users as necessary for transactions (limited info)</li>
                       <li>Law enforcement when required by law</li>
