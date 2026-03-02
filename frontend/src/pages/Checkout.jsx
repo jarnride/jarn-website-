@@ -36,7 +36,7 @@ export default function Checkout() {
   const navigate = useNavigate();
   const { user, token } = useAuth();
   const { cartItems, removeFromCart, updateQuantity, getCartTotal, clearCart } = useCart();
-  const [paymentMethod, setPaymentMethod] = useState('stripe');
+  const [paymentMethod, setPaymentMethod] = useState('paystack');
   const [deliveryOption, setDeliveryOption] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [processing, setProcessing] = useState(false);
