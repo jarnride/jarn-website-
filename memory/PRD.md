@@ -101,8 +101,8 @@
 - [x] Payment processing in auction currency
 
 ### Payment & Escrow
-- [x] Stripe integration (cards)
-- [x] PayPal integration (sandbox)
+- [x] Paystack integration (NGN cards, bank transfer, USSD)
+- [x] PayPal integration (live)
 - [x] **Escrow protection** - Funds held until delivery confirmed
 - [x] Seller payout system
 - [x] Payment notifications (email + SMS)
