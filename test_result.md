@@ -119,6 +119,19 @@ backend:
       - working: true
         agent: "testing"
         comment: "TESTED SUCCESSFULLY: ✅ /api/ endpoint shows paystack: 'live' (not mock) ✅ Paystack initialize endpoint working with real API keys ✅ Returns genuine Paystack URLs (https://checkout.paystack.com/) ✅ Tested with both buyer@demo.com and john@farm.com accounts ✅ Real Paystack API integration confirmed - HTTP 200 responses from api.paystack.co ✅ Verify endpoint accessible and functional. Paystack integration is LIVE and ready for NGN payments."
+
+frontend:
+  - task: "Paystack Frontend Integration"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/pages/Checkout.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Integrated Checkout.jsx with Paystack backend API. Added PaystackCallback.jsx page to handle payment verification. Added route /payment/paystack-callback in App.js"
       - working: true
         agent: "testing"
         comment: "RE-VERIFIED: Backend Paystack API tested again via curl and confirmed working perfectly. Returns real Paystack checkout URL (https://checkout.paystack.com/...) with mock_mode: false. Backend is production-ready."
