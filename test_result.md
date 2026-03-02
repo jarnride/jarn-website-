@@ -107,15 +107,18 @@ user_problem_statement: "Remove Stripe payment system from Jarnnmarket"
 backend:
   - task: "Remove Stripe Integration"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Removed Stripe import, config, and all Stripe-related routes. Removed STRIPE_API_KEY from .env. Updated BuyNowRequest default payment method to paystack."
+      - working: true
+        agent: "testing"
+        comment: "✅ STRIPE REMOVAL VERIFIED SUCCESSFUL: Comprehensive backend testing completed with all tests passing (5/5 - 100% success rate). 1) Backend starts without Stripe import errors ✅ 2) STRIPE_API_KEY confirmed removed from .env ✅ 3) API status shows only paystack=live and paypal=live, no stripe ✅ 4) Paystack initialize endpoint working perfectly - returns live checkout URLs (checkout.paystack.com) ✅ 5) BuyNowRequest validation correctly rejects 'stripe' with 422 error and accepts 'paystack'/'paypal' with 200 ✅ 6) Backend logs confirm no new Stripe API calls, only Paystack calls active ✅ 7) All payment flow validations working correctly ✅. Stripe integration completely removed and backend functioning normally."
 
 frontend:
   - task: "Remove Stripe from UI"
