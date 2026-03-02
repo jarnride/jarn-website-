@@ -44,7 +44,7 @@ export default function CheckoutModal({
   onCheckout, 
   loading 
 }) {
-  const [paymentMethod, setPaymentMethod] = useState('stripe');
+  const [paymentMethod, setPaymentMethod] = useState('paystack');
   const [selectedDelivery, setSelectedDelivery] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
 
