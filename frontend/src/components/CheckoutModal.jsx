@@ -183,10 +183,10 @@ export default function CheckoutModal({
             </Label>
             <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="flex gap-4">
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="stripe" id="checkout-stripe" />
-                <Label htmlFor="checkout-stripe" className="cursor-pointer flex items-center gap-2">
+                <RadioGroupItem value="paystack" id="checkout-paystack" />
+                <Label htmlFor="checkout-paystack" className="cursor-pointer flex items-center gap-2">
                   <CreditCard className="w-4 h-4" />
-                  Card (Stripe)
+                  Paystack (NGN)
                 </Label>
               </div>
               <div className="flex items-center space-x-2">
