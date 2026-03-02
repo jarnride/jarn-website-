@@ -317,25 +317,25 @@ class BackendTester:
     def test_api_status_endpoint(self):
         """Test API status endpoint for payment configurations"""
         try:
-            response = self.session.get(f"{BACKEND_URL}/status")
+            response = self.session.get(f"{BACKEND_URL}/")
             
             if response.status_code == 200:
                 data = response.json()
                 
-                # Check that Stripe is not mentioned in status
-                status_text = json.dumps(data, default=str).lower()
+                # Check for payment service configurations
+                features = data.get('features', {})
                 
                 # Should have paystack and paypal, but not stripe
-                has_paystack = 'paystack' in status_text
-                has_paypal = 'paypal' in status_text  
-                has_stripe = 'stripe' in status_text
+                has_paystack = 'paystack' in features and features.get('paystack') in ['live', 'mock']
+                has_paypal = 'paypal' in features and features.get('paypal') in ['live', 'mock']
+                has_stripe = 'stripe' in features
                 
                 if has_paystack and has_paypal and not has_stripe:
                     self.log_result(
                         "API Status Check", 
                         True, 
                         "API status correctly shows paystack and paypal, no stripe",
-                        f"Paystack: {has_paystack}, PayPal: {has_paypal}, Stripe: {has_stripe}"
+                        f"Features: paystack={features.get('paystack')}, paypal={features.get('paypal')}, stripe={'not present' if not has_stripe else features.get('stripe')}"
                     )
                     return True
                 else:
@@ -343,7 +343,7 @@ class BackendTester:
                         "API Status Check", 
                         False, 
                         "API status configuration unexpected",
-                        f"Paystack: {has_paystack}, PayPal: {has_paypal}, Stripe: {has_stripe}"
+                        f"Features: paystack={features.get('paystack')}, paypal={features.get('paypal')}, stripe={'not present' if not has_stripe else features.get('stripe')}"
                     )
                     return False
             else:
