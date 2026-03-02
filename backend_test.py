@@ -134,7 +134,7 @@ class BackendTester:
                 return False
                 
             auctions_data = auctions_response.json()
-            if not auctions_data.get('auctions') or len(auctions_data['auctions']) == 0:
+            if not isinstance(auctions_data, list) or len(auctions_data) == 0:
                 self.log_result(
                     "Paystack Initialize Test", 
                     False, 
@@ -144,7 +144,7 @@ class BackendTester:
                 
             # Get first auction with buy_now_price
             test_auction = None
-            for auction in auctions_data['auctions']:
+            for auction in auctions_data:
                 if auction.get('buy_now_price') and auction.get('buy_now_price') > 0:
                     test_auction = auction
                     break
