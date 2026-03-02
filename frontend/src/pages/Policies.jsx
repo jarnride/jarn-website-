@@ -127,7 +127,7 @@ export default function Policies() {
                   <section className="mb-8">
                     <h3 className="text-lg font-semibold mb-3">4. Payment Terms</h3>
                     <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-                      <li>Payments are processed through secure third-party providers (Stripe, PayPal)</li>
+                      <li>Payments are processed through secure third-party providers (Paystack, PayPal)</li>
                       <li>All funds are held in escrow until delivery confirmation</li>
                       <li>Sellers receive payment after buyer confirms receipt</li>
                       <li>Platform fees may apply to successful transactions</li>
