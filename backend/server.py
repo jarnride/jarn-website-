@@ -5767,6 +5767,12 @@ async def root():
 # Include the router in the main app
 app.include_router(api_router)
 
+# Health check endpoint for Kubernetes (must be at root level, not under /api)
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for Kubernetes liveness/readiness probes"""
+    return {"status": "healthy", "service": "jarnnmarket-api"}
+
 # Security headers middleware
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
