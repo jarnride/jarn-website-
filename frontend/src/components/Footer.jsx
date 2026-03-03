@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Mail, Phone, MapPin, Facebook, Twitter, Instagram, MessageCircle, ShieldCheck } from 'lucide-react';
+import { Mail, Phone, MapPin, Facebook, Twitter, Instagram, MessageCircle } from 'lucide-react';
 import JarnnLogo from '@/components/JarnnLogo';
 
 // WhatsApp Support Number
@@ -55,12 +55,6 @@ export const Footer = () => {
             <ul className="space-y-3 mb-6">
               <li><Link to="/policies/seller" className="footer-link">Seller Guidelines</Link></li>
               <li><Link to="/policies/buyer" className="footer-link">Buyer Guidelines</Link></li>
-              <li>
-                <Link to="/admin" className="footer-link flex items-center gap-1">
-                  <ShieldCheck className="w-4 h-4" />
-                  Admin Portal
-                </Link>
-              </li>
             </ul>
             
             <h3 className="text-lg font-semibold mb-4">Contact Us</h3>
