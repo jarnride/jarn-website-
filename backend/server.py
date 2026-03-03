@@ -5794,6 +5794,41 @@ app.add_middleware(
     expose_headers=["X-Total-Count", "X-Page", "X-Limit"]
 )
 
+@app.on_event("startup")
+async def startup_event():
+    """Create default admin user on startup if it doesn't exist"""
+    try:
+        admin_email = "admin@jarnnmarket.com"
+        admin_password = "Sochimerem1979##"
+        
+        # Check if admin exists
+        existing_admin = await db.users.find_one({"email": admin_email})
+        
+        if not existing_admin:
+            # Create admin user
+            password_hash = bcrypt.hashpw(admin_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            admin_user = {
+                "id": str(uuid.uuid4()),
+                "name": "Admin",
+                "email": admin_email,
+                "password_hash": password_hash,
+                "role": "admin",
+                "is_approved": True,
+                "email_verified": True,
+                "phone_verified": True,
+                "is_active": True,
+                "approval_status": "approved",
+                "rating_avg": 0.0,
+                "rating_count": 0,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+            await db.users.insert_one(admin_user)
+            logger.info(f"✅ Default admin user created: {admin_email}")
+        else:
+            logger.info(f"✅ Admin user already exists: {admin_email}")
+    except Exception as e:
+        logger.error(f"Failed to create admin user on startup: {e}")
+
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
