@@ -75,7 +75,7 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const { user, token, loading: authLoading } = useAuth();
+  const { user, token, loading: authLoading, login } = useAuth();
   
   const [stats, setStats] = useState(null);
   const [users, setUsers] = useState([]);
