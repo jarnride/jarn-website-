@@ -1252,6 +1252,70 @@ class ImageUploadResponse(BaseModel):
     url: str
     filename: str
 
+# ================== MESSAGE MODERATION ==================
+# Scam/suspicious words to flag
+SCAM_KEYWORDS = [
+    # Phone number requests
+    "phone number", "phone no", "phone #", "whatsapp", "call me", "text me",
+    "give me your number", "send your number", "contact outside", "off platform",
+    "my number is", "reach me at", "contact me at", "telegram", "signal app",
+    # Payment scam words
+    "western union", "money gram", "wire transfer", "gift card", "bitcoin",
+    "crypto", "pay outside", "pay directly", "bank transfer outside",
+    "send money", "cash app", "venmo", "zelle",
+    # Urgency scam tactics
+    "act now", "limited time", "urgent", "emergency", "immediately",
+    # Personal info requests
+    "bank details", "account number", "social security", "passport",
+    "id card", "send id", "verify identity outside",
+    # Common scam phrases
+    "too good to be true", "lottery", "inheritance", "prince",
+    "won prize", "claim your", "free money"
+]
+
+# Phone number patterns to detect
+PHONE_PATTERNS = [
+    r'\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b',  # US format: 123-456-7890
+    r'\b\d{4}[-.\s]?\d{3}[-.\s]?\d{4}\b',  # Other format: 1234-567-8901
+    r'\b\+\d{1,3}[-.\s]?\d{6,14}\b',  # International: +1 1234567890
+    r'\b0\d{10}\b',  # Nigerian: 08012345678
+    r'\b234\d{10}\b',  # Nigerian with code: 2348012345678
+]
+
+class MessageCreate(BaseModel):
+    recipient_id: str
+    auction_id: Optional[str] = None
+    content: str = Field(..., min_length=1, max_length=2000)
+
+class MessageStatus(str, Enum):
+    pending = "pending"  # Awaiting moderation
+    approved = "approved"  # Delivered
+    flagged = "flagged"  # Flagged for review
+    blocked = "blocked"  # Blocked by admin
+
+def check_message_for_violations(content: str) -> dict:
+    """Check message content for scam words and phone numbers"""
+    content_lower = content.lower()
+    violations = []
+    
+    # Check for scam keywords
+    for keyword in SCAM_KEYWORDS:
+        if keyword.lower() in content_lower:
+            violations.append(f"Suspicious keyword: '{keyword}'")
+    
+    # Check for phone number patterns
+    for pattern in PHONE_PATTERNS:
+        if re.search(pattern, content):
+            violations.append("Phone number detected")
+            break
+    
+    return {
+        "has_violations": len(violations) > 0,
+        "violations": violations,
+        "should_block": len(violations) >= 2,  # Block if multiple violations
+        "should_flag": len(violations) >= 1  # Flag if any violation
+    }
+
 # ================== BUYER SUSPENSION CONSTANTS ==================
 MAX_CANCELLATIONS_BEFORE_SUSPENSION = 2
 SUSPENSION_DURATION_DAYS = 30
@@ -3056,6 +3120,126 @@ async def get_paystack_config():
         "mock_mode": PAYSTACK_MOCK_MODE
     }
 
+# ================== MESSAGING ROUTES ==================
+
+@api_router.post("/messages/send")
+async def send_message(data: MessageCreate, user: dict = Depends(get_current_user)):
+    """Send a message to another user - messages are moderated before delivery"""
+    
+    # Check if recipient exists
+    recipient = await db.users.find_one({"id": data.recipient_id}, {"_id": 0})
+    if not recipient:
+        raise HTTPException(status_code=404, detail="Recipient not found")
+    
+    # Can't message yourself
+    if data.recipient_id == user["id"]:
+        raise HTTPException(status_code=400, detail="Cannot send message to yourself")
+    
+    # Check message content for violations
+    violation_check = check_message_for_violations(data.content)
+    
+    # Determine message status based on violations
+    if violation_check["should_block"]:
+        status = MessageStatus.blocked.value
+    elif violation_check["should_flag"]:
+        status = MessageStatus.flagged.value
+    else:
+        status = MessageStatus.pending.value  # All messages go through moderation
+    
+    # Create message
+    message_id = str(uuid.uuid4())
+    message_doc = {
+        "id": message_id,
+        "sender_id": user["id"],
+        "sender_name": user["name"],
+        "sender_email": user["email"],
+        "recipient_id": data.recipient_id,
+        "recipient_name": recipient["name"],
+        "recipient_email": recipient["email"],
+        "auction_id": data.auction_id,
+        "content": data.content,
+        "status": status,
+        "violations": violation_check["violations"] if violation_check["has_violations"] else [],
+        "is_read": False,
+        "admin_reviewed": False,
+        "admin_notes": "",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.messages.insert_one(message_doc)
+    
+    # If blocked, inform sender
+    if status == MessageStatus.blocked.value:
+        return {
+            "success": False,
+            "message_id": message_id,
+            "status": status,
+            "detail": "Your message was blocked due to policy violations. Please avoid sharing personal contact information or suspicious content."
+        }
+    
+    # If flagged, still accept but notify
+    if status == MessageStatus.flagged.value:
+        return {
+            "success": True,
+            "message_id": message_id,
+            "status": status,
+            "detail": "Your message is being reviewed by our team before delivery."
+        }
+    
+    return {
+        "success": True,
+        "message_id": message_id,
+        "status": status,
+        "detail": "Message sent and pending review."
+    }
+
+@api_router.get("/messages/inbox")
+async def get_inbox(user: dict = Depends(get_current_user)):
+    """Get user's received messages (only approved ones)"""
+    messages = await db.messages.find({
+        "recipient_id": user["id"],
+        "status": MessageStatus.approved.value
+    }, {"_id": 0}).sort("created_at", -1).to_list(100)
+    
+    return messages
+
+@api_router.get("/messages/sent")
+async def get_sent_messages(user: dict = Depends(get_current_user)):
+    """Get user's sent messages with their status"""
+    messages = await db.messages.find({
+        "sender_id": user["id"]
+    }, {"_id": 0}).sort("created_at", -1).to_list(100)
+    
+    return messages
+
+@api_router.get("/messages/conversation/{user_id}")
+async def get_conversation(user_id: str, user: dict = Depends(get_current_user)):
+    """Get conversation with a specific user (only approved messages)"""
+    messages = await db.messages.find({
+        "$or": [
+            {"sender_id": user["id"], "recipient_id": user_id, "status": MessageStatus.approved.value},
+            {"sender_id": user_id, "recipient_id": user["id"], "status": MessageStatus.approved.value}
+        ]
+    }, {"_id": 0}).sort("created_at", 1).to_list(200)
+    
+    # Mark received messages as read
+    await db.messages.update_many(
+        {"sender_id": user_id, "recipient_id": user["id"], "is_read": False},
+        {"$set": {"is_read": True}}
+    )
+    
+    return messages
+
+@api_router.get("/messages/unread-count")
+async def get_unread_count(user: dict = Depends(get_current_user)):
+    """Get count of unread messages"""
+    count = await db.messages.count_documents({
+        "recipient_id": user["id"],
+        "status": MessageStatus.approved.value,
+        "is_read": False
+    })
+    return {"unread_count": count}
+
 # ================== ESCROW ROUTES ==================
 
 @api_router.post("/escrow/confirm-delivery")
@@ -4096,6 +4280,95 @@ async def admin_get_stats(admin: dict = Depends(verify_admin)):
         "total_volume": total_volume,
         "total_escrow": total_escrow,
         "pending_payouts": pending_payouts
+    }
+
+# Admin message moderation routes
+@api_router.get("/admin/messages/pending")
+async def get_pending_messages(admin: dict = Depends(verify_admin)):
+    """Get messages pending moderation"""
+    messages = await db.messages.find({
+        "status": {"$in": [MessageStatus.pending.value, MessageStatus.flagged.value]}
+    }, {"_id": 0}).sort("created_at", -1).to_list(200)
+    
+    return messages
+
+@api_router.get("/admin/messages/flagged")
+async def get_flagged_messages(admin: dict = Depends(verify_admin)):
+    """Get flagged messages for review"""
+    messages = await db.messages.find({
+        "status": MessageStatus.flagged.value
+    }, {"_id": 0}).sort("created_at", -1).to_list(200)
+    
+    return messages
+
+@api_router.put("/admin/messages/{message_id}/approve")
+async def approve_message(message_id: str, admin: dict = Depends(verify_admin)):
+    """Approve a pending/flagged message for delivery"""
+    message = await db.messages.find_one({"id": message_id})
+    if not message:
+        raise HTTPException(status_code=404, detail="Message not found")
+    
+    await db.messages.update_one(
+        {"id": message_id},
+        {"$set": {
+            "status": MessageStatus.approved.value,
+            "admin_reviewed": True,
+            "admin_reviewed_by": admin["id"],
+            "admin_reviewed_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Send notification to recipient
+    await db.notifications.insert_one({
+        "id": str(uuid.uuid4()),
+        "user_id": message["recipient_id"],
+        "type": "message",
+        "title": "New Message",
+        "message": f"You have a new message from {message['sender_name']}",
+        "data": {"message_id": message_id, "sender_id": message["sender_id"]},
+        "read": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    logger.info(f"[MESSAGE] Approved message {message_id} by admin {admin['email']}")
+    return {"success": True, "message": "Message approved and delivered"}
+
+@api_router.put("/admin/messages/{message_id}/block")
+async def block_message(message_id: str, reason: str = Body(..., embed=True), admin: dict = Depends(verify_admin)):
+    """Block a message from delivery"""
+    message = await db.messages.find_one({"id": message_id})
+    if not message:
+        raise HTTPException(status_code=404, detail="Message not found")
+    
+    await db.messages.update_one(
+        {"id": message_id},
+        {"$set": {
+            "status": MessageStatus.blocked.value,
+            "admin_reviewed": True,
+            "admin_reviewed_by": admin["id"],
+            "admin_reviewed_at": datetime.now(timezone.utc).isoformat(),
+            "admin_notes": reason
+        }}
+    )
+    
+    logger.info(f"[MESSAGE] Blocked message {message_id} by admin {admin['email']} - Reason: {reason}")
+    return {"success": True, "message": "Message blocked"}
+
+@api_router.get("/admin/messages/stats")
+async def get_message_stats(admin: dict = Depends(verify_admin)):
+    """Get messaging statistics"""
+    total = await db.messages.count_documents({})
+    pending = await db.messages.count_documents({"status": MessageStatus.pending.value})
+    flagged = await db.messages.count_documents({"status": MessageStatus.flagged.value})
+    approved = await db.messages.count_documents({"status": MessageStatus.approved.value})
+    blocked = await db.messages.count_documents({"status": MessageStatus.blocked.value})
+    
+    return {
+        "total": total,
+        "pending": pending,
+        "flagged": flagged,
+        "approved": approved,
+        "blocked": blocked
     }
 
 @api_router.get("/admin/users")
@@ -5793,6 +6066,41 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["X-Total-Count", "X-Page", "X-Limit"]
 )
+
+@app.on_event("startup")
+async def startup_event():
+    """Create default admin user on startup if it doesn't exist"""
+    try:
+        admin_email = "admin@jarnnmarket.com"
+        admin_password = "Sochimerem1979##"
+        
+        # Check if admin exists
+        existing_admin = await db.users.find_one({"email": admin_email})
+        
+        if not existing_admin:
+            # Create admin user
+            password_hash = bcrypt.hashpw(admin_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            admin_user = {
+                "id": str(uuid.uuid4()),
+                "name": "Admin",
+                "email": admin_email,
+                "password_hash": password_hash,
+                "role": "admin",
+                "is_approved": True,
+                "email_verified": True,
+                "phone_verified": True,
+                "is_active": True,
+                "approval_status": "approved",
+                "rating_avg": 0.0,
+                "rating_count": 0,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+            await db.users.insert_one(admin_user)
+            logger.info(f"✅ Default admin user created: {admin_email}")
+        else:
+            logger.info(f"✅ Admin user already exists: {admin_email}")
+    except Exception as e:
+        logger.error(f"Failed to create admin user on startup: {e}")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
