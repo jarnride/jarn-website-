@@ -1138,14 +1138,15 @@ class ResendVerificationEmail(BaseModel):
 SUPPORTED_CURRENCIES = ["USD", "NGN"]
 CURRENCY_SYMBOLS = {"USD": "$", "NGN": "₦"}
 
-# Subscription plan definitions
-SUBSCRIPTION_PLANS = {
+# Subscription plan definitions (default values - can be overridden in database)
+DEFAULT_SUBSCRIPTION_PLANS = {
     "5_days": {
         "id": "5_days",
         "name": "5-Day Plan",
         "duration_days": 5,
         "price_usd": 4.99,
         "price_ngn": 7500,
+        "max_listings": 10,
         "features": ["Up to 10 listings", "Basic analytics", "Email support"]
     },
     "weekly": {
@@ -1154,6 +1155,7 @@ SUBSCRIPTION_PLANS = {
         "duration_days": 7,
         "price_usd": 6.99,
         "price_ngn": 10500,
+        "max_listings": 25,
         "features": ["Up to 25 listings", "Advanced analytics", "Priority support", "Featured listings"]
     },
     "monthly": {
@@ -1162,9 +1164,20 @@ SUBSCRIPTION_PLANS = {
         "duration_days": 30,
         "price_usd": 19.99,
         "price_ngn": 30000,
+        "max_listings": -1,  # Unlimited
         "features": ["Unlimited listings", "Full analytics", "24/7 support", "Featured listings", "Promotional tools", "Verified seller badge"]
     }
 }
+
+async def get_subscription_plans_from_db():
+    """Get subscription plans from database or use defaults"""
+    settings = await db.settings.find_one({"key": "subscription_plans"})
+    if settings and settings.get("value"):
+        return settings["value"]
+    return DEFAULT_SUBSCRIPTION_PLANS
+
+# Keep SUBSCRIPTION_PLANS for backward compatibility
+SUBSCRIPTION_PLANS = DEFAULT_SUBSCRIPTION_PLANS
 
 class DeliveryOption(BaseModel):
     type: str = Field(..., pattern="^(local_pickup|city_to_city|international)$")
@@ -4084,8 +4097,9 @@ async def get_notifications(user: dict = Depends(get_current_user)):
 @api_router.get("/subscriptions/plans")
 async def get_subscription_plans():
     """Get all available subscription plans"""
+    plans = await get_subscription_plans_from_db()
     return {
-        "plans": list(SUBSCRIPTION_PLANS.values()),
+        "plans": list(plans.values()),
         "currencies": SUPPORTED_CURRENCIES
     }
 
@@ -4388,6 +4402,100 @@ async def get_message_stats(admin: dict = Depends(verify_admin)):
         "flagged": flagged,
         "approved": approved,
         "blocked": blocked
+    }
+
+# Admin subscription management routes
+@api_router.get("/admin/subscriptions/plans")
+async def admin_get_subscription_plans(admin: dict = Depends(verify_admin)):
+    """Get current subscription plans with edit capability"""
+    plans = await get_subscription_plans_from_db()
+    return {
+        "plans": plans,
+        "default_plans": DEFAULT_SUBSCRIPTION_PLANS
+    }
+
+@api_router.put("/admin/subscriptions/plans")
+async def admin_update_subscription_plans(
+    plans: dict = Body(...),
+    admin: dict = Depends(verify_admin)
+):
+    """Update subscription plan prices and features"""
+    # Validate plan structure
+    required_fields = ["id", "name", "duration_days", "price_usd", "price_ngn", "features"]
+    
+    for plan_id, plan_data in plans.items():
+        for field in required_fields:
+            if field not in plan_data:
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Missing field '{field}' in plan '{plan_id}'"
+                )
+        
+        # Validate price values
+        if plan_data["price_usd"] < 0 or plan_data["price_ngn"] < 0:
+            raise HTTPException(status_code=400, detail="Prices cannot be negative")
+        
+        if plan_data["duration_days"] < 1:
+            raise HTTPException(status_code=400, detail="Duration must be at least 1 day")
+    
+    # Save to database
+    await db.settings.update_one(
+        {"key": "subscription_plans"},
+        {
+            "$set": {
+                "value": plans,
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+                "updated_by": admin["id"]
+            }
+        },
+        upsert=True
+    )
+    
+    logger.info(f"[ADMIN] Subscription plans updated by {admin['email']}")
+    
+    return {
+        "success": True,
+        "message": "Subscription plans updated successfully",
+        "plans": plans
+    }
+
+@api_router.post("/admin/subscriptions/plans/reset")
+async def admin_reset_subscription_plans(admin: dict = Depends(verify_admin)):
+    """Reset subscription plans to default values"""
+    await db.settings.delete_one({"key": "subscription_plans"})
+    
+    logger.info(f"[ADMIN] Subscription plans reset to defaults by {admin['email']}")
+    
+    return {
+        "success": True,
+        "message": "Subscription plans reset to defaults",
+        "plans": DEFAULT_SUBSCRIPTION_PLANS
+    }
+
+@api_router.get("/admin/subscriptions/stats")
+async def admin_get_subscription_stats(admin: dict = Depends(verify_admin)):
+    """Get subscription statistics"""
+    total_subscriptions = await db.subscriptions.count_documents({})
+    active_subscriptions = await db.subscriptions.count_documents({"status": "active"})
+    expired_subscriptions = await db.subscriptions.count_documents({"status": "expired"})
+    
+    # Revenue by plan
+    pipeline = [
+        {"$match": {"status": {"$in": ["active", "expired"]}}},
+        {"$group": {
+            "_id": "$plan_id",
+            "count": {"$sum": 1},
+            "total_revenue_ngn": {"$sum": "$amount_ngn"},
+            "total_revenue_usd": {"$sum": "$amount_usd"}
+        }}
+    ]
+    revenue_by_plan = await db.subscriptions.aggregate(pipeline).to_list(10)
+    
+    return {
+        "total": total_subscriptions,
+        "active": active_subscriptions,
+        "expired": expired_subscriptions,
+        "by_plan": revenue_by_plan
     }
 
 @api_router.get("/admin/users")

@@ -67,7 +67,10 @@ import {
   UserX,
   Trash2,
   Filter,
-  CalendarPlus
+  CalendarPlus,
+  Settings,
+  CreditCard,
+  Check
 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -154,6 +157,12 @@ export default function AdminDashboard() {
     }
   });
   const [editingAdmin, setEditingAdmin] = useState(null);
+  
+  // Subscription management states
+  const [subscriptionPlans, setSubscriptionPlans] = useState({});
+  const [editingPlans, setEditingPlans] = useState({});
+  const [subscriptionStats, setSubscriptionStats] = useState(null);
+  const [savingPlans, setSavingPlans] = useState(false);
 
   useEffect(() => {
     // Wait for auth to finish loading
@@ -182,7 +191,7 @@ export default function AdminDashboard() {
     try {
       const headers = { Authorization: `Bearer ${token}` };
       
-      const [statsRes, usersRes, auctionsRes, payoutsRes, ordersRes, escrowsRes, campaignsRes, campaignStatsRes, autoSchedulesRes, pendingApprovalsRes, adminUsersRes] = await Promise.all([
+      const [statsRes, usersRes, auctionsRes, payoutsRes, ordersRes, escrowsRes, campaignsRes, campaignStatsRes, autoSchedulesRes, pendingApprovalsRes, adminUsersRes, subPlansRes, subStatsRes] = await Promise.all([
         axios.get(`${API}/admin/stats`, { headers }),
         axios.get(`${API}/admin/users`, { headers }),
         axios.get(`${API}/admin/auctions`, { headers }),
@@ -193,7 +202,9 @@ export default function AdminDashboard() {
         axios.get(`${API}/admin/campaigns/stats`, { headers }).catch(() => ({ data: {} })),
         axios.get(`${API}/admin/campaigns/auto-schedules`, { headers }).catch(() => ({ data: [] })),
         axios.get(`${API}/admin/users/pending-approval`, { headers }).catch(() => ({ data: [] })),
-        axios.get(`${API}/admin/admins`, { headers }).catch(() => ({ data: [] }))
+        axios.get(`${API}/admin/admins`, { headers }).catch(() => ({ data: [] })),
+        axios.get(`${API}/admin/subscriptions/plans`, { headers }).catch(() => ({ data: { plans: {} } })),
+        axios.get(`${API}/admin/subscriptions/stats`, { headers }).catch(() => ({ data: null }))
       ]);
       
       setStats(statsRes.data);
@@ -208,6 +219,9 @@ export default function AdminDashboard() {
       setPendingApprovals(pendingApprovalsRes.data);
       setAdminUsers(adminUsersRes.data);
       setPayouts(payoutsRes.data);
+      setSubscriptionPlans(subPlansRes.data.plans || {});
+      setEditingPlans(JSON.parse(JSON.stringify(subPlansRes.data.plans || {})));
+      setSubscriptionStats(subStatsRes.data);
     } catch (error) {
       console.error('Failed to fetch admin data:', error);
       setStats({
@@ -803,6 +817,51 @@ export default function AdminDashboard() {
     }
   };
 
+  // Subscription management functions
+  const handleUpdatePlanField = (planId, field, value) => {
+    setEditingPlans(prev => ({
+      ...prev,
+      [planId]: {
+        ...prev[planId],
+        [field]: field.includes('price') || field === 'duration_days' || field === 'max_listings' 
+          ? parseFloat(value) || 0 
+          : value
+      }
+    }));
+  };
+
+  const handleSaveSubscriptionPlans = async () => {
+    setSavingPlans(true);
+    try {
+      const headers = { Authorization: `Bearer ${token}` };
+      await axios.put(`${API}/admin/subscriptions/plans`, editingPlans, { headers });
+      toast.success('Subscription plans updated successfully');
+      setSubscriptionPlans(editingPlans);
+      fetchAdminData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to update subscription plans');
+    } finally {
+      setSavingPlans(false);
+    }
+  };
+
+  const handleResetSubscriptionPlans = async () => {
+    if (!confirm('Are you sure you want to reset all subscription plans to default values?')) return;
+    setSavingPlans(true);
+    try {
+      const headers = { Authorization: `Bearer ${token}` };
+      const response = await axios.post(`${API}/admin/subscriptions/plans/reset`, {}, { headers });
+      toast.success('Subscription plans reset to defaults');
+      setSubscriptionPlans(response.data.plans);
+      setEditingPlans(JSON.parse(JSON.stringify(response.data.plans)));
+      fetchAdminData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to reset subscription plans');
+    } finally {
+      setSavingPlans(false);
+    }
+  };
+
   const filteredEscrows = escrows.filter(e => 
     e.buyer?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     e.seller?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -1003,6 +1062,10 @@ export default function AdminDashboard() {
                   <TabsTrigger value="admins" className="text-xs md:text-sm whitespace-nowrap">
                     <ShieldCheck className="w-4 h-4 mr-1 md:mr-2" />
                     <span className="hidden sm:inline">Admins</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="subscriptions" className="text-xs md:text-sm whitespace-nowrap">
+                    <CreditCard className="w-4 h-4 mr-1 md:mr-2" />
+                    <span className="hidden sm:inline">Subscriptions</span>
                   </TabsTrigger>
                   <TabsTrigger value="marketing" className="text-xs md:text-sm whitespace-nowrap">
                     <Mail className="w-4 h-4 mr-1 md:mr-2" />
@@ -2148,6 +2211,213 @@ export default function AdminDashboard() {
                     )}
                   </CardContent>
                 </Card>
+              </TabsContent>
+
+              {/* Subscriptions Tab */}
+              <TabsContent value="subscriptions" className="mt-6">
+                <div className="space-y-6">
+                  {/* Subscription Stats */}
+                  {subscriptionStats && (
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <Card>
+                        <CardContent className="pt-6">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm text-muted-foreground">Total Subscriptions</p>
+                              <p className="text-2xl font-bold">{subscriptionStats.total || 0}</p>
+                            </div>
+                            <CreditCard className="w-8 h-8 text-primary" />
+                          </div>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardContent className="pt-6">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm text-muted-foreground">Active</p>
+                              <p className="text-2xl font-bold text-green-600">{subscriptionStats.active || 0}</p>
+                            </div>
+                            <CheckCircle className="w-8 h-8 text-green-500" />
+                          </div>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardContent className="pt-6">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm text-muted-foreground">Expired</p>
+                              <p className="text-2xl font-bold text-amber-600">{subscriptionStats.expired || 0}</p>
+                            </div>
+                            <Clock className="w-8 h-8 text-amber-500" />
+                          </div>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardContent className="pt-6">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm text-muted-foreground">Plans</p>
+                              <p className="text-2xl font-bold">{Object.keys(editingPlans).length}</p>
+                            </div>
+                            <Settings className="w-8 h-8 text-blue-500" />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  )}
+
+                  {/* Subscription Plans Editor */}
+                  <Card>
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle className="flex items-center gap-2">
+                            <CreditCard className="w-5 h-5" />
+                            Seller Subscription Plans
+                          </CardTitle>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Edit pricing and features for seller subscription plans
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleResetSubscriptionPlans}
+                            disabled={savingPlans}
+                          >
+                            <RefreshCw className="w-4 h-4 mr-2" />
+                            Reset to Defaults
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={handleSaveSubscriptionPlans}
+                            disabled={savingPlans}
+                            className="bg-primary"
+                          >
+                            {savingPlans ? (
+                              <>
+                                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                                Saving...
+                              </>
+                            ) : (
+                              <>
+                                <Check className="w-4 h-4 mr-2" />
+                                Save Changes
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {Object.entries(editingPlans).map(([planId, plan]) => (
+                          <Card key={planId} className="border-2 hover:border-primary/50 transition-colors">
+                            <CardHeader className="pb-2">
+                              <div className="flex items-center justify-between">
+                                <Badge variant={planId === 'monthly' ? 'default' : 'secondary'}>
+                                  {planId === 'monthly' ? 'Most Popular' : planId.replace('_', ' ')}
+                                </Badge>
+                                <span className="text-xs text-muted-foreground">{plan.duration_days} days</span>
+                              </div>
+                              <Input
+                                value={plan.name}
+                                onChange={(e) => handleUpdatePlanField(planId, 'name', e.target.value)}
+                                className="font-bold text-lg mt-2"
+                              />
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                              {/* Pricing */}
+                              <div className="space-y-3">
+                                <Label className="text-sm font-medium">Pricing</Label>
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div>
+                                    <Label className="text-xs text-muted-foreground">USD ($)</Label>
+                                    <div className="relative">
+                                      <DollarSign className="absolute left-2 top-2.5 w-4 h-4 text-muted-foreground" />
+                                      <Input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        value={plan.price_usd}
+                                        onChange={(e) => handleUpdatePlanField(planId, 'price_usd', e.target.value)}
+                                        className="pl-8"
+                                      />
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <Label className="text-xs text-muted-foreground">NGN (₦)</Label>
+                                    <div className="relative">
+                                      <span className="absolute left-2 top-2.5 text-sm text-muted-foreground">₦</span>
+                                      <Input
+                                        type="number"
+                                        step="100"
+                                        min="0"
+                                        value={plan.price_ngn}
+                                        onChange={(e) => handleUpdatePlanField(planId, 'price_ngn', e.target.value)}
+                                        className="pl-8"
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Duration */}
+                              <div>
+                                <Label className="text-xs text-muted-foreground">Duration (days)</Label>
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  value={plan.duration_days}
+                                  onChange={(e) => handleUpdatePlanField(planId, 'duration_days', e.target.value)}
+                                />
+                              </div>
+
+                              {/* Max Listings */}
+                              <div>
+                                <Label className="text-xs text-muted-foreground">Max Listings (-1 = unlimited)</Label>
+                                <Input
+                                  type="number"
+                                  min="-1"
+                                  value={plan.max_listings || -1}
+                                  onChange={(e) => handleUpdatePlanField(planId, 'max_listings', e.target.value)}
+                                />
+                              </div>
+
+                              {/* Features */}
+                              <div>
+                                <Label className="text-xs text-muted-foreground mb-2 block">Features</Label>
+                                <div className="space-y-1">
+                                  {plan.features?.map((feature, idx) => (
+                                    <div key={idx} className="flex items-center gap-2 text-sm">
+                                      <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                                      <span>{feature}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+
+                      {Object.keys(editingPlans).length === 0 && (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <CreditCard className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                          <p>No subscription plans found</p>
+                          <Button
+                            variant="outline"
+                            className="mt-4"
+                            onClick={handleResetSubscriptionPlans}
+                          >
+                            Initialize Default Plans
+                          </Button>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
               </TabsContent>
             </Tabs>
           </>
