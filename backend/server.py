@@ -2508,28 +2508,47 @@ async def search_auctions(
 
 @api_router.get("/auctions/categories")
 async def get_categories():
-    categories = [
-        {"name": "Vegetables", "image": "https://images.unsplash.com/photo-1669154777196-aca4d45b581a?crop=entropy&cs=srgb&fm=jpg&q=85", "count": 0},
-        {"name": "Fruits", "image": "https://images.unsplash.com/photo-1650012048722-c81295ccbe79?crop=entropy&cs=srgb&fm=jpg&q=85", "count": 0},
-        {"name": "Grains", "image": "https://images.pexels.com/photos/7843989/pexels-photo-7843989.jpeg", "count": 0},
-        {"name": "Dairy", "image": "https://images.unsplash.com/photo-1628088062854-d1870b4553da?w=800", "count": 0},
-        {"name": "Organic", "image": "https://images.unsplash.com/photo-1542838132-92c53300491e?w=800", "count": 0},
-        {"name": "Livestock", "image": "https://images.unsplash.com/photo-1500595046743-cd271d694d30?w=800", "count": 0},
-        {"name": "Poultry", "image": "https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?w=800", "count": 0},
-        {"name": "Fishery", "image": "https://images.unsplash.com/photo-1544943910-4c1dc44aab44?w=800", "count": 0},
-        {"name": "Pest Control", "image": "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=800", "count": 0},
-        {"name": "Piggery", "image": "https://images.unsplash.com/photo-1516467508483-a7212febe31a?w=800", "count": 0},
-        {"name": "Farm Books", "image": "https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=800", "count": 0},
-        {"name": "Machinery", "image": "https://images.unsplash.com/photo-1530267981375-f0de937f5f13?w=800", "count": 0}
+    # Define category images
+    category_images = {
+        "Vegetables": "https://images.unsplash.com/photo-1669154777196-aca4d45b581a?crop=entropy&cs=srgb&fm=jpg&q=85",
+        "Fruits": "https://images.unsplash.com/photo-1650012048722-c81295ccbe79?crop=entropy&cs=srgb&fm=jpg&q=85",
+        "Grains": "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=800",
+        "Dairy": "https://images.unsplash.com/photo-1628088062854-d1870b4553da?w=800",
+        "Tubers": "https://images.unsplash.com/photo-1590165482129-1b8b27698780?w=800",
+        "Legumes": "https://images.unsplash.com/photo-1551462147-ff29053bfc14?w=800",
+        "Poultry": "https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?w=800",
+        "Seafood": "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800",
+        "Spices": "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=800",
+        "Oils": "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=800",
+        "Livestock": "https://images.unsplash.com/photo-1500595046743-cd271d694d30?w=800",
+        "Organic": "https://images.unsplash.com/photo-1542838132-92c53300491e?w=800",
+        "Machinery": "https://images.unsplash.com/photo-1530267981375-f0de937f5f13?w=800"
+    }
+    
+    # Get all unique categories from active auctions
+    pipeline = [
+        {"$match": {"is_active": True, "ends_at": {"$gt": datetime.now(timezone.utc).isoformat()}}},
+        {"$group": {"_id": "$category", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}}
     ]
     
-    for cat in categories:
-        count = await db.auctions.count_documents({
-            "category": cat["name"],
-            "is_active": True,
-            "ends_at": {"$gt": datetime.now(timezone.utc).isoformat()}
-        })
-        cat["count"] = count
+    db_categories = await db.auctions.aggregate(pipeline).to_list(50)
+    
+    # Build categories list with images
+    categories = []
+    for cat in db_categories:
+        cat_name = cat["_id"]
+        if cat_name:
+            categories.append({
+                "name": cat_name,
+                "image": category_images.get(cat_name, "https://images.unsplash.com/photo-1542838132-92c53300491e?w=800"),
+                "count": cat["count"]
+            })
+    
+    # Add predefined categories with no listings
+    for name, image in category_images.items():
+        if not any(c["name"] == name for c in categories):
+            categories.append({"name": name, "image": image, "count": 0})
     
     return categories
 
