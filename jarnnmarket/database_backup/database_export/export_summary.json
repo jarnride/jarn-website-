@@ -1,0 +1,15 @@
+{
+  "exported_at": "2026-03-07T07:42:31.997903",
+  "database_name": "test_database",
+  "collections": {
+    "auctions": 30,
+    "bids": 3,
+    "email_verifications": 2,
+    "messages": 3,
+    "offers": 1,
+    "payment_transactions": 12,
+    "settings": 1,
+    "users": 6,
+    "wishlists": 1
+  }
+}

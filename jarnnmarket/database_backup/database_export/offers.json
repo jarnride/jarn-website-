@@ -1,0 +1,14 @@
+[
+  {
+    "id": "c9dba2b4-2e29-4944-9a47-44ce7420c976",
+    "auction_id": "4d874d1a-d58a-4fe5-a687-0c0eb5cc2ab2",
+    "buyer_id": "5e8ec654-51db-43b8-9b7f-ca93cf4f8114",
+    "buyer_name": "Demo Buyer",
+    "seller_id": "d0f5f481-5300-4d7d-a107-f56c815f0d1e",
+    "amount": 300.0,
+    "message": "let me have your number",
+    "status": "pending",
+    "created_at": "2026-03-04T13:38:58.700394+00:00",
+    "responded_at": null
+  }
+]

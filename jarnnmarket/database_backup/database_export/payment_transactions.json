@@ -1,0 +1,161 @@
+[
+  {
+    "id": "dc040c85-4d5e-4ebf-bb17-53b3766c0079",
+    "session_id": "cs_test_a1G16AI7fQQ2MJTR5ABgSnbWd0kbbbaMLtsGDIzGium7Yt2N113SVLrwBu",
+    "auction_id": "39749d25-7ee9-4e0d-bcc6-fe1c8aeb1ee0",
+    "user_id": "5e8ec654-51db-43b8-9b7f-ca93cf4f8114",
+    "amount": 180.0,
+    "currency": "USD",
+    "payment_method": "stripe",
+    "payment_status": "pending",
+    "payment_type": "buy_now",
+    "order_details": {
+      "delivery_option": null,
+      "delivery_address": null,
+      "delivery_cost": 0.0,
+      "item_price": 180.0,
+      "total_amount": 180.0,
+      "currency": "USD"
+    },
+    "metadata": {
+      "auction_title": "Fresh Avocados - 200 pieces"
+    },
+    "created_at": "2026-03-02T08:32:32.541104+00:00"
+  },
+  {
+    "id": "318a164b-5b4c-44b0-b1dc-f7507bb78cf7",
+    "reference": "JM-39749D25-AE094837",
+    "auction_id": "39749d25-7ee9-4e0d-bcc6-fe1c8aeb1ee0",
+    "buyer_id": "5e8ec654-51db-43b8-9b7f-ca93cf4f8114",
+    "amount": 50000.0,
+    "currency": "NGN",
+    "payment_method": "paystack",
+    "status": "pending",
+    "created_at": "2026-03-02T08:32:33.806834+00:00"
+  },
+  {
+    "id": "03c216e7-9ab5-44b0-87be-d7b3263168b9",
+    "reference": "JM-47A6F5C5-0F789C18",
+    "auction_id": "47a6f5c5-cdc4-4adc-8a25-05212e640342",
+    "buyer_id": "5e8ec654-51db-43b8-9b7f-ca93cf4f8114",
+    "amount": 50000.0,
+    "currency": "NGN",
+    "payment_method": "paystack",
+    "status": "pending",
+    "created_at": "2026-03-02T08:33:11.637409+00:00"
+  },
+  {
+    "id": "e7c930fc-e81b-435b-a6ef-3e03e3809253",
+    "reference": "JM-47A6F5C5-E621C7CE",
+    "auction_id": "47a6f5c5-cdc4-4adc-8a25-05212e640342",
+    "buyer_id": "efb7aaa3-3bc5-432f-8a12-3fd79d360d6e",
+    "amount": 75000.0,
+    "currency": "NGN",
+    "payment_method": "paystack",
+    "status": "pending",
+    "created_at": "2026-03-02T08:33:27.269155+00:00"
+  },
+  {
+    "id": "d60ae993-ae32-4a43-b635-56394b7691c4",
+    "session_id": "cs_test_a1ETBzlpMHduJdE9Jytg5STfFtQowqgv2sitgcoA65bljrdlPogkW1K2jz",
+    "auction_id": "39749d25-7ee9-4e0d-bcc6-fe1c8aeb1ee0",
+    "user_id": "5e8ec654-51db-43b8-9b7f-ca93cf4f8114",
+    "amount": 180.0,
+    "currency": "usd",
+    "payment_method": "stripe",
+    "payment_status": "pending",
+    "metadata": {
+      "auction_title": "Fresh Avocados - 200 pieces"
+    },
+    "created_at": "2026-03-02T08:39:03.556010+00:00"
+  },
+  {
+    "id": "3e4bdef0-a5a4-4c50-b9f9-6ee7820fa6ca",
+    "reference": "JM-47A6F5C5-BAB4AD5B",
+    "auction_id": "47a6f5c5-cdc4-4adc-8a25-05212e640342",
+    "buyer_id": "5e8ec654-51db-43b8-9b7f-ca93cf4f8114",
+    "amount": 60.0,
+    "currency": "NGN",
+    "payment_method": "paystack",
+    "status": "pending",
+    "created_at": "2026-03-02T08:42:57.391953+00:00"
+  },
+  {
+    "id": "65d84f5b-62c5-4a01-9334-fe3f08458c75",
+    "reference": "JM-0D47A77A-873DDDD9",
+    "auction_id": "0d47a77a-1b9b-46cc-a423-291b4fef995d",
+    "buyer_id": "5e8ec654-51db-43b8-9b7f-ca93cf4f8114",
+    "amount": 15000.0,
+    "currency": "NGN",
+    "payment_method": "paystack",
+    "status": "pending",
+    "created_at": "2026-03-02T08:55:52.822112+00:00"
+  },
+  {
+    "id": "44512060-a51d-47a6-b5eb-7ef78294740a",
+    "reference": "JM-0D47A77A-D2EFE56E",
+    "auction_id": "0d47a77a-1b9b-46cc-a423-291b4fef995d",
+    "buyer_id": "5e8ec654-51db-43b8-9b7f-ca93cf4f8114",
+    "amount": 150.0,
+    "currency": "NGN",
+    "payment_method": "paystack",
+    "status": "pending",
+    "created_at": "2026-03-02T09:14:14.426671+00:00"
+  },
+  {
+    "id": "25312a09-c892-47fc-825a-0b48009d6f42",
+    "reference": "JM-47A6F5C5-1C0B58C9",
+    "auction_id": "47a6f5c5-cdc4-4adc-8a25-05212e640342",
+    "buyer_id": "5e8ec654-51db-43b8-9b7f-ca93cf4f8114",
+    "amount": 60.0,
+    "currency": "NGN",
+    "payment_method": "paystack",
+    "status": "pending",
+    "created_at": "2026-03-02T09:28:48.274977+00:00"
+  },
+  {
+    "id": "14ee0c44-657b-43b4-bd10-9df986e0092b",
+    "reference": "JM-47A6F5C5-62F290FE",
+    "auction_id": "47a6f5c5-cdc4-4adc-8a25-05212e640342",
+    "buyer_id": "5e8ec654-51db-43b8-9b7f-ca93cf4f8114",
+    "amount": 60.0,
+    "currency": "NGN",
+    "payment_method": "paystack",
+    "status": "pending",
+    "created_at": "2026-03-02T09:29:11.433951+00:00"
+  },
+  {
+    "id": "23d53471-41b6-4924-bb0e-6c0c223c1ea0",
+    "paypal_order_id": "PAYPAL_FALLBACK_B634EE3306D2",
+    "auction_id": "47a6f5c5-cdc4-4adc-8a25-05212e640342",
+    "user_id": "5e8ec654-51db-43b8-9b7f-ca93cf4f8114",
+    "amount": 60.0,
+    "currency": "USD",
+    "payment_method": "paypal",
+    "payment_status": "pending",
+    "payment_type": "buy_now",
+    "order_details": {
+      "delivery_option": "local_pickup",
+      "delivery_address": "Test Address",
+      "delivery_cost": 0.0,
+      "item_price": 60.0,
+      "total_amount": 60.0,
+      "currency": "USD"
+    },
+    "metadata": {
+      "auction_title": "Organic Spinach - 30kg Fresh"
+    },
+    "created_at": "2026-03-02T09:29:11.843560+00:00"
+  },
+  {
+    "id": "3f949cc3-c60a-431b-95be-1890b2bf2ba8",
+    "reference": "JM-533B7D44-600167DF",
+    "auction_id": "533b7d44-dc25-449c-b003-ca6909772446",
+    "buyer_id": "396da1e6-a8c2-4efb-8430-725653d984b1",
+    "amount": 400.0,
+    "currency": "NGN",
+    "payment_method": "paystack",
+    "status": "pending",
+    "created_at": "2026-03-03T22:01:39.005438+00:00"
+  }
+]

@@ -1,0 +1,26 @@
+[
+  {
+    "id": "b2cd6861-24f9-47d2-9c65-dad5d89e3323",
+    "auction_id": "39749d25-7ee9-4e0d-bcc6-fe1c8aeb1ee0",
+    "bidder_id": "5e8ec654-51db-43b8-9b7f-ca93cf4f8114",
+    "bidder_name": "Demo Buyer",
+    "amount": 100.0,
+    "created_at": "2026-03-02T08:32:29.434692+00:00"
+  },
+  {
+    "id": "f3add2a1-602f-4904-a55a-4d2d74a79d36",
+    "auction_id": "c382389f-9b68-4422-ab22-b30663f2d619",
+    "bidder_id": "5e8ec654-51db-43b8-9b7f-ca93cf4f8114",
+    "bidder_name": "Demo Buyer",
+    "amount": 180.98,
+    "created_at": "2026-03-02T08:44:26.971880+00:00"
+  },
+  {
+    "id": "44a3e0b6-3a4b-488a-b0d2-4adc565b6e85",
+    "auction_id": "0d47a77a-1b9b-46cc-a423-291b4fef995d",
+    "bidder_id": "5e8ec654-51db-43b8-9b7f-ca93cf4f8114",
+    "bidder_name": "Demo Buyer",
+    "amount": 76.0,
+    "created_at": "2026-03-02T09:42:49.068883+00:00"
+  }
+]
