@@ -71,7 +71,7 @@ EMAIL_FROM = os.environ.get('EMAIL_FROM', 'noreply@jarnnmarket.com')
 EMAIL_MOCK_MODE = EMAIL_PROVIDER == 'MOCK'
 
 # Frontend URL for verification pages
-FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://paystack-jarnn.preview.emergentagent.com')
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
 
 # High-value bid threshold for notifications
 HIGH_VALUE_BID_THRESHOLD = float(os.environ.get('HIGH_VALUE_BID_THRESHOLD', '100'))
